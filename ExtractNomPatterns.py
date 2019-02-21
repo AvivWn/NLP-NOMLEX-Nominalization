@@ -15,7 +15,7 @@ def load_json_data(json_file_name):
 	return data
 
 
-def get_pairs(entry):
+def get_patterns(entry):
 	"""
 	Returns the possible object and subject pairs for the given entry
 	:param entry: a dictionary info of a specific nominalization
@@ -27,54 +27,51 @@ def get_pairs(entry):
 	default_subjects.append("PP-BY")
 
 	# Checking if NOT-PP-BY appeared
-	for subj in default_subjects:
-		if subj == "NOT-PP-BY":
-			default_subjects.remove("PP-BY")
-			default_subjects.remove("NOT-PP-BY")
+	if "NOT-PP-BY" in default_subjects:
+		default_subjects.remove("PP-BY")
+		default_subjects.remove("NOT-PP-BY")
 
-	patterns = list(itertools.product(default_subjects, ["NONE"]))
+	patterns = []
+	#patterns = list(itertools.product(default_subjects, ["NONE"], ["NONE"]))
 
 	required_list = list(entry.get("REQUIRED", {}).keys())
 
-
 	for subcat, subcat_info in entry.get("VERB-SUBC", {}).items():
-		objects_subentry = subcat_info.get("OBJECT", {})
+		objects_subentry = subcat_info.get("OBJECT", {"NOM-IS-OBJ": {}})
 		subjects_subentry = subcat_info.get("SUBJECT", {})
+		ind_objects_subentry = subcat_info.get("IND-OBJ", {"NONE": {}})
+		ind_objects = list(ind_objects_subentry.keys())
 
 		if objects_subentry != "NONE" and subjects_subentry != "NONE":
 			objects = list(objects_subentry.keys())
 			subjects = list(subjects_subentry.keys())
 
 			subjects.append("PP-BY")
-			# Checking if NOT-PP-BY appeared
-			for subj in subjects:
-				if subj == "NOT-PP-BY":
-					subjects.remove("PP-BY")
-					subjects.remove("NOT-PP-BY")
+			if "NOT-PP-BY" in subjects:
+				subjects.remove("PP-BY")
+				subjects.remove("NOT-PP-BY")
 
 			if subjects == []:
 				subjects = default_subjects
 
 			if "SUBJECT" not in required_list:
-				patterns += list(itertools.product(["NONE"], objects_subentry.keys()))
+				patterns += list(itertools.product(["NONE"], objects_subentry.keys(), ind_objects))
 
 			if "OBJECT" not in required_list:
-				patterns += list(itertools.product(subjects_subentry.keys(), ["NONE"]))
+				patterns += list(itertools.product(subjects, ["NONE"], ind_objects))
 
-			patterns += list(itertools.product(subjects, objects))
+			patterns += list(itertools.product(subjects, objects, ind_objects))
 		elif objects_subentry != "NONE":
-			patterns += list(itertools.product(["NONE"], objects_subentry.keys()))
+			patterns += list(itertools.product(["NONE"], objects_subentry.keys(), ind_objects))
 		elif subjects_subentry != "NONE":
 			subjects = list(subjects_subentry.keys())
 
 			subjects.append("PP-BY")
-			# Checking if NOT-PP-BY appeared
-			for subj in subjects:
-				if subj == "NOT-PP-BY":
-					subjects.remove("PP-BY")
-					subjects.remove("NOT-PP-BY")
+			if "NOT-PP-BY" in subjects:
+				subjects.remove("PP-BY")
+				subjects.remove("NOT-PP-BY")
 
-			patterns += list(itertools.product(subjects, ["NONE"]))
+			patterns += list(itertools.product(subjects, ["NONE"], ind_objects))
 
 	return patterns
 
@@ -90,12 +87,13 @@ def extract_nom_patterns(json_file_name):
 	patterns = []
 
 	for _, entry in entries.items():
-		pairs = get_pairs(entry)
-		patterns += pairs
+		patterns += get_patterns(entry)
 
-	print(Counter(patterns))
+	patterns_counter = Counter(patterns)
+	print(patterns_counter)
+	print(len(patterns_counter))
 
-	return Counter(patterns)
+	return patterns_counter
 
 
 if __name__ == '__main__':
