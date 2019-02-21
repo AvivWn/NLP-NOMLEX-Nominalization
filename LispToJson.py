@@ -62,7 +62,7 @@ def get_list(lines, index, in_line_index):
 			index += 1
 			in_line_index = 0
 
-	if len(curr_list) == 1 and type(curr_list[0]) != list and curr_list[0].islower():
+	if len(curr_list) == 1 and (type(curr_list[0]) != list and curr_list[0].islower()) or curr_list[0] == "NONE":
 		curr_list = curr_list[0]
 
 	return index, in_line_index, curr_list
