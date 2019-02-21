@@ -142,14 +142,10 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			},
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": "\"from\""
 			}
 		}
@@ -1441,9 +1437,7 @@
 					"DET-POSS": {},
 					"PP-OF": {}
 				},
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PASSIVE-NOM": "T"
 			},
 			"NOM-NP-PP": {
@@ -5260,16 +5254,12 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-P-POSSING": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"for\"", "\"on\""],
 				"PVAL-NOM": "\"for\""
 			},
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"for\"", "\"on\""],
 				"PVAL-NOM": "\"for\""
 			}
@@ -6037,9 +6027,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -6054,9 +6042,7 @@
 				}
 			},
 			"NOM-POSSING": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			}
 		}
 	},
@@ -6338,9 +6324,7 @@
 				}
 			},
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"against\"", "\"for\"", "\"on\"", "\"with\""],
 				"NOM-ROLE-FOR-PVAL": {
 					"N-N-MOD": {}
@@ -6400,9 +6384,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"under\"", "\"p-dir\""],
 				"PVAL-NOM": "\"p-dir\""
 			},
@@ -7737,9 +7719,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			}
 		}
 	},
@@ -7988,9 +7968,7 @@
 				"PVAL": "\"on\""
 			},
 			"NOM-NP-P-ING-SC": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": "\"on\""
 			},
 			"NOM-P-WH-S": {
@@ -8187,9 +8165,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-TO-INF-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				},
@@ -8339,17 +8315,13 @@
 				}
 			},
 			"NOM-NP-ADVP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			},
 			"NOM-NP-AS-NP": {
 				"SUBJECT": {
 					"DET-POSS": {}
 				},
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			}
 		}
 	},
@@ -13084,9 +13056,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-P-ING-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -13094,9 +13064,7 @@
 				"PVAL": "\"from\""
 			},
 			"NOM-NP-PP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -13969,9 +13937,7 @@
 				"PVAL-NOM": "\"from\""
 			},
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -14098,9 +14064,7 @@
 				}
 			},
 			"NOM-INTRANS": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			}
 		}
 	},
@@ -14142,9 +14106,7 @@
 					"\"into\"","\"in\"", "\"over\"", "\"with\""],
 				"NOT": {
 					"AND1": {
-						"SUBJECT": {
-							"NONE": {}
-						},
+						"SUBJECT": "NONE",
 						"PVAL": ["\"between\"", "\"among\"", "\"with\""]
 					}
 				}
@@ -15705,17 +15667,13 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-TO-INF-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				}
 			},
 			"NOM-NP-PP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				},
@@ -16063,16 +16021,12 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-PP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"PVAL": [
 					"\"from\"","\"of\"", "\"to\""]
 			},
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			}
 		}
 	},
@@ -16222,14 +16176,10 @@
 		},
 		"VERB-SUBC": {
 			"NOM-THAT-S": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			},
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"PP-OF": {}
 				}
@@ -16547,9 +16497,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-P-ING-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				},
@@ -18635,9 +18583,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"off", "of\"", "\"p-dir\"", "\"with\""]
 			},
 			"NOM-PP": {
@@ -19434,9 +19380,7 @@
 				"PVAL-NOM": ["\"on\"", "\"upon\""]
 			},
 			"NOM-PP-THAT-S": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"PVAL1": ["\"upon\"", "\"on\""],
 				"NOM-ROLE-FOR-PVAL1": {
 					"DET-POSS": {}
@@ -19619,9 +19563,7 @@
 				"PVAL": "\"to\""
 			},
 			"NOM-NP-TO-INF-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				}
@@ -21376,9 +21318,7 @@
 					"\"in\"","\"into\"", "\"to\""]
 			},
 			"NOM-NP-P-ING": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -21630,9 +21570,7 @@
 				}
 			},
 			"NOM-NP-AS-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				}
@@ -21698,9 +21636,7 @@
 				}
 			},
 			"NOM-NP-P-POSSING": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -22811,9 +22747,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-PP": {
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PVAL": ["\"in\"", "\"through\""]
 			},
 			"NOM-AS-NP": {
@@ -22822,9 +22756,7 @@
 				}
 			},
 			"NOM-NP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			},
 			"NOM-INTRANS": {}
 		}
@@ -23723,9 +23655,7 @@
 				"SUBJECT": {
 					"DET-POSS": {}
 				},
-				"OBJECT": {
-					"NONE": {}
-				},
+				"OBJECT": "NONE",
 				"PASSIVE-NOM": "T"
 			},
 			"NOM-NP-AS-NP": {
@@ -23854,9 +23784,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"N-N-MOD": {},
@@ -23864,9 +23792,7 @@
 				}
 			},
 			"NOM-NP-PP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -24257,9 +24183,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-TO-INF-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -25368,9 +25292,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			}
 		}
 	},
@@ -27261,19 +27183,13 @@
 		},
 		"VERB-SUBC": {
 			"NOM-S-SUBJUNCT": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			},
 			"NOM-THAT-S": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			},
 			"NOM-S": {
-				"SUBJECT": {
-					"NONE": {}
-				}
+				"SUBJECT": "NONE"
 			},
 			"NOM-NP": {
 				"OBJECT": {
@@ -27326,9 +27242,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP-TO-INF-OC": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {}
 				},
@@ -31754,9 +31668,7 @@
 				}
 			},
 			"NOM-NP-ADVP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -32097,9 +32009,7 @@
 				"PVAL": "\"with\""
 			},
 			"NOM-NP-AS-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -32430,9 +32340,7 @@
 					"\"for\"","\"in\"", "\"with\""]
 			},
 			"NOM-NP-PP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -32440,9 +32348,7 @@
 				"PVAL": ["\"for\"", "\"in\""]
 			},
 			"NOM-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -32664,9 +32570,7 @@
 				}
 			},
 			"NOM-NP-S": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP-OF": {}
@@ -34785,9 +34689,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-PART-NP": {
-				"SUBJECT": {
-					"NONE": {}
-				},
+				"SUBJECT": "NONE",
 				"OBJECT": {
 					"N-N-MOD": {},
 					"PP-OF": {}
@@ -36591,9 +36493,7 @@
 		},
 		"VERB-SUBC": {
 			"NOM-NP": {
-				"OBJECT": {
-					"NONE": {}
-				}
+				"OBJECT": "NONE"
 			},
 			"NOM-S-SUBJUNCT": {},
 			"NOM-NP-TO-INF-OC": {
