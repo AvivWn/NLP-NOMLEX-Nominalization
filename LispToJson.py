@@ -15,7 +15,7 @@ def parse_lines(lisp_file_name):
 	for line in file_lines:
 		if line != "\n":
 			# Spacing up all the opening\closing brackets
-			temp_splitted_line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").split(' ')
+			temp_splitted_line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
 			splitted_line = []
 
 			for i in range(len(temp_splitted_line)):
@@ -37,6 +37,8 @@ def get_list(lines, index, in_line_index):
 	:return: the updated indexes and a list of data that was found
 	"""
 
+	#curr_tag = lines[index][in_line_index - 2].replace(":", "")
+	#print(curr_tag)
 	curr_list = []
 
 	# Waiting to the relevant closing brackets sign
@@ -62,7 +64,7 @@ def get_list(lines, index, in_line_index):
 			index += 1
 			in_line_index = 0
 
-	if len(curr_list) == 1 and (type(curr_list[0]) != list and curr_list[0].islower()) or curr_list[0] == "NONE":
+	if curr_list[0] == "NONE":
 		curr_list = curr_list[0]
 
 	return index, in_line_index, curr_list
