@@ -4,6 +4,10 @@ from collections import Counter
 from allennlp.predictors.predictor import Predictor
 from nltk.stem import PorterStemmer
 
+import LispToJson
+
+det = "the"
+
 ############################################### Extracting Patterns ##############################################
 
 def update_option(options, info, role):
@@ -19,10 +23,10 @@ def update_option(options, info, role):
 		return options
 
 	if role == "SUBJECT" or not role:
-		options.append("PP-by")
+		options.append("PP-BY")
 
 		if "NOT-PP-BY" in options:
-			options.remove("PP-by")
+			options.remove("PP-BY")
 			options.remove("NOT-PP-BY")
 
 	elif role == "IND-OBJ":
@@ -30,7 +34,7 @@ def update_option(options, info, role):
 			options.remove("IND-OBJ-OTHER")
 
 			other_info = info[role]["IND-OBJ-OTHER"]
-			options += list(other_info.values())[0]
+			options += ["IND-OBJ-" + s.upper() for s in list(other_info.values())[0]]
 
 	if "PP" in options:
 		options.remove("PP")
@@ -41,11 +45,7 @@ def update_option(options, info, role):
 			PP_info = info["PP"]
 
 		if len(PP_info.get("PVAL", [])) > 0:
-			options += ["PP-" + s.lower() for s in list(PP_info.get("PVAL", []))]
-
-	if "PP-OF" in options:
-		options.remove("PP-OF")
-		options.append("PP-of")
+			options += ["PP-" + s.upper() for s in list(PP_info.get("PVAL", []))]
 
 	return options
 
@@ -148,7 +148,7 @@ def extract_nom_patterns(entries, subcat=None):
 
 ############################################### Verbal to Nominal ################################################
 
-def get_nom_entries(entries, verb):
+def get_nomlex_entries(entries, verb):
 	"""
 	Returns the relevant nominalization entries for a specific verb
 	:param entries: a dictionary of all the entries in NOMLEX lexicon
@@ -164,6 +164,52 @@ def get_nom_entries(entries, verb):
 
 	return relevant_entries
 
+def detect_comlex_subcat(sent, verb):
+	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
+	phrases_tree = predictor.predict(sentence=sent)['trees']
+	#print(phrases_tree)
+
+	num_of_brackets = 0
+	curr_str = ""
+	tags = []
+	found_VP = False
+	found_verb = False
+
+	for char in phrases_tree:
+		if char == "(":
+			num_of_brackets += 1
+		elif char == ")":
+			num_of_brackets -= 1
+
+			if found_VP and num_of_brackets == 1:
+				break
+		elif char == " ":
+			if curr_str == "VP":
+				found_VP = True
+
+			if found_VP and curr_str == verb:
+				found_verb = True
+
+			if found_verb and (curr_str == "NP" or curr_str == "PP"):
+				tags.append(curr_str)
+
+			curr_str = ""
+		else:
+			curr_str += char
+
+	print(tags)
+
+	if " ".join(tags).count("PP") >= 2:
+		return "NOM-PP-PP"
+	elif "NP NP" in " ".join(tags):
+		return "NOM-NP-NP"
+	elif "NP PP" in " ".join(tags):
+		return "NOM-NP-PP"
+	elif "NP" in " ".join(tags):
+		return "NOM-NP"
+
+	return "NONE"
+
 def process_a_sentence(sent):
 	"""
 	Processes a sentence
@@ -172,19 +218,13 @@ def process_a_sentence(sent):
 	"""
 
 	verb = "NONE"
+	original_verb = "NONE"
 	subject = "NONE"
 	object = "NONE"
 	indobject = "NONE"
-	subcat = "NONE"
 
 	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/openie-model.2018-08-20.tar.gz")
 	dependency_tree = predictor.predict(sentence=sent)
-
-	"""
-	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
-	parse_tree = predictor.predict(sentence=sent)
-	print(dict(parse_tree))
-	"""
 
 	# Assuming- Choosing the first verb
 	verb_args = dependency_tree.get('verbs', [{}])[0].get('description', '').split("]")
@@ -196,15 +236,22 @@ def process_a_sentence(sent):
 		if "ARG1:" in verb_arg:
 			object = verb_arg[verb_arg.index(":") + 2:]
 
+		if "ARG2:" in verb_arg:
+			indobject = verb_arg[verb_arg.index(":") + 2:]
+
 		if "V:" in verb_arg:
-			verb = verb_arg[verb_arg.index(":") + 2:]
+			original_verb = verb_arg[verb_arg.index(":") + 2:]
 
 			stemmer = PorterStemmer()
-			verb = stemmer.stem(verb)
+			verb = stemmer.stem(original_verb)
 
-	subcat = 'NOM-NP'
+	arguments = {"verb": verb, "subject": subject, "object": object, "indobject": indobject}
 
-	return {"verb": verb, "subject": subject, "object": object, "indobject": indobject, "subcat": subcat}
+	subcat = detect_comlex_subcat(sent, original_verb)
+	arguments.update({"subcat": subcat})
+
+	#print(arguments)
+	return arguments
 
 def pattern_to_sent(nominalization, pattern, arguments):
 	"""
@@ -216,53 +263,91 @@ def pattern_to_sent(nominalization, pattern, arguments):
 	"""
 
 	pattern = {"subject": pattern[0], "object": pattern[1], "indobject": pattern[2]}
+
+	if (arguments["subject"] == "NONE" and pattern["subject"] != "NONE") or \
+	   (arguments["object"] == "NONE" and pattern["object"] != "NONE") or \
+	   (arguments["indobject"] == "NONE" and pattern["indobject"] != "NONE"):
+		return []
+
 	sentences = []
 
-	if pattern["subject"].startswith("PP-"):
-		subj_pp = pattern["subject"].replace("PP-", "")
-		if pattern["object"].startswith("PP-"):
-			obj_pp = pattern["object"].replace("PP-", "")
-			sentences.append("The " + nominalization + " " + subj_pp + " " + arguments["subject"] + " " + obj_pp + " " + arguments["object"])
-			sentences.append("The " + nominalization + " " + obj_pp + " " + arguments["object"] + " " + subj_pp + " " + arguments["subject"])
-		elif pattern["object"] == "DET-POSS":
-			sentences.append(arguments["object"] + "'s " + nominalization  + " " + subj_pp + " " + arguments["subject"])
-		elif pattern["object"] == "N-N-MOD":
-			sentences.append("The " + arguments["object"] + " " + nominalization + " " + subj_pp + " " + arguments["subject"])
-		elif pattern["object"] == "NONE" or pattern["object"] == "NOM-IS-OBJ":
-			sentences.append("The " + nominalization + " " + subj_pp + " " + arguments["subject"])
-
-	elif pattern["subject"] == "DET-POSS":
-		if pattern["object"].startswith("PP-"):
-			obj_pp = pattern["object"].replace("PP-", "")
-			sentences.append(arguments["subject"] + "'s " + nominalization + " " + obj_pp + " " + arguments["object"])
-		elif pattern["object"] == "DET-POSS":
-			pass # both object and subject cannot be DET-POS
-		elif pattern["object"] == "N-N-MOD":
-			sentences.append(arguments["subject"] + "'s " + arguments["object"] + " " + nominalization)
-		elif pattern["object"] == "NONE" or pattern["object"] == "NOM-IS-OBJ":
-			sentences.append(arguments["subject"] + "'s " + nominalization)
+	# Building the sentence before the nominalization
+	# The order of the words before the nominalization must be: subject > indobject > (direct) object
+	if pattern["subject"] == "DET-POSS":
+		if pattern["object"] == "N-N-MOD":
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = arguments["subject"] + "'s " + arguments["indobject"] + " " + arguments["object"] + " "
+			else:
+				pre_nom = arguments["subject"] + "'s " + arguments["object"] + " "
+		else:
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = arguments["subject"] + "'s " + arguments["indobject"] + " "
+			else:
+				pre_nom = arguments["subject"] + "'s "
 
 	elif pattern["subject"] == "N-N-MOD":
-		if pattern["object"].startswith("PP-"):
-			obj_pp = pattern["object"].replace("PP-", "")
-			sentences.append("The " + arguments["subject"] + " " + nominalization + " " + obj_pp + " " + arguments["object"])
+		if pattern["object"] == "N-N-MOD":
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["indobject"] + " " + arguments["object"] + " "
+			elif pattern["indobject"] == "DET-POSS":
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["indobject"] + "'s " + arguments["object"] + " "
+			else:
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["object"] + " "
 		elif pattern["object"] == "DET-POSS":
-			sentences.append(arguments["object"] + "'s " + arguments["subject"] + " " + nominalization)
-		elif pattern["object"] == "N-N-MOD":
-			sentences.append("The " + arguments["subject"] + " " + arguments["object"] + " " + nominalization)
-		elif pattern["object"] == "NONE" or pattern["object"] == "NOM-IS-OBJ":
-			sentences.append("The " + arguments["subject"] + " " + nominalization)
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["indobject"] + " " + arguments["object"] + "'s "
+			else:
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["object"] + "'s "
+		else:
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["indobject"] + " "
+			elif pattern["indobject"] == "DET-POSS":
+				pre_nom = det + " " + arguments["subject"] + " " + arguments["indobject"] + "'s "
+			else:
+				pre_nom = det + " " + arguments["subject"] + " "
 
-	elif pattern["subject"] == "NONE" or pattern["subject"] == "NOM-IS-SUBJ":
-		if pattern["object"].startswith("PP-"):
-			obj_pp = pattern["object"].replace("PP-", "")
-			sentences.append("The " + nominalization + " " + obj_pp + " " + arguments["object"])
+	else:
+		if pattern["object"] == "N-N-MOD":
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["indobject"] + " " + arguments["object"] + " "
+			elif pattern["indobject"] == "DET-POSS":
+				pre_nom = arguments["indobject"] + "'s " + arguments["object"] + " "
+			else:
+				pre_nom = det + " " + arguments["object"] + " "
 		elif pattern["object"] == "DET-POSS":
-			sentences.append(arguments["object"] + "'s " + nominalization)
-		elif pattern["object"] == "N-N-MOD":
-			sentences.append("The " + arguments["object"] + " " + nominalization)
-		elif pattern["object"] == "NONE" or pattern["object"] == "NOM-IS-OBJ":
-			pass # both object and subject cannot be NONE or the nominalization
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["indobject"] + " " + arguments["object"] + "'s "
+			else:
+				pre_nom = arguments["object"] + "'s "
+		else:
+			if pattern["indobject"] == "N-N-MOD":
+				pre_nom = det + " " + arguments["indobject"] + " "
+			elif pattern["indobject"] == "DET-POSS":
+				pre_nom = arguments["indobject"] + "'s "
+			else:
+				pre_nom = det + " "
+
+	# Adding the nominalization
+	sentence = pre_nom + nominalization
+
+	# Getting all the prepositions the appeared in the pattern
+	post_preps = []
+	for role, role_type in pattern.items():
+		if role_type.startswith("PP-"):
+			post_preps.append([role_type.replace("PP-", "").lower(), arguments[role]])
+
+	# Finally, adding the relevant prepositions from the pattern (in any order)
+	for preps_order in itertools.permutations(post_preps, len(post_preps)):
+		temp_sentence = sentence
+		for prep in preps_order:
+			temp_sentence += " " + prep[0] + " " + prep[1]
+
+		sentences.append(temp_sentence)
+
+	for i in range(len(sentences)):
+		sentences[i] = sentences[i].replace("the the ", "the ").replace("the a ", "a ").replace("the an ", "an ")
+		sentences[i] = sentences[i].replace("she's", "her").replace("he's", "his").replace("i's", "my").replace("they's", "their").replace("we's", "our").replace("it's", "its")
+		sentences[i] = sentences[i][0].upper() + sentences[i][1:]
 
 	return sentences
 
@@ -279,7 +364,7 @@ def verbal_to_nominal(json_data, sent):
 	arguments = process_a_sentence(sent)
 
 	# Getting the relevant nominalization entries according to the verb that we found
-	relevant_entries = get_nom_entries(json_data, arguments["verb"])
+	relevant_entries = get_nomlex_entries(json_data, arguments["verb"])
 
 	# Extracting all the suitable nominalization patterns
 	_, nom_patterns = extract_nom_patterns(relevant_entries, arguments["subcat"])
@@ -315,11 +400,28 @@ def load_json_data(json_file_name):
 def main(json_file_name, sent):
 	json_data = load_json_data(json_file_name)
 
-	#all_patterns, _ = extract_nom_patterns(json_data)
+	all_patterns, _ = extract_nom_patterns(json_data)
 	#print(all_patterns)
 	#print(len(all_patterns))
 
 	print(verbal_to_nominal(json_data, sent))
+
+	"""
+	other_sent = "(S (NP (NNP IBM)) (VP (VBD appointed) (NP (NNP Alice))))"
+
+	# Moving over each line in the input file
+	# Spacing up all the opening\closing brackets
+	temp_splitted_line = other_sent.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
+	splitted_line = []
+
+	for i in range(len(temp_splitted_line)):
+		if temp_splitted_line[i] != '':
+			splitted_line.append(temp_splitted_line[i].replace('\n', ''))
+
+	new_sent = [splitted_line]
+
+	print(LispToJson.get_list(new_sent, 0, 1))
+	"""
 
 if __name__ == '__main__':
 	"""
