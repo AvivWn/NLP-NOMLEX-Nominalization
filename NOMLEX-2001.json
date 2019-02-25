@@ -13235,7 +13235,7 @@
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP": {
-						"PVAL": "TO"
+						"PVAL": ["TO"]
 					}
 				}
 			}
@@ -15058,7 +15058,7 @@
 				"OBJECT": {
 					"DET-POSS": {},
 					"PP": {
-						"PVAL": "TO"
+						"PVAL": ["TO"]
 					}
 				}
 			}
@@ -22985,10 +22985,7 @@
 		},
 		"VERB-SUBJ": {
 			"PP-OF": {
-				"FREQ": {
-					"2/50": {},
-					"BNC": {}
-				}
+				"FREQ": ["2/50", "BNC"]
 			},
 			"PP": {
 				"PVAL": ["between"]
@@ -34217,10 +34214,7 @@
 			"NOM-NP": {
 				"OBJECT": {
 					"PP-OF": {
-						"FREQ": {
-							"5/50": {},
-							"BNC": {}
-						}
+						"FREQ": ["5/50", "BNC"]
 					}
 				}
 			},

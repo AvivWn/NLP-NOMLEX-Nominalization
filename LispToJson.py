@@ -37,8 +37,6 @@ def get_list(lines, index, in_line_index):
 	:return: the updated indexes and a list of data that was found
 	"""
 
-	#curr_tag = lines[index][in_line_index - 2].replace(":", "")
-	#print(curr_tag)
 	curr_list = []
 
 	# Waiting to the relevant closing brackets sign
@@ -84,14 +82,9 @@ def get_tag_info(lines, index, in_line_index):
 		index, in_line_index, curr_list = get_list(lines, index, in_line_index + 1)
 
 		new_curr_list = curr_list
-
-		if type(curr_list) == list:
-			is_all_caps = True
-			for word in curr_list:
-				if type(word) == str and word.islower():
-					is_all_caps = False
-
-			if is_all_caps:
+		
+		if type(curr_list) == list and len(curr_list) > 0:
+			if type(curr_list[0]) == list:
 				if len(curr_list) == 1 and type(curr_list[0]) != list:
 					new_curr_list = curr_list[0]
 				else:
