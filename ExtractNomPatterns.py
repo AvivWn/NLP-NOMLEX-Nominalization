@@ -208,8 +208,8 @@ def process_phrases_tree(sent_phrases_tree, index):
 
 	while sent_phrases_tree[index] != ")":
 		if sent_phrases_tree[index] == "(":
-			index, sub_phrass_tree = process_phrases_tree(sent_phrases_tree, index + 1)
-			sub_phrases_trees.append(sub_phrases_trees)
+			index, sub_phrases_tree = process_phrases_tree(sent_phrases_tree, index + 1)
+			sub_phrases_trees.append(sub_phrases_tree)
 		else:
 			sub_phrases_trees.append(sent_phrases_tree[index])
 			index += 1
@@ -307,7 +307,6 @@ def detect_comlex_subcat(sent):
 
 	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 	phrase_tree = predictor.predict(sentence=sent)['trees']
-	#print(phrases_tree)
 
 	# Moving over each line in the input file
 	# Spacing up all the opening\closing brackets
@@ -326,7 +325,7 @@ def detect_comlex_subcat(sent):
 	verb = "NONE"
 	subj = "NONE"
 	obj = "NONE"
-	indobject = "NONE"
+	indobj = "NONE"
 	subcat = "NONE"
 	pval = "NONE"
 	pval1 = "NONE"
@@ -348,6 +347,7 @@ def detect_comlex_subcat(sent):
 		np_pp_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["NP", "PP", "PP"])
 		pp_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["PP", "PP"])
 		np_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["NP", "PP"])
+		np_np_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["NP", "NP"])
 		advp_pp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["ADVP", "PP"])
 		pp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["PP"])
 		advp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["ADVP"])
@@ -378,6 +378,11 @@ def detect_comlex_subcat(sent):
 				pval = get_phrase(np_pp_phrases_trees[1])
 				subcat = "NOM-NP-PP"
 
+		elif len(np_np_phrases_trees) == 2:
+			indobj = get_phrase(np_np_phrases_trees[0])
+			obj = get_phrase(np_np_phrases_trees[1])
+			subcat = "NOM-NP-NP"
+
 		elif len(advp_pp_phrases_tree) == 2:
 			adverb = get_phrase(advp_pp_phrases_tree[0])
 			pval = get_phrase(advp_pp_phrases_tree[1])
@@ -398,7 +403,7 @@ def detect_comlex_subcat(sent):
 		else:
 			subcat = "NOM-INTRANS"
 
-	return {"verb": verb, "subject": subj, "object": obj, "indobject": indobject, "subcat": subcat, "pval": pval, "pval1": pval1, "pval2": pval2, "adverb": adverb}
+	return {"verb": verb, "subject": subj, "object": obj, "indobject": indobj, "subcat": subcat, "pval": pval, "pval1": pval1, "pval2": pval2, "adverb": adverb}
 
 
 def process_a_sentence(sent):
