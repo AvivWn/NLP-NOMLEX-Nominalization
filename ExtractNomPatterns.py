@@ -2,7 +2,7 @@ import json
 import itertools
 from collections import Counter
 from allennlp.predictors.predictor import Predictor
-from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
 
 det = "the"
 
@@ -77,6 +77,14 @@ def get_nom_subcat_patterns(entry, subcat):
 	pvals1 = subcat_info.get("PVAL1", ["NONE"])
 	pvals2 = subcat_info.get("PVAL2", ["NONE"])
 
+	adverb = ["NONE"]
+
+	if subcat == "NOM-ADVP" or subcat == "NOM-ADVP-PP":
+		adverb = ["loc&dir"]
+
+	adverb = subcat_info.get("NOM-SUBC", {}).get("ADJP", adverb)
+	if adverb == {}: adverb = ["eval-adv"]
+
 	# Creating some patterns for the suitable case
 	if objects_subentry != "NONE" and subjects_subentry != "NONE":
 		objects = update_option(list(objects_subentry.keys()), subcat_info, "OBJECT")
@@ -88,29 +96,40 @@ def get_nom_subcat_patterns(entry, subcat):
 			subjects = update_option(subjects, subcat_info, "SUBJECT")
 
 		if "SUBJECT" not in required_list:
-			patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2))
+			patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
+					  + list(itertools.product(["NONE"], objects, ind_objects, pvals2, pvals1, pvals, adverb))
 
 		if "OBJECT" not in required_list:
-			patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2))
+			patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb)) \
+					  + list(itertools.product(subjects, ["NONE"], ind_objects, pvals2, pvals1, pvals, adverb))
 
-		patterns += list(itertools.product(subjects, objects, ind_objects, pvals, pvals1, pvals2))
+		patterns += list(itertools.product(subjects, objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
+				  + list(itertools.product(subjects, objects, ind_objects, pvals2, pvals1, pvals, adverb))
+
 	elif objects_subentry != "NONE":
 		objects = update_option(list(objects_subentry.keys()), subcat_info, "OBJECT")
-		patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2))
+		patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
+				  + list(itertools.product(["NONE"], objects, ind_objects, pvals2, pvals1, pvals, adverb))
+
 	elif subjects_subentry != "NONE":
 		subjects = update_option(list(subjects_subentry.keys()), subcat_info, "SUBJECT")
-		patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2))
+		patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb)) \
+				  + list(itertools.product(subjects, ["NONE"], ind_objects, pvals2, pvals1, pvals, adverb))
 
 	patterns = list(set(patterns))
 
 	# Deleting illegal patterns
 	for pattern in patterns:
-		p_subject, p_object, p_indobject, p_pval, p_pva1, p_pval2 = pattern
-		if p_subject == 'NONE' and p_object == 'NONE' and p_indobject == 'NONE' and p_pval == 'NONE' and p_pva1 == 'NONE' and p_pval2 == 'NONE':
+		subj, obj, indobj, pval, pva1, pval2, adverb = pattern
+		if subj == 'NONE' and obj == 'NONE' and indobj == 'NONE' and pval == 'NONE' and pva1 == 'NONE' and pval2 == 'NONE' and adverb == 'NONE' and subcat != "NOM-INTRANS":
 			patterns.remove(pattern)
-		elif (p_subject == 'DET-POSS' and p_object == 'DET-POSS') or \
-			 (p_subject == 'DET-POSS' and p_indobject == 'DET-POSS') or \
-			 (p_object == 'DET-POSS' and p_indobject == 'DET-POSS'):
+		elif (subj == 'DET-POSS' and obj == 'DET-POSS') or \
+			 (subj == 'DET-POSS' and indobj == 'DET-POSS') or \
+			 (obj == 'DET-POSS' and indobj == 'DET-POSS'):
+				patterns.remove(pattern)
+		elif (subj == 'PP-OF' and (pval == 'of' or pva1 == 'of' or pval2 == 'of')) or \
+			 (obj == 'PP-OF' and (pval == 'of' or pva1 == 'of' or pval2 == 'of')) or \
+			 (indobj == 'PP-OF' and (pval == 'of' or pva1 == 'of' or pval2 == 'of')):
 				patterns.remove(pattern)
 
 	return patterns
@@ -157,6 +176,7 @@ def extract_nom_patterns(entries, subcat=None):
 
 
 
+
 ############################################### Verbal to Nominal ################################################
 
 def get_nomlex_entries(entries, verb):
@@ -176,40 +196,52 @@ def get_nomlex_entries(entries, verb):
 	return relevant_entries
 
 
-def process_phrase_tree(sent_phrase_tree, index):
-	sub_phrase_trees = []
+def process_phrases_tree(sent_phrases_tree, index):
+	"""
+	A recursive function that processes a phrases tree as string and returns the suitable dictionary representation of the same tree
+	:param sent_phrases_tree: a phrases tree in string format
+	:param index: the current index in the sentence
+	:return: a dictionary that represents the given phrases tree
+	"""
 
-	while sent_phrase_tree[index] != ")":
-		if sent_phrase_tree[index] == "(":
-			index, sub_phrase_tree = process_phrase_tree(sent_phrase_tree, index + 1)
-			sub_phrase_trees.append(sub_phrase_tree)
+	sub_phrases_trees = []
+
+	while sent_phrases_tree[index] != ")":
+		if sent_phrases_tree[index] == "(":
+			index, sub_phrass_tree = process_phrases_tree(sent_phrases_tree, index + 1)
+			sub_phrases_trees.append(sub_phrases_trees)
 		else:
-			sub_phrase_trees.append(sent_phrase_tree[index])
+			sub_phrases_trees.append(sent_phrases_tree[index])
 			index += 1
 
-	if len(sub_phrase_trees) == 2:
-		new_phrase_tree = {sub_phrase_trees[0]: [sub_phrase_trees[1]]}
+	if len(sub_phrases_trees) == 2:
+		new_phrase_tree = {sub_phrases_trees[0]: [sub_phrases_trees[1]]}
 	else:
-		new_phrase_tree = {sub_phrase_trees[0]: sub_phrase_trees[1:]}
+		new_phrase_tree = {sub_phrases_trees[0]: sub_phrases_trees[1:]}
 
 	return index + 1, new_phrase_tree
 
-def get_phrase(phrase_tree):
-	if type(phrase_tree) == str:
-		return phrase_tree
+def get_phrase(phrases_tree):
+	"""
+	Returns the phrase that the given phrase tree represents
+	:param phrases_tree: a given phrases tree (dictionary)
+	:return: a string value
+	"""
+
+	if type(phrases_tree) == str:
+		return phrases_tree
 
 	str_phrase = ""
 
-	for _, sub_phrase_tree in phrase_tree.items():
-		print(sub_phrase_tree)
-		if type(sub_phrase_tree) == str:
+	for _, sub_phrases_tree in phrases_tree.items():
+		if type(sub_phrases_tree) == str:
 			if str_phrase != "":
 				str_phrase += " "
 
-			str_phrase += sub_phrase_tree
+			str_phrase += sub_phrases_tree
 		else:
-			for sub_sub_phrase_tree in sub_phrase_tree:
-				sub_sub_phrase = get_phrase(sub_sub_phrase_tree)
+			for sub_sub_phrases_tree in sub_phrases_tree:
+				sub_sub_phrase = get_phrase(sub_sub_phrases_tree)
 
 				if str_phrase != "":
 					str_phrase += " "
@@ -218,13 +250,20 @@ def get_phrase(phrase_tree):
 
 	return str_phrase
 
-def search_phrase(phrase_tree, searched_tag):
-	if type(phrase_tree) == str:
+def search_phrase(phrases_tree, searched_tag):
+	"""
+	A recursive function that searches for a specific phrase in the given tree
+	:param phrases_tree: the given tree that is being searched
+	:param searched_tag: the wanted tag
+	:return: a list of all the trees with the wanted phrase tag as root
+	"""
+
+	if type(phrases_tree) == str:
 		return []
 
 	wanted_phrases = []
 
-	for phrase_tag, sub_phrase_tree in phrase_tree.items():
+	for phrase_tag, sub_phrase_tree in phrases_tree.items():
 		if phrase_tag == searched_tag:
 			wanted_phrases.append({phrase_tag: sub_phrase_tree})
 		else:
@@ -236,15 +275,22 @@ def search_phrase(phrase_tree, searched_tag):
 
 	return wanted_phrases
 
-def get_sub_phrases(phrase_tree, phrases_tags):
+def get_sub_phrases(phrases_tree, phrases_tags):
+	"""
+	This function tries to find the phrases tags in the given list as sub-phrases of the given phrases tree
+	:param phrases_tree: a dictionary that represents the phrases tree to search in
+	:param phrases_tags: a phrases tags list, we are looking to find
+	:return: the list of sub-phrases that were found (the output is relevant only if its length is len(phrases_tags)
+	"""
+
 	index = 0
 	phrases = []
 
-	for sub_phrase_tree in phrase_tree:
-		for tag, sub_phrase in sub_phrase_tree.items():
+	for sub_phrases_tree in phrases_tree:
+		for tag, sub_sub_phrases_tree in sub_phrases_tree.items():
 			if index < len(phrases_tags):
 				if tag == phrases_tags[index]:
-					phrases.append({tag: sub_phrase})
+					phrases.append({tag: sub_sub_phrases_tree})
 					index += 1
 				else:
 					phrases = []
@@ -252,7 +298,13 @@ def get_sub_phrases(phrase_tree, phrases_tags):
 
 	return phrases
 
-def detect_comlex_subcat(sent, verb):
+def detect_comlex_subcat(sent):
+	"""
+	Detects the comblex sub-categorization of the given sentence
+	:param sent: a sentence string
+	:return: an arguments dictionary with values that are relevant to the founded subcat
+	"""
+
 	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 	phrase_tree = predictor.predict(sentence=sent)['trees']
 	#print(phrases_tree)
@@ -268,99 +320,95 @@ def detect_comlex_subcat(sent, verb):
 
 	new_sent = splitted_line
 
-	_, phrase_tree = process_phrase_tree(new_sent, 1)
+	# Translates the phrases tree from string to dictionary
+	_, phrases_tree = process_phrases_tree(new_sent, 1)
 
-	print(phrase_tree)
-
-	vp_phrases_trees = search_phrase(phrase_tree, "VP")[0]
-	print(vp_phrases_trees)
-
+	verb = "NONE"
+	subj = "NONE"
+	obj = "NONE"
+	indobject = "NONE"
+	subcat = "NONE"
 	pval = "NONE"
 	pval1 = "NONE"
 	pval2 = "NONE"
 	adverb = "NONE"
-	subcat = "NONE"
 
-	np_pp_phrases_trees = get_sub_phrases(vp_phrases_trees["VP"], ["NP", "PP"])
-	pp_pp_phrases_trees = get_sub_phrases(vp_phrases_trees["VP"], ["PP", "PP"])
-	np_np_phrases_trees = get_sub_phrases(vp_phrases_trees["VP"], ["NP", "NP"])
-	np_phrases_trees = get_sub_phrases(vp_phrases_trees["VP"], ["NP"])
+	# Use the first NP, VP pair that was found in the phrases tree
+	np_vp_phrases_trees = get_sub_phrases(phrases_tree["S"], ["NP", "VP"])
 
-	if len(np_pp_phrases_trees) == 2:
-		pp_phrases_tree = get_sub_phrases(np_pp_phrases_trees[0]["NP"], ["PP"])
+	if len(np_vp_phrases_trees) == 2:
+		np_phrase_tree = np_vp_phrases_trees[0]
+		vp_phrase_tree = np_vp_phrases_trees[1]
 
-		if len(pp_phrases_tree) == 1:
-			pval1 = get_phrase(pp_phrases_tree[0])
-			pval2 = get_phrase(np_pp_phrases_trees[1])
+		wordnet_lemmatizer = WordNetLemmatizer()
+		verb = wordnet_lemmatizer.lemmatize(get_phrase(vp_phrase_tree).split(" ")[0], 'v')
+
+		subj = get_phrase(np_phrase_tree)
+
+		np_pp_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["NP", "PP", "PP"])
+		pp_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["PP", "PP"])
+		np_pp_phrases_trees = get_sub_phrases(vp_phrase_tree["VP"], ["NP", "PP"])
+		advp_pp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["ADVP", "PP"])
+		pp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["PP"])
+		advp_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["ADVP"])
+		np_phrases_tree = get_sub_phrases(vp_phrase_tree["VP"], ["NP"])
+
+		# Checking which subcat is the most suitable one
+		# Pay attention that the order of the checking is important
+		if len(np_pp_pp_phrases_trees) == 3:
+			obj = get_phrase(np_pp_pp_phrases_trees[0])
+			pval = get_phrase(np_pp_pp_phrases_trees[1])
+			pval2 = get_phrase(np_pp_pp_phrases_trees[2])
+			subcat = "NOM-NP-PP-PP"
+
+		elif len(pp_pp_phrases_trees) == 2:
+			pval = get_phrase(pp_pp_phrases_trees[0])
+			pval2 = get_phrase(pp_pp_phrases_trees[1])
 			subcat = "NOM-PP-PP"
+
+		elif len(np_pp_phrases_trees) == 2:
+			pp_phrases_tree = get_sub_phrases(np_pp_phrases_trees[0]["NP"], ["PP"])
+
+			if len(pp_phrases_tree) == 1:
+				pval = get_phrase(pp_phrases_tree[0])
+				pval2 = get_phrase(np_pp_phrases_trees[1])
+				subcat = "NOM-PP-PP"
+			else:
+				obj = get_phrase(np_pp_phrases_trees[0])
+				pval = get_phrase(np_pp_phrases_trees[1])
+				subcat = "NOM-NP-PP"
+
+		elif len(advp_pp_phrases_tree) == 2:
+			adverb = get_phrase(advp_pp_phrases_tree[0])
+			pval = get_phrase(advp_pp_phrases_tree[1])
+			subcat = "NOM-ADVP-PP"
+
+		elif len(pp_phrases_tree) == 1:
+			pval = get_phrase(pp_phrases_tree[0])
+			subcat = "NOM-PP"
+
+		elif len(advp_phrases_tree) == 1:
+			adverb = get_phrase(advp_phrases_tree[0])
+			subcat = "NOM-ADVP"
+
+		elif len(np_phrases_tree) == 1:
+			obj = get_phrase(np_phrases_tree[0])
+			subcat = "NOM-NP"
+
 		else:
-			pval = get_phrase(np_pp_phrases_trees[1])
-			print("print", np_pp_phrases_trees[1])
-			subcat = "NOM-NP-PP"
+			subcat = "NOM-INTRANS"
 
-	elif len(pp_pp_phrases_trees) == 2:
-		pval1 = get_phrase(pp_pp_phrases_trees[0])
-		pval2 = get_phrase(pp_pp_phrases_trees[1])
-		subcat = "NOM-PP-PP"
+	return {"verb": verb, "subject": subj, "object": obj, "indobject": indobject, "subcat": subcat, "pval": pval, "pval1": pval1, "pval2": pval2, "adverb": adverb}
 
-	elif len(np_phrases_trees) == 1:
-		subcat = "NOM-NP"
-
-	else:
-		subcat = "NONE"
-
-	return {"subcat": subcat, "pval": pval, "pval1": pval1, "pval2": pval2, "adverb": adverb}
 
 def process_a_sentence(sent):
 	"""
-	Processes a sentence
+	Processes a sentence, returns its relevant arguments
 	:param sent: the sentence that was processed
-	:return: the founded arguments of the verb in the sentence
+	:return: the founded arguments of the verb in the sentence (as a dictionary)
 	"""
 
-	verb = "NONE"
-	original_verb = "NONE"
-	subject = "NONE"
-	object = "NONE"
-	indobject = "NONE"
-
-	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/openie-model.2018-08-20.tar.gz")
-	dependency_tree = predictor.predict(sentence=sent)
-
-	# Assuming- Choosing the first verb
-	verb_args = dependency_tree.get('verbs', [{}])[0].get('description', '').split("]")
-	print(verb_args)
-
-	for verb_arg in verb_args:
-		if "ARG0:" in verb_arg:
-			subject = verb_arg[verb_arg.index(":") + 2:]
-
-		if "ARG1:" in verb_arg:
-			object = verb_arg[verb_arg.index(":") + 2:]
-
-		if "ARG2:" in verb_arg:
-			indobject = verb_arg[verb_arg.index(":") + 2:]
-
-		if "V:" in verb_arg:
-			original_verb = verb_arg[verb_arg.index(":") + 2:]
-
-			stemmer = PorterStemmer()
-			verb = stemmer.stem(original_verb)
-
-	subcat_arguments = detect_comlex_subcat(sent, original_verb)
-
-	subject = remove_last_space(subject.replace(subcat_arguments["pval1"], ""))
-	subject = remove_last_space(subject.replace(subcat_arguments["pval2"], ""))
-	object = remove_last_space(object.replace(subcat_arguments["pval1"], ""))
-	object = remove_last_space(object.replace(subcat_arguments["pval2"], ""))
-
-	if indobject == subcat_arguments["pval1"] or indobject == subcat_arguments["pval2"]:
-		indobject = "NONE"
-
-	arguments = {"verb": verb, "subject": subject, "object": object, "indobject": indobject}
-
-	arguments.update(subcat_arguments)
-
+	arguments = detect_comlex_subcat(sent)
 	print(arguments)
 
 	return arguments
@@ -374,7 +422,13 @@ def pattern_to_sent(nominalization, pattern, arguments):
 	:return: list of suitable nominal sentences for the given data
 	"""
 
-	pattern = {"subject": pattern[0], "object": pattern[1], "indobject": pattern[2], "pval": pattern[3], "pval1": pattern[4], "pval2": pattern[5]}
+	found_relevant_in_pattern = False
+
+	if pattern[0] != "NONE" or pattern[1] != "NONE" or pattern[2] != "NONE":
+		found_relevant_in_pattern = True
+
+	pattern = {"subject": pattern[0], "object": pattern[1], "indobject": pattern[2],
+			   "pval": pattern[3], "pval1": pattern[4], "pval2": pattern[5], "adverb": pattern[6]}
 
 	if (arguments["subject"] == "NONE" and pattern["subject"] != "NONE") or \
 	   (arguments["object"] == "NONE" and pattern["object"] != "NONE") or \
@@ -406,19 +460,34 @@ def pattern_to_sent(nominalization, pattern, arguments):
 		else:
 			pre_nom += arguments["object"] + " "
 
+	# Current assumption- treating all the adverbs as eval-adv
+	if pattern["adverb"] == "eval-adv" and arguments["adverb"] != "NONE":
+		found_relevant_in_pattern = True
+		if pre_nom == "":
+			pre_nom = det + " "
+		pre_nom += arguments["adverb"] + " "
+
 	if pre_nom == "":
 		pre_nom = det + " "
 
 	# Adding the nominalization
 	sentence = pre_nom + nominalization
 
+	if pattern["adverb"] == "loc&dir" and arguments["adverb"] != "NONE":
+		found_relevant_in_pattern = True
+		sentence += " " + arguments["adverb"]
+
 	# Getting all the prepositions the appeared in the pattern
 	post_preps = []
 	for role, role_type in pattern.items():
-		if role_type.startswith("PP-"):
+		if type(role_type) == str and role_type.startswith("PP-"):
 			post_preps.append([role_type.replace("PP-", "").lower(), arguments[role]])
-		elif (role == "pval" or role == "pval1" or role == "pval2") and role_type != "NONE" and role_type != "none":
-			post_preps.append([role_type.lower(), arguments[role].split(" ")[0]])
+		elif (role == "pval" or role == "pval1" or role == "pval2") and role_type != "NONE" and role_type == arguments[role].split(" ")[0]:
+			found_relevant_in_pattern = True
+			post_preps.append([role_type.lower(), " ".join(arguments[role].split(" ")[1:])])
+
+	if not found_relevant_in_pattern and arguments["subcat"] != "NOM-INTRANS":
+		return []
 
 	# Finally, adding the relevant prepositions from the pattern (in any order)
 	for preps_order in itertools.permutations(post_preps, len(post_preps)):
@@ -429,8 +498,46 @@ def pattern_to_sent(nominalization, pattern, arguments):
 		sentences.append(temp_sentence)
 
 	for i in range(len(sentences)):
-		sentences[i] = sentences[i].replace("the the ", "the ").replace("the a ", "a ").replace("the an ", "an ")
-		sentences[i] = sentences[i].replace("she's", "her").replace("he's", "his").replace("i's", "my").replace("they's", "their").replace("we's", "our").replace("it's", "its")
+		sentences[i] = " " + sentences[i] + " "
+
+		# Double determiners
+		sentences[i] = sentences[i].replace(" the the ", " the ").\
+									replace(" the a ", " a ").\
+									replace(" the an ", " an ")
+
+		# Pronouns
+		sentences[i] = sentences[i].replace(" she's ", " her ").\
+									replace(" he's ", " his ").\
+									replace(" I's ", " my ").\
+									replace(" they's ", " their ").\
+									replace(" we's ", " our ").\
+									replace(" it's ", " its ").\
+									replace(" you's ", " your ")
+
+		sentences[i] = sentences[i].replace(" by she ", " by her ").\
+									replace(" by he ", " by him ").\
+									replace(" by I ", " by me ").\
+									replace(" by they ", " by them ").\
+									replace(" by we ", " by us ")
+
+		sentences[i] = sentences[i].replace(" the she ", " her "). \
+									replace(" the he ", " his "). \
+									replace(" the I ", " my "). \
+									replace(" the they ", " their "). \
+									replace(" the we ", " our "). \
+									replace(" the it ", " its "). \
+									replace(" the you ", " your ")
+
+		# Pronoun + determiner
+		sentences[i] = sentences[i].replace(" the her ", " her ").\
+									replace(" the his ", " his ").\
+									replace(" the my ", " my ").\
+									replace(" the their ", " their ").\
+									replace(" the our ", " our ").\
+									replace(" the its ", " its ").\
+									replace(" the your ", " your ")
+
+		sentences[i] = sentences[i][1:-1]
 		sentences[i] = sentences[i][0].upper() + sentences[i][1:]
 
 	return sentences
@@ -459,7 +566,8 @@ def verbal_to_nominal(json_data, sent):
 		for pattern in patterns:
 			nom_sentences += pattern_to_sent(nominalization, pattern, arguments)
 
-	return nom_sentences
+	return list(set(nom_sentences))
+
 
 
 
@@ -480,18 +588,6 @@ def load_json_data(json_file_name):
 
 
 
-
-
-
-def remove_last_space(sent):
-	if sent.endswith(" "):
-		sent = sent[:-1]
-
-	return sent
-
-
-
-
 ###################################################### Main ######################################################
 
 def main(json_file_name, sent):
@@ -502,23 +598,6 @@ def main(json_file_name, sent):
 	#print(len(all_patterns))
 
 	print(verbal_to_nominal(json_data, sent))
-
-	"""
-	other_sent = "(S (NP (NNP IBM)) (VP (VBD appointed) (NP (NNP Alice))))"
-
-	# Moving over each line in the input file
-	# Spacing up all the opening\closing brackets
-	temp_splitted_line = other_sent.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
-	splitted_line = []
-
-	for i in range(len(temp_splitted_line)):
-		if temp_splitted_line[i] != '':
-			splitted_line.append(temp_splitted_line[i].replace('\n', ''))
-
-	new_sent = [splitted_line]
-
-	print(LispToJson.get_list(new_sent, 0, 1))
-	"""
 
 if __name__ == '__main__':
 	"""
