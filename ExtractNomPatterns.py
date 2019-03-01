@@ -1,42 +1,16 @@
 import json
 import itertools
-from collections import Counter
 from allennlp.predictors.predictor import Predictor
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from collections import defaultdict
+import spacy
+nlp = spacy.load('en_core_web_sm')
 
 det = "the"
 
-def get_adj(word):
-	"""
-	Returns the best adjective that relates to the given word (of no adjective was found, None is returned)
-	:param word: a word
-	:return: an adjective that are most relevant to the given word, or None
-	"""
 
-	possible_adj = []
-	for ss in wn.synsets(word):
-		for lemmas in ss.lemmas():  # all possible lemmas
-			for ps in lemmas.pertainyms():  # all possible pertainyms (the adjectives of a noun)
-				possible_adj.append(ps.name())
 
-	if possible_adj == []:
-		return None
-
-	best_adj = possible_adj[0]
-	best_subword_length = 0
-	for adj in possible_adj:
-		i = 0
-		while i < len(word) and i < len(adj) and adj[i] == word[i]:
-			i += 1
-
-		i -= 1
-		if i > best_subword_length:
-			best_subword_length = i
-			best_adj = adj
-
-	return best_adj
 
 ############################################### Extracting Patterns ##############################################
 
@@ -78,6 +52,16 @@ def update_option(options, info, role):
 			options += ["PP-" + s.upper() for s in list(PP_info.get("PVAL", []))]
 
 	return options
+
+def get_options(a_tuple):
+	subjs, objs, indobjs, pvals, pvals1, pvals2, adverbs = a_tuple
+
+	all_tuples = list(itertools.product(subjs, objs, indobjs, pvals, pvals1, pvals2, adverbs))
+
+	if pvals != ["NONE"] and pvals2 != ["NONE"]:
+		all_tuples += list(itertools.product(subjs, objs, indobjs, pvals, pvals1, pvals2, adverbs))
+
+	return all_tuples
 
 def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	"""
@@ -138,25 +122,20 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 			subjects = update_option(subjects, subcat_info, "SUBJECT")
 
 		if "SUBJECT" not in required_list:
-			patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
-					  + list(itertools.product(["NONE"], objects, ind_objects, pvals2, pvals1, pvals, adverb))
+			patterns += get_options((["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb))
 
 		if "OBJECT" not in required_list:
-			patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb)) \
-					  + list(itertools.product(subjects, ["NONE"], ind_objects, pvals2, pvals1, pvals, adverb))
+			patterns += get_options((subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb))
 
-		patterns += list(itertools.product(subjects, objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
-				  + list(itertools.product(subjects, objects, ind_objects, pvals2, pvals1, pvals, adverb))
+		patterns += get_options((subjects, objects, ind_objects, pvals, pvals1, pvals2, adverb))
 
 	elif objects_subentry != "NONE":
 		objects = update_option(list(objects_subentry.keys()), subcat_info, "OBJECT")
-		patterns += list(itertools.product(["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb)) \
-				  + list(itertools.product(["NONE"], objects, ind_objects, pvals2, pvals1, pvals, adverb))
+		patterns += get_options((["NONE"], objects, ind_objects, pvals, pvals1, pvals2, adverb))
 
 	elif subjects_subentry != "NONE":
 		subjects = update_option(list(subjects_subentry.keys()), subcat_info, "SUBJECT")
-		patterns += list(itertools.product(subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb)) \
-				  + list(itertools.product(subjects, ["NONE"], ind_objects, pvals2, pvals1, pvals, adverb))
+		patterns += get_options((subjects, ["NONE"], ind_objects, pvals, pvals1, pvals2, adverb))
 
 	patterns = list(set(patterns))
 
@@ -630,31 +609,209 @@ def verbal_to_nominal(json_data, sent):
 
 ############################################## Extracting Arguments ##############################################
 
-"""
-def pattern_to_UD(pattern):
-	pass
+def get_depedency(sent):
+	"""
+	Returns the dependency tree of a given sentence
+	:param sent: a string sentence
+	:return: the dependency tree of the sentence (a list of tuples)
+	"""
 
-def extract_arguments(sent, nom_entry):
-	# Getting the dependency tree of the sentence
-	dependency_tree =
+	dep = []
+
+	sentence_info = nlp(sent)
+	for word_info in sentence_info:
+		head_id = str(word_info.head.i + 1)  # we want ids to be 1 based
+		if word_info == word_info.head:  # and the ROOT to be 0.
+			assert (word_info.dep_ == "ROOT"), word_info.dep_
+			head_id = "0"  # root
+
+		str_sub_tree = " ".join([node.text for node in word_info.subtree])
+		dep.append(
+			(word_info.i + 1, str(word_info.text), str(word_info.lemma_),
+			 str(word_info.tag_), str(word_info.pos_), int(head_id),
+			 str(word_info.dep_), str(word_info.ent_iob_), str(word_info.ent_type_), str_sub_tree))
+
+	return dep
+
+def pattern_to_UD(pattern):
+	"""
+	Translates a pattern into universal dependency sequence
+	:param pattern: a given pattern (dictionary role: role_type)
+	:return: a suitable sequence of universal dependency links (all the links are in outside direction)
+	"""
+
+	pattern_UD = defaultdict(list)
+
+	for role, role_type in pattern.items():
+		if role == "pval" or role == "pval1" or role == "pval2":
+			pattern_UD[role] = ["prep_" + role_type.lower(), "pobj"]
+
+		elif role == "adverb":
+			if role_type == "eval-adv":
+				pattern_UD[role] = ["amod"]
+			elif role_type == "loc&dir":
+				pattern_UD[role] = ["advmod"]
+
+		elif role != "subcat":
+			if role_type == "DET-POSS":
+				pattern_UD[role] = ["poss"]
+			elif role_type == "N-N-MOD":
+				pattern_UD[role] = ["compound"]
+			elif role_type.startswith("PP-"):
+				pattern_UD[role] = ["prep_" + role_type.replace("PP-", "").lower(), "pobj"]
+
+	return pattern_UD
+
+def extract_argument(dep_tree, dep_links, dep_curr_index):
+	"""
+	A recursive function that finds an argument using acording to the given dependency links
+	:param dep_tree: the dependency tree of the sentence
+	:param dep_links: a list of dependency links
+	:param dep_curr_index: the current index in the tree dependency
+	:return: the suitable arguments that we get if we follow the given links backwards from the current index
+	"""
+
+	# Stop Conditions
+	if dep_links == []:
+		if dep_curr_index == -1:
+			return []
+		else:
+			return [(dep_tree[dep_curr_index][0], dep_tree[dep_curr_index][9])]
+
+	if dep_curr_index == -1:
+		return []
+
+	arguments = []
+	for i in range(len(dep_tree)):
+		# Checking if the node link to the current node
+		if dep_tree[i][5] - 1 == dep_curr_index:
+			# Checking that the link type is right
+			if dep_links[0].startswith("prep_"):
+				splitted = dep_links[0].split("_")
+				if dep_tree[i][6] == splitted[0] and dep_tree[i][2] == splitted[1]:
+					arguments += extract_argument(dep_tree, dep_links[1:], i)
+
+			elif dep_tree[i][6] == dep_links[0]:
+				arguments += extract_argument(dep_tree, dep_links[1:], i)
+
+	return arguments
+
+def get_arguments(dependency_tree, nom_entry, nom_index):
+	"""
+	Returns the all the possible arguments for a specific nominalization in a sentence with the given dependency tree
+	:param dependency_tree: a universal dependency tree (a list of tuples)
+	:param nom_entry: the information inside a specific nominalization entry in the NOMLEX lexicon
+	:param nom_index: the index of the nominalization in the given dependency tree
+	:return: a list of dictionaries (in the list all the possible arguments, dictionary for each possible set of arguments)
+	"""
 
 	# Getting the nominalization patterns
 	patterns = get_nom_patterns(nom_entry)
 
-	# Getting all the possible arguments
-	arguments = []
+	total_arguments = []
+
+	# Moving over all the possible patterns for the given nominalization
+	# Trying to extract all the possible arguments for that nominalization
 	for pattern in patterns:
-		pattern = pattern_to_UD(pattern)
+		# Translating the pattern into universal dependencies sequence
+		pattern_UD = pattern_to_UD(pattern)
 
-		verb, subj, obj, indobj, subcat, pval, pval1, pval2, adverb = pattern
-"""
+		# Initiate the current arguments dictionary
+		curr_arguments = defaultdict(tuple)
 
+		# Is the nominalization itself has a role in the sentence
+		if "SUBJECT" in nom_entry["NOM-TYPE"].keys():
+			curr_arguments["subject"] = (-1, dependency_tree[nom_index][1])
+		elif "OBJECT" in nom_entry["NOM-TYPE"].keys():
+			curr_arguments["object"] = (-1, dependency_tree[nom_index][1])
+		elif "VERB-NOM" in nom_entry["NOM-TYPE"].keys():
+			curr_arguments["verb"] = (-1, nom_entry["VERB"])
 
+		curr_arguments_list = [curr_arguments]
+		new_curr_arguements_list = []
 
+		# Looking for each argument (the order is important, because subject > indobject > object and not otherwise)
+		for role in ["subject", "indobject", "object", "pval", "pval1", "pval2", "adverb"]:
+			role_type = pattern_UD[role]
 
+			if role_type != []:
+				possible_arguments = extract_argument(dependency_tree, role_type, nom_index)
 
+				# Checking all the possible arguments that were extracted for the current role
+				if possible_arguments != []:
+					for arguments in curr_arguments_list:
+						for index, arg in possible_arguments:
+							temp_arguments = arguments.copy()
 
+							# Deleting the ending " 's" in case that the role_type was DET-POSS
+							if arg.endswith(" 's"):
+								arg = arg[:-3]
 
+							curr_indexes = [i for i, _ in temp_arguments.values()]
+							if index not in curr_indexes:
+								if role in ["subject", "indobject", "object"]:
+									if index > max(curr_indexes):
+										temp_arguments[role] = (index, arg)
+								else:
+									temp_arguments[role] = (index, arg)
+
+							new_curr_arguements_list.append(temp_arguments)
+
+					curr_arguments_list = new_curr_arguements_list.copy()
+
+		total_arguments += new_curr_arguements_list.copy()
+
+	return total_arguments
+
+def extract_arguments(nomlex_entries, sent):
+	"""
+	Extracts the arguments of the nominalizations in the given sentence
+	:param nomlex_entries: NOMLEX entries (a dictionary nom: ...)
+	:param sent: a given sentence (string)
+	:return: a lists of lists of dictionaries
+			 list of each founded nominalization -> list of each suitable pattern -> dictionary of arguments
+	"""
+
+	# Getting the dependency tree of the sentence
+	dependency_tree = get_depedency(sent)
+
+	# Finding all the nominalizations in the tree
+	noms = []
+	for i in range(len(dependency_tree)):
+		if dependency_tree[i][2] in nomlex_entries.keys():
+			noms.append((dependency_tree[i][2], i))
+
+	# Moving over all the nominalizations
+	nom_args = []
+	for nom, nom_index in noms:
+		# Getting the suitable nominalization entry
+		nom_entry = nomlex_entries[nom]
+
+		# Getting all the possible arguments
+		arguments_list = get_arguments(dependency_tree, nom_entry, nom_index)
+
+		# Finding the maximum number of arguments that were extracted
+		best_num_of_args = 0
+		for args in arguments_list:
+			if len(args.keys()) > best_num_of_args:
+				best_num_of_args = len(args.keys())
+
+		# Add all the "best arguments" that were extracted (best = maximum number of arguments)
+		best_args = []
+		best_args_items = [] # List of all the items that were extracted (for singularity)
+		for args in arguments_list:
+			# Checking the number of arguments in args, and singularity
+			if len(args.keys()) == best_num_of_args and args.items() not in best_args_items:
+				new_args = defaultdict(str)
+				for role, (_, arg) in args.items():
+					new_args[role] = arg
+
+				best_args.append(new_args)
+				best_args_items.append(args.items())
+
+		nom_args.append(best_args)
+
+	return nom_args
 
 
 
@@ -676,22 +833,69 @@ def load_json_data(json_file_name):
 
 
 
+################################################### Utilities ####################################################
+
+def get_adj(word):
+	"""
+	Returns the best adjective that relates to the given word (of no adjective was found, None is returned)
+	:param word: a word
+	:return: an adjective that are most relevant to the given word, or None
+	"""
+
+	possible_adj = []
+	for ss in wn.synsets(word):
+		for lemmas in ss.lemmas():  # all possible lemmas
+			for ps in lemmas.pertainyms():  # all possible pertainyms (the adjectives of a noun)
+				possible_adj.append(ps.name())
+
+	if possible_adj == []:
+		return None
+
+	best_adj = possible_adj[0]
+	best_subword_length = 0
+	for adj in possible_adj:
+		i = 0
+		while i < len(word) and i < len(adj) and adj[i] == word[i]:
+			i += 1
+
+		i -= 1
+		if i > best_subword_length:
+			best_subword_length = i
+			best_adj = adj
+
+	return best_adj
+
+
+
+
 ###################################################### Main ######################################################
 
-def main(json_file_name, sent):
-	json_data = load_json_data(json_file_name)
+def main(arguments):
+	"""
+	The main function
+	:param arguments: the command line arguments
+	:return: None
+	"""
 
-	all_patterns = extract_nom_patterns(json_data)
-	#print(all_patterns)
-	#print(len(all_patterns))
+	if arguments[1] == "-patterns":
+		json_file_name = arguments[2]
+		sent = arguments[3]
 
-	print(verbal_to_nominal(json_data, sent))
+		json_data = load_json_data(json_file_name)
+		print(verbal_to_nominal(json_data, sent))
+	elif arguments[1] == "-args":
+		json_file_name = arguments[2]
+		sent = arguments[3]
+
+		json_data = load_json_data(json_file_name)
+		print(extract_arguments(json_data, sent))
 
 if __name__ == '__main__':
 	"""
 	Command line arguments-
-		json_file_name sentence
+		 -patterns json_file_name sentence
+		 -args json_file_name sentence nominalization
 	"""
 	import sys
 
-	main(sys.argv[1], sys.argv[2])
+	main(sys.argv)
