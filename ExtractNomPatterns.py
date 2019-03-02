@@ -1,6 +1,6 @@
 import json
 import itertools
-from allennlp.predictors.predictor import Predictor
+from allennlp.predictors.constituency_parser import ConstituencyParserPredictor
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from collections import defaultdict
@@ -14,7 +14,7 @@ det = "the"
 
 ############################################### Extracting Patterns ##############################################
 
-def update_option(options, info, role):
+def update_option(options, info, role=None):
 	"""
 	Updates the options in the right way
 	:param options: the current possible options (list)
@@ -75,7 +75,7 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 
 	# Getting the default subject roles
 	verb_subj_info = entry.get("VERB-SUBJ", {"NONE": {}})
-	default_subjects = update_option(list(verb_subj_info.keys()), verb_subj_info, None)
+	default_subjects = update_option(list(verb_subj_info.keys()), verb_subj_info)
 
 	patterns = []
 
@@ -368,8 +368,8 @@ def detect_comlex_subcat(sent):
 	:return: an arguments dictionary with values that are relevant to the founded subcat
 	"""
 
-	predictor = Predictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
-	phrase_tree = predictor.predict(sentence=sent)['trees']
+	predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
+	phrase_tree = predictor.predict(sent)['trees']
 
 	# Moving over each line in the input file
 	# Spacing up all the opening\closing brackets
@@ -500,25 +500,28 @@ def clean_sentence(sentence):
 	sent = sentence
 
 	# Double determiners
-	sent.replace(" the the ", " the ")
-	sent.replace(" the a ", " a ")
-	sent.replace(" the an ", " an ")
+	sent = sent.replace(" " + det + " the ", " the ").\
+				replace(" " + det + " The ", " the ").\
+		   		replace(" " + det + " A ", " a ").\
+		   		replace(" " + det + " a ", " a ").\
+		   		replace(" " + det + " an ", " an ").\
+		   		replace(" " + det + " An ", " an ")
 
 	# Pronouns
 	# Translating the base form of the pronoun to the suitable form according to the context
 	for pronoun, forms_list in pronoun_dict.items():
-		sent.replace(" " + pronoun + "'s ", " " + forms_list[0] + " ")
-		sent.replace(" " + pronoun[0].upper() + pronoun[1:] + "'s ", " " + forms_list[0] + " ")
+		sent = sent.replace(" " + pronoun + "'s ", " " + forms_list[0] + " ").\
+					replace(" " + pronoun[0].upper() + pronoun[1:] + "'s ", " " + forms_list[0] + " ")
 
-		sent.replace(" by " + pronoun + " ", " " + forms_list[1] + " ")
-		sent.replace(" by " + pronoun[0].upper() + " ", " " + forms_list[1] + " ")
+		sent = sent.replace(" by " + pronoun + " ", " by " + forms_list[1] + " ").\
+					replace(" by " + pronoun[0].upper() + pronoun[1:] + " ", " by " + forms_list[1] + " ")
 
 		# Pronoun + determiner
-		sent.replace(" " + det + " " + pronoun + " ", " " + forms_list[0] + " ")
-		sent.replace(" " + det + " " + pronoun[0].upper() + pronoun[1:] + " ", " " + forms_list[0] + " ")
+		sent = sent.replace(" " + det + " " + pronoun + " ", " " + forms_list[0] + " ").\
+					replace(" " + det + " " + pronoun[0].upper() + pronoun[1:] + " ", " " + forms_list[0] + " ")
 
-		sent.replace(" " + det + " " + forms_list[0] + " ", " " + forms_list[0] + " ")
-		sent.replace(" " + det + " " + forms_list[0].upper() + forms_list[0][1:] + " ", " " + forms_list[0] + " ")
+		sent = sent.replace(" " + det + " " + forms_list[0] + " ", " " + forms_list[0] + " ").\
+					replace(" " + det + " " + forms_list[0].upper() + forms_list[0][1:] + " ", " " + forms_list[0] + " ")
 
 	return sent
 
@@ -761,13 +764,15 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 							temp_arguments = arguments.copy()
 
 							# Translate adjective to adverb if needed
-							if role == "adverb" and role_type == ["amod"]:
+							if role == "adverb" and pattern[role] == "eval-adv":
 								arg = get_adv(arg)
 
 							curr_indexes = [i for i, _ in temp_arguments.values()]
 							if index not in curr_indexes:
 								if role in ["subject", "indobject", "object"]:
-									if index > max(curr_indexes):
+									if pattern[role].startswith("PP-"):
+										temp_arguments[role] = (-1, arg)
+									elif index > max(curr_indexes):
 										temp_arguments[role] = (index, arg)
 								else:
 									temp_arguments[role] = (index, arg)
