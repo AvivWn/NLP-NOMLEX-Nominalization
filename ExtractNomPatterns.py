@@ -748,7 +748,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 			curr_arguments["object"] = (-1, dependency_tree[nom_index][1])
 
 		curr_arguments_list = [curr_arguments]
-		new_curr_arguements_list = []
+		new_curr_arguements_list = curr_arguments_list.copy()
 
 		# Looking for each argument (the order is important, because subject > indobject > object and not otherwise)
 		for role in ["subject", "indobject", "object", "pval", "pval1", "pval2", "adverb"]:
@@ -790,8 +790,8 @@ def extract_arguments(nomlex_entries, sent):
 	Extracts the arguments of the nominalizations in the given sentence
 	:param nomlex_entries: NOMLEX entries (a dictionary nom: ...)
 	:param sent: a given sentence (string)
-	:return: a lists of lists of dictionaries
-			 list of each founded nominalization -> list of each suitable pattern -> dictionary of arguments
+	:return: a dictionary of lists of dictionaries
+			 dictionary of each founded nominalization (nom, index) -> list of each suitable pattern -> dictionary of arguments
 	"""
 
 	# Getting the dependency tree of the sentence
@@ -804,7 +804,7 @@ def extract_arguments(nomlex_entries, sent):
 			noms.append((dependency_tree[i][2], i))
 
 	# Moving over all the nominalizations
-	nom_args = []
+	nom_args = {}
 	for nom, nom_index in noms:
 		# Getting the suitable nominalization entry
 		nom_entry = nomlex_entries[nom]
@@ -831,7 +831,7 @@ def extract_arguments(nomlex_entries, sent):
 				best_args.append(new_args)
 				best_args_items.append(args.items())
 
-		nom_args.append(best_args)
+		nom_args.update({(nom, nom_index): best_args})
 
 	return nom_args
 
@@ -923,6 +923,8 @@ def get_pronoun_dict():
 	return pronoun_dict
 
 
+
+
 ###################################################### Main ######################################################
 
 def main(arguments):
@@ -932,15 +934,15 @@ def main(arguments):
 	:return: None
 	"""
 
-	if arguments[1] == "-patterns":
-		json_file_name = arguments[2]
-		sent = arguments[3]
+	if arguments[0] == "-patterns" and len(arguments) == 3:
+		json_file_name = arguments[1]
+		sent = arguments[2]
 
 		json_data = load_json_data(json_file_name)
 		print(verbal_to_nominal(json_data, sent))
-	elif arguments[1] == "-args":
-		json_file_name = arguments[2]
-		sent = arguments[3]
+	elif arguments[0] == "-args" and len(arguments) == 3:
+		json_file_name = arguments[1]
+		sent = arguments[2]
 
 		json_data = load_json_data(json_file_name)
 		print(extract_arguments(json_data, sent))
@@ -949,8 +951,8 @@ if __name__ == '__main__':
 	"""
 	Command line arguments-
 		 -patterns json_file_name sentence
-		 -args json_file_name sentence nominalization
+		 -args json_file_name sentence
 	"""
 	import sys
 
-	main(sys.argv)
+	main(sys.argv[1:])
