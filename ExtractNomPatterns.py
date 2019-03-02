@@ -489,6 +489,39 @@ def build_pre_nom(pattern, arguments):
 
 	return pre_nom, found_relevant_in_pattern
 
+def clean_sentence(sentence):
+	"""
+	Cleans the sentence from mistakes with pronouns and more
+	:param sentence: a word sentnece
+	:return: the cleaned sentence
+	"""
+
+	pronoun_dict = get_pronoun_dict()
+	sent = sentence
+
+	# Double determiners
+	sent.replace(" the the ", " the ")
+	sent.replace(" the a ", " a ")
+	sent.replace(" the an ", " an ")
+
+	# Pronouns
+	# Translating the base form of the pronoun to the suitable form according to the context
+	for pronoun, forms_list in pronoun_dict.items():
+		sent.replace(" " + pronoun + "'s ", " " + forms_list[0] + " ")
+		sent.replace(" " + pronoun[0].upper() + pronoun[1:] + "'s ", " " + forms_list[0] + " ")
+
+		sent.replace(" by " + pronoun + " ", " " + forms_list[1] + " ")
+		sent.replace(" by " + pronoun[0].upper() + " ", " " + forms_list[1] + " ")
+
+		# Pronoun + determiner
+		sent.replace(" " + det + " " + pronoun + " ", " " + forms_list[0] + " ")
+		sent.replace(" " + det + " " + pronoun[0].upper() + pronoun[1:] + " ", " " + forms_list[0] + " ")
+
+		sent.replace(" " + det + " " + forms_list[0] + " ", " " + forms_list[0] + " ")
+		sent.replace(" " + det + " " + forms_list[0].upper() + forms_list[0][1:] + " ", " " + forms_list[0] + " ")
+
+	return sent
+
 def pattern_to_sent(nominalization, pattern, arguments):
 	"""
 	Translates a single pattern into a sentence\s, using context arguments
@@ -534,45 +567,8 @@ def pattern_to_sent(nominalization, pattern, arguments):
 	# Cleaning the resulted sentences
 	for i in range(len(sentences)):
 		sentences[i] = " " + sentences[i] + " "
-
-		# Double determiners
-		sentences[i] = sentences[i].replace(" the the ", " the ").\
-									replace(" the a ", " a ").\
-									replace(" the an ", " an ")
-
-		# Pronouns
-		sentences[i] = sentences[i].replace(" she's ", " her ").\
-									replace(" he's ", " his ").\
-									replace(" I's ", " my ").\
-									replace(" they's ", " their ").\
-									replace(" we's ", " our ").\
-									replace(" it's ", " its ").\
-									replace(" you's ", " your ")
-
-		sentences[i] = sentences[i].replace(" by she ", " by her ").\
-									replace(" by he ", " by him ").\
-									replace(" by I ", " by me ").\
-									replace(" by they ", " by them ").\
-									replace(" by we ", " by us ")
-
-		sentences[i] = sentences[i].replace(" the she ", " her "). \
-									replace(" the he ", " his "). \
-									replace(" the I ", " my "). \
-									replace(" the they ", " their "). \
-									replace(" the we ", " our "). \
-									replace(" the it ", " its "). \
-									replace(" the you ", " your ")
-
-		# Pronoun + determiner
-		sentences[i] = sentences[i].replace(" the her ", " her ").\
-									replace(" the his ", " his ").\
-									replace(" the my ", " my ").\
-									replace(" the their ", " their ").\
-									replace(" the our ", " our ").\
-									replace(" the its ", " its ").\
-									replace(" the your ", " your ")
-
-		sentences[i] = sentences[i][1:-1]
+		sentences[i] = clean_sentence(sentences[i])
+		sentences[i] = sentences[i][1:-1] # Without the added spaces
 		sentences[i] = sentences[i][0].upper() + sentences[i][1:]
 
 	return sentences
@@ -662,6 +658,27 @@ def pattern_to_UD(pattern):
 
 	return pattern_UD
 
+def clean_argument(argument):
+	"""
+	Cleans the argument from mistakes with pronouns and more
+	:param argument: a word or sentnece, which is an argument or the nominalization
+	:return: the cleaned argument
+	"""
+
+	pronoun_dict = get_pronoun_dict()
+	arg = argument
+
+	# Translating other forms of the pronoun to the base form
+	for pronoun, forms_list in pronoun_dict.items():
+		if argument.lower() in forms_list:
+			arg = pronoun
+
+	# Deleting the ending " 's" in case that the role_type was DET-POSS
+	if arg.endswith(" 's"):
+		arg = arg[:-3]
+
+	return arg
+
 def extract_argument(dep_tree, dep_links, dep_curr_index):
 	"""
 	A recursive function that finds an argument using acording to the given dependency links
@@ -676,7 +693,8 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 		if dep_curr_index == -1:
 			return []
 		else:
-			return [(dep_tree[dep_curr_index][0], dep_tree[dep_curr_index][9])]
+			arg = clean_argument(dep_tree[dep_curr_index][9])
+			return [(dep_tree[dep_curr_index][0], arg)]
 
 	if dep_curr_index == -1:
 		return []
@@ -718,14 +736,13 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 
 		# Initiate the current arguments dictionary
 		curr_arguments = defaultdict(tuple)
+		curr_arguments["verb"] = (-1, nom_entry["VERB"])
 
 		# Is the nominalization itself has a role in the sentence
 		if "SUBJECT" in nom_entry["NOM-TYPE"].keys():
 			curr_arguments["subject"] = (-1, dependency_tree[nom_index][1])
 		elif "OBJECT" in nom_entry["NOM-TYPE"].keys():
 			curr_arguments["object"] = (-1, dependency_tree[nom_index][1])
-		elif "VERB-NOM" in nom_entry["NOM-TYPE"].keys():
-			curr_arguments["verb"] = (-1, nom_entry["VERB"])
 
 		curr_arguments_list = [curr_arguments]
 		new_curr_arguements_list = []
@@ -743,9 +760,9 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 						for index, arg in possible_arguments:
 							temp_arguments = arguments.copy()
 
-							# Deleting the ending " 's" in case that the role_type was DET-POSS
-							if arg.endswith(" 's"):
-								arg = arg[:-3]
+							# Translate adjective to adverb if needed
+							if role == "adverb" and role_type == ["amod"]:
+								arg = get_adv(arg)
 
 							curr_indexes = [i for i, _ in temp_arguments.values()]
 							if index not in curr_indexes:
@@ -835,11 +852,37 @@ def load_json_data(json_file_name):
 
 ################################################### Utilities ####################################################
 
+def get_best_word(word, possible_list):
+	"""
+	Returns the most relevant word in the possible list to the given word
+	The most relevant is a word that starts the same as the given word
+	:param word: a word
+	:param possible_list: a list of words
+	:return: the most relevant word to the given word
+	"""
+
+	if possible_list == []:
+		return None
+
+	best_word = possible_list[0]
+	best_subword_length = 0
+	for possible_word in possible_list:
+		i = 0
+		while i < len(word) and i < len(possible_word) and possible_word[i] == word[i]:
+			i += 1
+
+		i -= 1
+		if i > best_subword_length:
+			best_subword_length = i
+			best_word = possible_word
+
+	return best_word
+
 def get_adj(word):
 	"""
-	Returns the best adjective that relates to the given word (of no adjective was found, None is returned)
+	Returns the best adjective that relates to the given word (if no adjective was found, None is returned)
 	:param word: a word
-	:return: an adjective that are most relevant to the given word, or None
+	:return: an adjective that is most relevant to the given word, or None
 	"""
 
 	possible_adj = []
@@ -848,24 +891,31 @@ def get_adj(word):
 			for ps in lemmas.pertainyms():  # all possible pertainyms (the adjectives of a noun)
 				possible_adj.append(ps.name())
 
-	if possible_adj == []:
-		return None
-
-	best_adj = possible_adj[0]
-	best_subword_length = 0
-	for adj in possible_adj:
-		i = 0
-		while i < len(word) and i < len(adj) and adj[i] == word[i]:
-			i += 1
-
-		i -= 1
-		if i > best_subword_length:
-			best_subword_length = i
-			best_adj = adj
+	best_adj = get_best_word(word, possible_adj)
 
 	return best_adj
 
+def get_adv(word):
+	"""
+	Returns the best adverb that relates to the given word (if no adverb was found, None is returned)
+	:param word: a word
+	:return: an adverb that is most relevant to the given word, or None
+	"""
 
+	possible_adv = []
+	for synset in list(wn.all_synsets('r')):
+		if get_adj(synset.lemmas()[0].name()) == word:
+			possible_adv.append(synset.lemmas()[0].name())
+
+	best_adv = get_best_word(word, possible_adv)
+
+	return best_adv
+
+
+def get_pronoun_dict():
+	pronoun_dict = {"he":["his", "him"], "she":["her", "her"], "it":["its", "its"], "they":["their", "them"], "we":["our", "us"], "i":["my", "me"]}
+
+	return pronoun_dict
 
 
 ###################################################### Main ######################################################
