@@ -159,9 +159,15 @@ def translate(lines):
 
 	# Moving over all the given line
 	while index < len(lines):
+		entry_type = lines[index][in_line_index + 1]
+
 		# Each time, translating a specific nominalization entry of NOMLEX
 		index, in_line_index, entry = translate_entry(lines, index, in_line_index + 2)
-		entries.append(entry)
+
+		# Only Nominalizations or like-nominalizations are relevant
+		if entry_type in ["NOM", "NOMLIKE"]:
+			entries.append(entry)
+
 		index += 1
 		in_line_index = 0
 
