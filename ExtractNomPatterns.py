@@ -221,8 +221,14 @@ def get_subentries(subcat_info, subcat, default_subjects):
 				for x in subentries_nomlex_name:
 					to_subentry = to_subentry.get(x, {})
 
-				if subentries_names[i] == "adverb" and "ADJP" in to_subentry.keys():
-					to_subentry = ["eval-adv"]
+				if subentries_names[i] == "adverb" and ("ADJP" in to_subentry.keys() or "ADVP" in to_subentry.keys()):
+					if "ADJP" in to_subentry.keys():
+						subentry = []
+						to_subentry = ["eval-adv"]
+					elif "ADVP" in to_subentry.keys():
+						subentry = []
+						to_subentry = ["loc&dir"]
+
 				elif subentries_names[i] == "pval-ing" and subcat == "NOM-ING-SC":
 					to_subentry = []
 				elif subentries_names[i] == "ing-comp" and subcat != "NOM-ING-SC":
@@ -345,6 +351,12 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	# Finding the subentries possible types
 	subentries = get_subentries(subcat_info, subcat, default_subjects)
 
+	# Is the nominalization itself has a role in the sentence
+	if "SUBJECT" in entry["NOM-TYPE"].keys():
+		subentries[get_subentries_order(True).index("subject")] = ["NOM"]
+	elif "OBJECT" in entry["NOM-TYPE"].keys():
+		subentries[get_subentries_order(True).index("object")] = ["NOM"]
+
 	order_required = False
 	if subcat == "NOM-NP-PP-AS-NP":
 		order_required = True
@@ -358,30 +370,35 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	subjects = subentries[get_subentries_order(True).index("subject")]
 	objects = subentries[get_subentries_order(True).index("object")]
 
-	# Is the nominalization itself has a role in the sentence
-	if "SUBJECT" in entry["NOM-TYPE"].keys():
-		subjects = ["NOM"]
-	elif "OBJECT" in entry["NOM-TYPE"].keys():
-		objects = ["NOM"]
-
 	# Creating some patterns for the suitable case
 	if subjects != "NONE" and objects != "NONE":
+		# Without the subject
 		if "SUBJECT" not in required_list and subjects != ["NOM"]:
 			temp_subentries = subentries.copy()
 			temp_subentries[get_subentries_order(True).index("subject")] = ["NONE"]
 			patterns += get_options(temp_subentries, order_required)
 
+		# Without the object
 		if "OBJECT" not in required_list and objects != ["NOM"]:
 			temp_subentries = subentries.copy()
 			temp_subentries[get_subentries_order(True).index("object")] = ["NONE"]
 			patterns += get_options(temp_subentries, order_required)
 
+		# With the subject and the object
+		if "SUBJECT" not in required_list and subjects != ["NOM"] and "OBJECT" not in required_list and objects != ["NOM"]:
+			temp_subentries = subentries.copy()
+			temp_subentries[get_subentries_order(True).index("object")] = ["NONE"]
+			temp_subentries[get_subentries_order(True).index("subject")] = ["NONE"]
+			patterns += get_options(temp_subentries, order_required)
+
 		patterns += get_options(subentries, order_required)
 
+	# Only the object
 	elif objects != "NONE" and "OBJECT" not in required_list:
 		subentries[get_subentries_order(True).index("subject")] = ["NONE"]
 		patterns += get_options(subentries, order_required)
 
+	# Only the subject
 	elif subjects != "NONE" and "SUBJECT" not in required_list:
 		subentries[get_subentries_order(True).index("object")] = ["NONE"]
 		patterns += get_options(subentries, order_required)
@@ -1143,6 +1160,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 
 		# Add only the full lists of arguments
 		for new_curr_arguments in new_curr_arguements_list.copy():
+			print(new_curr_arguments.keys())
 			if set(pattern.keys()) == set(new_curr_arguments.keys()):
 
 				# Arguments with ing (gerund) subcat must also contain a gerund in the suitable argument
