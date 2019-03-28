@@ -164,8 +164,8 @@ def translate(lines):
 		# Each time, translating a specific nominalization entry of NOMLEX
 		index, in_line_index, entry = translate_entry(lines, index, in_line_index + 2)
 
-		# Only Nominalizations or like-nominalizations are relevant
-		if entry_type in ["NOM", "NOMLIKE"]:
+		# Only entries that starts with "NOM"
+		if entry_type.startswith("NOM"):
 			entries.append(entry)
 
 		index += 1
