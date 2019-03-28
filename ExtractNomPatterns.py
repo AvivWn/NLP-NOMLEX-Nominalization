@@ -5,110 +5,141 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from collections import defaultdict
 import spacy
+import inflect
 
+inflect_engine = inflect.engine()
 nlp = spacy.load('en_core_web_sm')
 
 det = "the"
+should_print = True
 
 ############################################# Dictionaries and Tables ############################################
 
-def get_subentries_order(is_lower):
-	if not is_lower:
-		return [["SUBJECT"], ["IND-OBJ", "PVAL1"], ["OBJECT"], ["PVAL"], ["PVAL2"], [["NOM-SUBC", "P-ING", "PVAL"]], ["PVAL-NOM"], [["NOM-SUBC"]], [["SBAR"]], ["ADJ"], [["NOM-SUBC", "P-ING", "PVAL"]]]
-	else:
-		return ["subject", "ind-object", "object", "pval", "pval2", "pval-ing", "pval-nom", "adverb", "sbar", "adjective", "ing-comp"]
+def get_subentries_table():
+	# (subentry, ud_links, [(how_to_find, limited_subcats, exception_subcats)])
+	# limited_subcats = [] means not limited
+	# exception_subcats = [] means with no exceptions
+	return [
+		("subject", 		{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["SUBJECT"], [], [])]),
+		("ind-object", 		{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["PVAL1"], [], []), ("IND-OBJ", [], [])]),
+		("object", 			{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["OBJECT"], [], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"])]),
+		("pval", 			["prep_", ["pobj"]],													[(["PVAL"], [], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"])]),
+		("pval2", 			["prep_", ["pobj"]],													[(["PVAL2"], [], [])]),
+		("pval-nom", 		[],																		[(["PVAL-NOM"], [], [])]),
+		("pval1-nom", 		[],																		[(["PVAL1-NOM"], [], [])]),
+		("pval2-nom", 		[],																		[(["PVAL2-NOM"], [], [])]),
+		("pval-ing", 		["prep_", ["pcomp__ing"]],												[(["NOM-SUBC", "P-ING", "PVAL"], [], ["NOM-ING-SC"])]), # P-ING
+		("pval-comp-ing", 	["prep_", ["pobj"], ["pcomp__ing"]],									[(["PVAL"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"], [])]), # P-NP-ING
+		("comp-ing", 		["prep_", "pobj__ing"],													[(["OBJECT"], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"], [])]), # NP-ING
+		("ing", 			["prep_", "pcomp__ing"],												[(["NOM-SUBC", "P-ING", "PVAL"], ["NOM-ING-SC"], [])]), # just ING
+		("adverb", 			{"ADJP": ["amod"], "ADVP": ["advmod"]},									[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
+		("sbar", 			["acl", ["mark_that"]], 												[]),
+		("adjective", 		["prep_", "amod"], 														[]),
+		("inf", 			["acl", ["aux_to"]],													[]),
+	]
 
-def get_special_argument_dict():
-	# subcat: list of (argument, default_value)
-	return {"NOM-ADVP": [("adverb", ["loc&dir"])],
-			"NOM-ADVP-PP": [("adverb", ["loc&dir"])],
-			"NOM-NP-ADVP": [("adverb", ["loc&dir"])],
+def get_special_subcats_dict():
+	# subcat: list of (subentry, default_value)
+	return {
+		"NOM-ADVP":			[("adverb", ["ADVP"])],
+		"NOM-ADVP-PP":		[("adverb", ["ADVP"])],
+		"NOM-NP-ADVP":		[("adverb", ["ADVP"])],
 
-			"NOM-NP-TO-NP": [("ind-object", ["PP-TO"])],
-			"NOM-NP-FOR-NP": [("ind-object", ["PP-FOR"])],
+		"NOM-NP-TO-NP":		[("ind-object", ["PP-TO"])],
+		"NOM-NP-FOR-NP":	[("ind-object", ["PP-FOR"])],
 
-			"NOM-NP-AS-NP-SC": [("pval", ["as"])],
-			"NOM-NP-AS-NP": [("pval", ["as"])],
-			"NOM-AS-NP": [("pval", ["as"])],
-			"NOM-NP-PP-AS-NP": [("pval2", ["as"])],
-			"NOM-NP-AS-ING": [("pval-ing", ["as"])],
+		"NOM-NP-AS-NP-SC":	[("pval", ["as"])],
+		"NOM-NP-AS-NP":		[("pval", ["as"])],
+		"NOM-AS-NP":		[("pval", ["as"])],
+		"NOM-NP-PP-AS-NP":	[("pval2", ["as"])],
+		"NOM-NP-AS-ING":	[("pval-ing", ["as"])],
 
-			"NOM-NP-AS-ADJP": [("adjective", ["as"])],
+		"NOM-NP-AS-ADJP":	[("adjective", ["as"])],
 
-			"NOM-S": [("sbar", ["NOT NONE"])],
-			"NOM-THAT-S": [("sbar", ["NOT NONE"])],
-			"NOM-NP-S": [("sbar", ["NOT NONE"])],
-			"NOM-PP-THAT-S": [("sbar", ["NOT NONE"])]}
+		"NOM-S":			[("sbar", ["NOT NONE"])],
+		"NOM-THAT-S":		[("sbar", ["NOT NONE"])],
+		"NOM-NP-S":			[("sbar", ["NOT NONE"])],
+		"NOM-PP-THAT-S":	[("sbar", ["NOT NONE"])],
+
+		"NOM-FOR-TO-INF":	[("pval-inf", ["for"])],
+		"NOM-TO-INF-SC":	[("inf", ["to"])]
+	}
 
 def get_comlex_table():
 	# subcat, structure, suitable_pattern_entities
 	# Be aware that the order matter, because the program try each line in that order and we want to find the most specific case
 	comlex_table = [
-				 # ING- gerunds
-				 ("NOM-NP-P-NP-ING", ["NP", ["IN", ["NP", ["VBG"]]]], ["object", "pval"]),
-				 ("NOM-NP-P-NP-ING", ["NP", ["IN", ["NP", [["VBG"]]]]], ["object", "pval"]),
-				 ("NOM-P-NP-ING", [["IN", ["NP", ["VBG"]]]], ["pval"]),
-				 ("NOM-P-NP-ING", [["IN", ["NP", [["VBG"]]]]], ["pval"]),
-				 ("NOM-NP-AS-ING", ["NP", ["IN_as", ["VBG"]]], ["object", "pval-ing"]),
-				 ("NOM-NP-AS-ING", ["NP", ["IN_as", [["VBG"]]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING", ["NP", ["IN", ["VBG"]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING", ["NP", ["IN", [["VBG"]]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING-OC", ["NP", ["IN", ["VBG"]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING-OC", ["NP", ["IN", [["VBG"]]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING-SC", ["NP", ["IN", ["VBG"]]], ["object", "pval-ing"]),
-				 ("NOM-NP-P-ING-SC", ["NP", ["IN", [["VBG"]]]], ["object", "pval-ing"]),
-				 ("NOM-P-ING-SC", [["IN", ["VBG"]]], ["pval-ing"]),
-				 ("NOM-P-ING-SC", [["IN", [["VBG"]]]], ["pval-ing"]),
-				 ("NOM-NP-ING", [["NP", ["VBG"]]], ["object"]),
-				 ("NOM-NP-ING", [["NP", [["VBG"]]]], ["object"]),
-				 ("NOM-NP-ING-OC", [["NP", ["VBG"]]], ["object"]),
-				 ("NOM-NP-ING-OC", [["NP", [["VBG"]]]], ["object"]),
-				 ("NOM-NP-ING-SC", ["NP", ["VBG"]], ["object"]),
-				 ("NOM-NP-ING-SC", ["NP", [["VBG"]]], ["object"]),
-				 ("NOM-ING-SC", [["VB"]], ["ing-comp"]),
-				 ("NOM-ING-SC", [[["VBG"]]], ["ing-comp"]),
+		 ("NOM-FOR-TO-INF",		[["IN_for", ["NP", ["TO_to", ["VB"]]]]],	["pval-inf"]),									# NEW
+		 ("NOM-TO-INF-SC",		[[["TO_to", ["VB"]]]],						["inf"]),										# OK
 
-				 # SBAR
-				 ("NOM-PP-THAT-S", [["IN", "NP"], "SBAR"], [[None, "ind-object"], "sbar"]),
-				 ("NOM-NP-S", ["NP", "SBAR"], ["object", "sbar"]),
-				 ("NOM-THAT-S", ["SBAR"], ["sbar"]),
-				 ("NOM-S", ["SBAR"], ["sbar"]),
+		 # ING- gerunds
+		 ("NOM-NP-P-NP-ING",	["NP", ["IN", ["NP", ["VBG"]]]],			["object", "pval-comp-ing"]),					# OK
+		 ("NOM-NP-P-NP-ING",	["NP", ["IN", ["NP", [["VBG"]]]]],			["object", "pval-comp-ing"]),					# OK
+		 ("NOM-P-NP-ING",		[["IN", ["NP", ["VBG"]]]],					["pval-comp-ing"]),								# OK
+		 ("NOM-P-NP-ING",		[["IN", ["NP", [["VBG"]]]]],				["pval-comp-ing"]),								# OK
+		 ("NOM-NP-AS-ING",		["NP", ["IN_as", ["VBG"]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-AS-ING",		["NP", ["IN_as", [["VBG"]]]],				["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING",		["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING",		["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-OC",	["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-OC",	["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-SC",	["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-SC",	["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-P-ING-SC",		[["IN", ["VBG"]]],							["pval-ing"]),									# OK
+		 ("NOM-P-ING-SC",		[["IN", [["VBG"]]]],						["pval-ing"]),									# OK
+		 ("NOM-NP-ING",			[["NP", ["VBG"]]],							["comp-ing"]),									# OK
+		 ("NOM-NP-ING",			[["NP", [["VBG"]]]],						["comp-ing"]),									# OK
+		 ("NOM-NP-ING-OC",		[["NP", ["VBG"]]],							["comp-ing"]),									# OK
+		 ("NOM-NP-ING-OC",		[["NP", [["VBG"]]]],						["comp-ing"]),									# OK
+		 ("NOM-NP-ING-SC",		["NP", ["VBG"]],							"comp-ing"),									# OK
+		 ("NOM-NP-ING-SC",		["NP", [["VBG"]]],							"comp-ing"),									# OK
+		 ("NOM-ING-SC",			[["VBG"]],									["ing"]),										# OK
+		 ("NOM-ING-SC",			[[["VBG"]]],								["ing"]),										# OK
 
-				 # Double pvals
-				 ("NOM-NP-PP-AS-NP", ["NP", ["IN", "NP"], ["IN_as", "NP"]], ["object", [None, "ind-object"], "pval2"]),
-				 ("NOM-NP-PP-AS-NP", [["NP", ["IN", "NP"]], ["IN_as", "NP"]], [["object", [None, "ind-object"]], "pval2"]),
-				 ("NOM-NP-PP-PP", ["NP", "PP", "PP"], ["object", "pval", "pval2"]),
-				 ("NOM-NP-PP-PP", [["NP", "PP"], "PP"], [["object", "pval"], "pval2"]),
-				 ("NOM-PP-PP", ["PP", "PP"], ["pval", "pval2"]),
+		 # SBAR
+		 ("NOM-PP-THAT-S",		[["IN", "NP"], ["IN_that", "S"]],			[[None, "ind-object"], "sbar"]),				# OK
+		 ("NOM-NP-S",			["NP", ["S"]],								["object", "sbar"]),							# OK
+		 ("NOM-NP-S",			["NP", ["IN_that", "S"]],					["object", "sbar"]),							# OK
+		 ("NOM-THAT-S",			[["IN_that", "S"]],							["sbar"]),										# OK
+		 ("NOM-S",				[["S"]],									["sbar"]),										# OK
+		 ("NOM-S",				[["IN_that", "S"]],							["sbar"]),										# OK
 
-				 # Both object and indirect-object
-				 ("NOM-NP-TO-NP", ["NP", ["IN_to", "NP"]], ["object", [None, "ind-object"]]), # HERE
-				 ("NOM-NP-TO-NP", [["IN_to", "NP"], "NP"], [[None, "ind-object"], "object"]),
-				 ("NOM-NP-TO-NP", ["NP", "NP"], ["ind-object", "object"]),
-				 ("NOM-NP-FOR-NP", ["NP", ["IN_for", "NP"]], ["object", [None, "ind-object"]]),
-				 ("NOM-NP-FOR-NP", [["IN_for", "NP"], "NP"], [[None, "ind-object"], "object"]),
-				 ("NOM-NP-FOR-NP", ["NP", "NP"], ["ind-object", "object"]),
+		 # Double pvals
+		 ("NOM-NP-PP-AS-NP",	["NP", ["IN", "NP"], ["IN_as", "NP"]],		["object", [None, "ind-object"], "pval2"]),
+		 ("NOM-NP-PP-AS-NP",	[["NP", ["IN", "NP"]], ["IN_as", "NP"]],	[["object", [None, "ind-object"]], "pval2"]),
+		 ("NOM-NP-PP-PP",		["NP", "PP", "PP"],							["object", "pval", "pval2"]),					# OK
+		 ("NOM-NP-PP-PP",		[["NP", "PP"], "PP"],						[["object", "pval"], "pval2"]),					# OK
+		 ("NOM-PP-PP",			["PP", "PP"],								["pval", "pval2"]),								# OK
 
-				 # Adjective
-				 ("NOM-NP-AS-ADJP", ["NP", ["RB_as", "JJ"]], ["object", "adjective"]),
+		 # Both object and indirect-object
+		 ("NOM-NP-TO-NP",		["NP", ["IN_to", "NP"]],					["object", [None, "ind-object"]]),				# OK
+		 ("NOM-NP-TO-NP",		[["IN_to", "NP"], "NP"],					[[None, "ind-object"], "object"]),				# OK
+		 ("NOM-NP-TO-NP",		["NP", "NP"],								["ind-object", "object"]),						# OK
+		 ("NOM-NP-FOR-NP",		["NP", ["IN_for", "NP"]],					["object", [None, "ind-object"]]),				# OK
+		 ("NOM-NP-FOR-NP",		[["IN_for", "NP"], "NP"],					[[None, "ind-object"], "object"]),				# OK
+		 ("NOM-NP-FOR-NP",		["NP", "NP"],								["ind-object", "object"]),						# OK
 
-				 # Single pval
-				 ("NOM-NP-AS-NP-SC", ["NP", ["IN_as", "NP"]], ["object", "pval"]),
-				 ("NOM-NP-AS-NP", ["NP", ["IN_as", "NP"]], ["object", "pval"]),
-				 ("NOM-AS-NP", [["IN_as", "NP"]], ["pval"]),
-				 ("NOM-NP-PP", ["NP", "PP"], ["object", "pval"]),
+		 # Adjective
+		 ("NOM-NP-AS-ADJP",		["NP", ["RB_as", "JJ"]],					["object", "adjective"]),						# OK
 
-				 # Double objects
-				 ("NOM-NP-NP", ["NP", "NP"], ["ind-object", "object"]),
+		 # Single pval
+		 ("NOM-NP-AS-NP-SC",	["NP", ["IN_as", "NP"]],					["object", "pval"]),							# OK
+		 ("NOM-NP-AS-NP",		["NP", ["IN_as", "NP"]],					["object", "pval"]),							# OK
+		 ("NOM-AS-NP",			[["IN_as", "NP"]],							["pval"]),										# OK
+		 ("NOM-NP-PP",			["NP", "PP"],								["object", "pval"]),							# OK
 
-				 # Adverb
-				 ("NOM-ADVP-PP", ["ADVP", "PP"], ["adverb", "pval"]),
-				 ("NOM-NP-ADVP", ["NP", "ADVP"], ["object", "adverb"]),
-				 ("NOM-ADVP", ["ADVP"], ["adverb"]),
+		 # Double objects
+		 ("NOM-NP-NP",			["NP", "NP"],								["ind-object", "object"]),						# OK
 
-				 # Basic
-				 ("NOM-PP", ["PP"], ["pval"]),
-				 ("NOM-NP", ["NP"], ["object"])]
+		 # Adverb
+		 ("NOM-ADVP-PP",		["ADVP", "PP"],								["adverb", "pval"]),							# OK
+		 ("NOM-NP-ADVP",		["NP", "ADVP"],								["object", "adverb"]),							# OK
+		 ("NOM-ADVP",			["ADVP"],									["adverb"]),									# OK
+
+		 # Basic
+		 ("NOM-PP",				["PP"],										["pval"]),										# OK
+		 ("NOM-NP",				["NP"],										["object"])										# OK
+	]
 
 	return comlex_table
 
@@ -147,7 +178,7 @@ def update_option(options, info, role=None):
 			options.remove("IND-OBJ-OTHER")
 
 			other_info = info[role]["IND-OBJ-OTHER"]
-			options += ["IND-OBJ-" + s.upper() for s in list(other_info.values())[0]]
+			options += ["PP-" + s.upper() for s in list(other_info.values())[0]]
 
 	if "PP" in options:
 		options.remove("PP")
@@ -173,13 +204,14 @@ def get_options(a_list, order_required):
 	"""
 
 	all_tuples = list(itertools.product(*a_list))
+	subentries_types = [i[0] for i in get_subentries_table()]
 
-	if a_list[get_subentries_order(True).index("pval")] != ["NONE"] and \
-	   		a_list[get_subentries_order(True).index("pval2")] != ["NONE"] and \
+	if a_list[subentries_types.index("pval")] != ["NONE"] and \
+	   		a_list[subentries_types.index("pval2")] != ["NONE"] and \
 			not order_required:
-		temp = a_list[get_subentries_order(True).index("pval")]
-		a_list[get_subentries_order(True).index("pval")] = a_list[get_subentries_order(True).index("pval2")]
-		a_list[get_subentries_order(True).index("pval2")] = temp
+		temp = a_list[subentries_types.index("pval")]
+		a_list[subentries_types.index("pval")] = a_list[subentries_types.index("pval2")]
+		a_list[subentries_types.index("pval2")] = temp
 		all_tuples += list(itertools.product(*a_list))
 
 	return all_tuples
@@ -196,83 +228,77 @@ def get_subentries(subcat_info, subcat, default_subjects):
 	:return: a list of lists (its order defined by the get_subentries_order() function)
 	"""
 
-	subentries_nomlex_names = get_subentries_order(False)
-	subentries_names = get_subentries_order(True)
+	subentries_types_table = get_subentries_table()
+	subentries_types = [i[0] for i in get_subentries_table()]
 
-	special_cases = get_special_argument_dict()
+	special_cases = get_special_subcats_dict()
 
 	subentries = []
 
 	# Moving over all the possible subentries
-	for i in range(len(subentries_nomlex_names)):
+	for i in range(len(subentries_types_table)):
 		subentry = []
+		default_subentry_value = []
 
 		# Are there any special cases? checking it with the suitable dictionary
 		if subcat in special_cases.keys():
-			# Initial the relevant subentries as the default value
+			# Initial the relevant subentries with the suitable default value
 			for special_subentry, default_value in special_cases[subcat]:
-				if special_subentry == subentries_names[i]:
-					subentry = default_value
+				if special_subentry == subentries_types_table[i][0]:
+					default_subentry_value = default_value
 
-		# Getting the subentry from the given subcat info
-		for subentries_nomlex_name in subentries_nomlex_names[i]:
-			if type(subentries_nomlex_name) == list:
+		# Getting the subentry options from the given subcat info
+		for how_to_find_subentry, limited_subcats, exception_subcats in subentries_types_table[i][2]:
+			if (limited_subcats == [] or subcat in limited_subcats) and subcat not in exception_subcats:
 				to_subentry = subcat_info
-				for x in subentries_nomlex_name:
+				for x in how_to_find_subentry:
 					to_subentry = to_subentry.get(x, {})
 
-				if subentries_names[i] == "adverb" and ("ADJP" in to_subentry.keys() or "ADVP" in to_subentry.keys()):
-					if "ADJP" in to_subentry.keys():
-						subentry = []
-						to_subentry = ["eval-adv"]
-					elif "ADVP" in to_subentry.keys():
-						subentry = []
-						to_subentry = ["loc&dir"]
-
-				elif subentries_names[i] == "pval-ing" and subcat == "NOM-ING-SC":
-					to_subentry = []
-				elif subentries_names[i] == "ing-comp" and subcat != "NOM-ING-SC":
-					to_subentry = []
-				elif not subentries_names[i] in ["pval-ing", "ing-comp"]:
-					to_subentry = []
-
-				subentry += to_subentry
-			else:
-				to_subentry = subcat_info.get(subentries_nomlex_name, {})
+				if how_to_find_subentry == ["PVAL1"] and to_subentry not in ["*NONE*", "NONE"]:
+					for j in range(len(to_subentry)):
+						to_subentry[j] = "PP-" + to_subentry[j].upper()
 
 				if type(to_subentry) == str:
 					to_subentry = [to_subentry]
 
-				subentry += to_subentry
+				if subentry == "NONE":
+					subentry = to_subentry
+				else:
+					subentry += to_subentry
 
-			# Dealing with the subentry results
-			if subentry == ["NONE"]:
-				subentry = "NONE"
-			else:
-				if subentries_nomlex_name == "OBJECT":
-					if subentry == []:
-						subentry = ["NONE"]
-					else:
-						subentry = update_option(subentry, subcat_info, subentries_nomlex_name)
-				elif subentries_nomlex_name == "SUBJECT":
-					if subentry == []:
-						subentry = default_subjects
-					else:
-						subentry = update_option(subentry, subcat_info, subentries_nomlex_name)
-				elif subentries_nomlex_name == "IND-OBJ":
-					subentry = update_option(subentry, subcat_info, subentries_nomlex_name)
+				# Dealing with the subentry results
+				if subentry == ["NONE"] or subentry == ["*NONE*"]:
+					subentry = "NONE"
+				else:
+					if how_to_find_subentry in [["OBJECT"], ["IND-OBJ"]]:
+						subentry = update_option(subentry, subcat_info, how_to_find_subentry[0])
+					elif how_to_find_subentry == ["SUBJECT"]:
+						if subentry == []:
+							subentry = default_subjects
+						else:
+							subentry = update_option(subentry, subcat_info, how_to_find_subentry[0])
 
 		if subentry == []:
-			subentry = ["NONE"]
+			subentry = default_subentry_value
+
+			if subentry == []:
+				subentry = ["NONE"]
 
 		subentries.append(subentry)
 
-	temp = subentries[subentries_names.index("pval-nom")]
+	pval_subentry = subentries[subentries_types.index("pval-nom")]
+	if pval_subentry != ["NONE"]:
+		subentries[subentries_types.index("pval")] = ["pval-nom"]
 
-	if temp != ["NONE"]:
-		subentries[subentries_names.index("pval")] = ["pval-nom"]
+	pval_subentry = subentries[subentries_types.index("pval1-nom")]
+	if pval_subentry != ["NONE"]:
+		subentries[subentries_types.index("ind-object")] = ["pval1-nom"]
 
-	#print(subentries)
+	pval_subentry = subentries[subentries_types.index("pval2-nom")]
+	if pval_subentry != ["NONE"]:
+		subentries[subentries_types.index("pval2")] = ["pval2-nom"]
+
+	#if should_print: print(subentries)
 
 	return subentries
 
@@ -291,18 +317,17 @@ def clean_patterns(patterns, entry, subcat_info, subcat):
 
 	# Removing patterns that we know that cannot appear according to the NOMLEX manual
 	for pattern in patterns:
-		subj, indobj, obj, pval, pval2 = pattern[:5]
-
+		# Too short pattern
 		if len(list(set(pattern))) == 1 and subcat != "NOM-INTRANS" and subcat != "NOM-INTRANS-RECIP":
 			patterns.remove(pattern)
-		elif (subj == 'DET-POSS' and obj == 'DET-POSS') or \
-			 (subj == 'DET-POSS' and indobj == 'DET-POSS') or \
-			 (obj == 'DET-POSS' and indobj == 'DET-POSS'):
-				patterns.remove(pattern)
-		elif (subj == 'PP-OF' and (pval == 'of' or pval2 == 'of')) or \
-			 (obj == 'PP-OF' and (pval == 'of' or pval2 == 'of')) or \
-			 (indobj == 'PP-OF' and (pval == 'of' or pval2 == 'of')):
-				patterns.remove(pattern)
+
+		# More than one possessive determiner in the pattern
+		elif len([x for x in list(pattern) if x == 'DET-POSS']) >= 2:
+			patterns.remove(pattern)
+
+		# Both argument as PP and pval written after 'of' preposition
+		elif 'PP-OF' in list(pattern) and 'of' in list(pattern):
+			patterns.remove(pattern)
 
 	# Removing patterns according to the "NOT" tag
 	not_subentry = subcat_info.get("NOT", {})
@@ -351,56 +376,60 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	# Finding the subentries possible types
 	subentries = get_subentries(subcat_info, subcat, default_subjects)
 
+	subentries_types = [i[0] for i in get_subentries_table()]
+
+	# TODO: dealing with nominalization like prayer
 	# Is the nominalization itself has a role in the sentence
 	if "SUBJECT" in entry["NOM-TYPE"].keys():
-		subentries[get_subentries_order(True).index("subject")] = ["NOM"]
+		subentries[subentries_types.index("subject")] = ["NOM"]
 	elif "OBJECT" in entry["NOM-TYPE"].keys():
-		subentries[get_subentries_order(True).index("object")] = ["NOM"]
+		subentries[subentries_types.index("object")] = ["NOM"]
 
+	# TODO: save this information in a table
 	order_required = False
 	if subcat == "NOM-NP-PP-AS-NP":
 		order_required = True
 	elif subcat == "NOM-NP-AS-NP-SC":
 		required_list.append("SUBJECT")
 		required_list = list(set(required_list))
-	elif subcat in ["NOM-NP-ING", "NOM-NP-ING-OC", "NOM-NP-ING-SC", "NOM-NP-P-ING"]:
+	elif subcat in ["NOM-NP-P-ING"]:
 		required_list.append("OBJECT")
 		required_list = list(set(required_list))
 
-	subjects = subentries[get_subentries_order(True).index("subject")]
-	objects = subentries[get_subentries_order(True).index("object")]
+	subjects = subentries[subentries_types.index("subject")]
+	objects = subentries[subentries_types.index("object")]
 
 	# Creating some patterns for the suitable case
 	if subjects != "NONE" and objects != "NONE":
 		# Without the subject
 		if "SUBJECT" not in required_list and subjects != ["NOM"]:
 			temp_subentries = subentries.copy()
-			temp_subentries[get_subentries_order(True).index("subject")] = ["NONE"]
+			temp_subentries[subentries_types.index("subject")] = ["NONE"]
 			patterns += get_options(temp_subentries, order_required)
 
 		# Without the object
 		if "OBJECT" not in required_list and objects != ["NOM"]:
 			temp_subentries = subentries.copy()
-			temp_subentries[get_subentries_order(True).index("object")] = ["NONE"]
+			temp_subentries[subentries_types.index("object")] = ["NONE"]
 			patterns += get_options(temp_subentries, order_required)
 
 		# With the subject and the object
 		if "SUBJECT" not in required_list and subjects != ["NOM"] and "OBJECT" not in required_list and objects != ["NOM"]:
 			temp_subentries = subentries.copy()
-			temp_subentries[get_subentries_order(True).index("object")] = ["NONE"]
-			temp_subentries[get_subentries_order(True).index("subject")] = ["NONE"]
+			temp_subentries[subentries_types.index("object")] = ["NONE"]
+			temp_subentries[subentries_types.index("subject")] = ["NONE"]
 			patterns += get_options(temp_subentries, order_required)
 
 		patterns += get_options(subentries, order_required)
 
 	# Only the object
 	elif objects != "NONE" and "OBJECT" not in required_list:
-		subentries[get_subentries_order(True).index("subject")] = ["NONE"]
+		subentries[subentries_types.index("subject")] = ["NONE"]
 		patterns += get_options(subentries, order_required)
 
 	# Only the subject
 	elif subjects != "NONE" and "SUBJECT" not in required_list:
-		subentries[get_subentries_order(True).index("object")] = ["NONE"]
+		subentries[subentries_types.index("object")] = ["NONE"]
 		patterns += get_options(subentries, order_required)
 
 	# Deleting illegal patterns
@@ -414,10 +443,9 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 		dict_pattern["subcat"] = subcat
 		dict_pattern["verb"] = entry["VERB"]
 
-		subentries_names = get_subentries_order(True)
-		for i in range(len(subentries_names)):
+		for i in range(len(subentries_types)):
 			if pattern[i] != "NONE":
-				dict_pattern[subentries_names[i]] = pattern[i]
+				dict_pattern[subentries_types[i]] = pattern[i]
 
 		dicts_patterns.append(dict_pattern)
 
@@ -592,6 +620,13 @@ def get_sub_phrases(phrases_tree, phrases_tags, arguments_types = None):
 
 	arguments = defaultdict(str)
 
+	if type(arguments_types) == str:
+		phrases_tree = [{"S": phrases_tree}]
+		phrases_tags = [phrases_tags]
+		arguments_types = [arguments_types]
+
+		return get_sub_phrases(phrases_tree, phrases_tags, arguments_types)
+
 	# Moving over the sub-phrases list in the current phrases tree
 	for sub_phrases_trees in phrases_tree:
 		if type(sub_phrases_trees) != str:
@@ -716,13 +751,20 @@ def detect_comlex_subcat(sent):
 				# Adding the updated arguments to the possible arguments list
 				temp_arguments = default_arguments.copy()
 				temp_arguments.update(founded_arguments)
+
+				if "sbar" in temp_arguments.keys() and not temp_arguments["sbar"].lower().startswith("that "):
+					temp_arguments["sbar"] = "that " + temp_arguments["sbar"]
+
 				possible_arguments.append(temp_arguments)
 
-		# Always suitable subcats
+		# NOM-INTRANS- always suitable subcat
 		default_arguments["subcat"] = "NOM-INTRANS"
 		possible_arguments.append(default_arguments.copy())
-		default_arguments["subcat"] = "NOM-INTRANS-RECIP"
-		possible_arguments.append(default_arguments.copy())
+
+		# NOM-INTRANS-RECIP- always suitable subcat in case of plural subject NP
+		if inflect_engine.singular_noun(get_phrase(np_phrase_tree)):
+			default_arguments["subcat"] = "NOM-INTRANS-RECIP"
+			possible_arguments.append(default_arguments.copy())
 
 	return possible_arguments
 
@@ -736,13 +778,14 @@ def process_a_sentence(sent):
 
 	# Replacing the first upper letter only if the word isn't a name of something (using NER from spacy)
 	dependency = get_dependency(sent)
-	if dependency[0][-2] == "":
+	if dependency != [] and dependency[0][-2] == "":
 		sent = sent[0].lower() + sent[1:]
 
-	arguments = detect_comlex_subcat(sent)
-	seperate_line_print(arguments)
+	possible_arguments = detect_comlex_subcat(sent)
 
-	return arguments
+	seperate_line_print(possible_arguments)
+
+	return possible_arguments
 
 def build_pre_nom(pattern, arguments):
 	"""
@@ -752,43 +795,49 @@ def build_pre_nom(pattern, arguments):
 	:return: the string before the nominalization (by default it must be in the next order- subject > indobject > object)
 	"""
 
-	found_relevant_in_pattern = False
-
-	if pattern["subject"] != "" or pattern["object"] != "" or pattern["ind-object"] != "":
-		found_relevant_in_pattern = True
-
 	# An argument appears in the pattern, but it wasn't found in the sentence (=> problem)
-	if (arguments["subject"] == "" and pattern["subject"] != "") or \
-			(arguments["object"] == "" and pattern["object"] != "") or \
-			(arguments["ind-object"] == "" and pattern["ind-object"] != ""):
-		return "", False
+	if ("subject" not in arguments.keys() and "subject" in pattern.keys()) or \
+			("object" not in arguments.keys() and "object" in pattern.keys()) or \
+			("ind-object" not in arguments.keys() and "ind-object" in pattern.keys()):
+		return ""
 
 	pre_nom = ""
 
-	if pattern["subject"] == "DET-POSS":
-		pre_nom += arguments["subject"] + "'s "
-	elif pattern["subject"] == "N-N-MOD":
-		pre_nom += det + " " + arguments["subject"] + " "
+	if "subject" in pattern.keys():
+		if pattern["subject"] == "DET-POSS":
+			pre_nom += arguments["subject"] + "'s "
+		elif pattern["subject"] == "N-N-MOD":
+			pre_nom += det + " " + arguments["subject"] + " "
 
-	if pattern["ind-object"] == "DET-POSS":
-		pre_nom += arguments["ind-object"] + "'s "
-	elif pattern["ind-object"] == "N-N-MOD":
-		if pre_nom == "":
-			pre_nom += det + " " + arguments["ind-object"] + " "
-		else:
-			pre_nom += arguments["ind-object"] + " "
+	if "ind-object" in pattern.keys():
+		if pattern["ind-object"] == "DET-POSS":
+			pre_nom += arguments["ind-object"] + "'s "
+		elif pattern["ind-object"] == "N-N-MOD":
+			if pre_nom == "":
+				pre_nom += det + " " + arguments["ind-object"] + " "
+			else:
+				pre_nom += arguments["ind-object"] + " "
 
-	if pattern["object"] == "DET-POSS":
-		pre_nom += arguments["object"] + "'s "
-	elif pattern["object"] == "N-N-MOD":
-		if pre_nom == "":
-			pre_nom += det + " " + arguments["object"] + " "
-		else:
-			pre_nom += arguments["object"] + " "
+	if "object" in pattern.keys():
+		if pattern["object"] == "DET-POSS":
+			pre_nom += arguments["object"] + "'s "
+		elif pattern["object"] == "N-N-MOD":
+			if pre_nom == "":
+				pre_nom += det + " " + arguments["object"] + " "
+			else:
+				pre_nom += arguments["object"] + " "
 
-	# Adding the adverb as adj if it is eval-adv
-	if pattern["adverb"] == "eval-adv" and arguments["adverb"] != "":
-		found_relevant_in_pattern = True
+	if "comp-ing" in pattern.keys():
+		if pattern["comp-ing"] == "DET-POSS":
+			pre_nom += arguments["comp-ing"] + "'s "
+		elif pattern["comp-ing"] == "N-N-MOD":
+			if pre_nom == "":
+				pre_nom += det + " " + arguments["comp-ing"] + " "
+			else:
+				pre_nom += arguments["comp-ing"] + " "
+
+	# Adding the adverb as adj if it is eval-adv (ADJP)
+	if "adverb" in pattern.keys() and pattern["adverb"] == "ADJP":
 		if pre_nom == "":
 			pre_nom = det + " "
 
@@ -800,7 +849,7 @@ def build_pre_nom(pattern, arguments):
 	if pre_nom == "":
 		pre_nom = det + " "
 
-	return pre_nom, found_relevant_in_pattern
+	return pre_nom
 
 def clean_sentence(sent):
 	"""
@@ -844,59 +893,56 @@ def pattern_to_sent(nominalization, pattern, arguments):
 	"""
 	Translates a single pattern into a sentence\s, using context arguments
 	:param nominalization: the nominalization word
-	:param pattern: a pattern, that should be translated
-	:param arguments: some context arguments, that helps in the translation
+	:param pattern: a pattern, that should be translated (as a dictionary)
+	:param arguments: a dictionary of context arguments, that helps in the translation
 	:return: list of suitable nominal sentences for the given data
 	"""
 
 	sentences = []
-	print(pattern)
+
+	if should_print: print(pattern)
 
 	# Getting the sentence string before the nominalization
-	pre_nom, found_relevant_in_pattern = build_pre_nom(pattern, arguments)
+	pre_nom = build_pre_nom(pattern, arguments)
 
 	# Adding the nominalization
 	sentence = pre_nom + nominalization
 
-	# Adding the adverb as regular adverb if it is loc&dir
-	if pattern["adverb"] == "loc&dir" and arguments["adverb"] != "":
-		found_relevant_in_pattern = True
-		sentence += " " + arguments["adverb"]
-
 	# Getting all the prepositions which appear in the pattern
 	# Those prepositions will appear after the nominalization in any order
 	post_preps = []
-	for role, role_type in pattern.items():
-		if type(role_type) == str and role_type.startswith("PP-"):
+	for subentry, option in pattern.items():
+		if type(option) == str and option.startswith("PP-"):
 
-			# Fixing pronouns after prepositions mistakes
+			# Fixing msitakes of pronouns after prepositions (only for the resulted sentence)
+			arg = arguments[subentry]
 			for pronoun, forms_list in get_pronoun_dict().items():
-				if arguments[role] == pronoun or (pronoun[0].upper() + pronoun[1:]) == arguments[role]:
-					arguments[role] = forms_list[1]
+				if arguments[subentry] == pronoun or (pronoun[0].upper() + pronoun[1:]) == arguments[subentry]:
+					arg = forms_list[1]
 
-			post_preps.append([role_type.replace("PP-", "").lower(), arguments[role]])
+			post_preps.append([option.replace("PP-", "").lower(), arg])
 
-		elif role in ["pval", "pval2", "pval-ing", "adjective"] and role_type != "":
-			splitted = arguments[role].split(" ")
+		elif subentry in ["pval", "pval2", "pval-ing", "pval-comp-ing", "adjective", "inf"]:
+			splitted = arguments[subentry].split(" ")
 
-			if role_type == "pval-nom":
-				role_type = pattern[role_type]
-				arguments[role] = role_type + " " + " ".join(splitted[1:])
+			if option == "pval-nom" or option == "pval1-nom" or option == "pval2-nom":
+				option = pattern[option]
+				arguments[subentry] = option + " " + " ".join(splitted[1:])
 
-			found_relevant_in_pattern = True
-			post_preps.append([role_type.lower(), " ".join(splitted[1:])])
-		elif (role == "ing-comp" or role == "ind-object") and role_type != "":
-			found_relevant_in_pattern = True
-			post_preps.append([role_type.lower(), arguments[role]])
-		elif role == "sbar" and role_type != "":
-			found_relevant_in_pattern = True
-			if arguments[role].startswith("that"):
-				post_preps.append([arguments[role]])
+			post_preps.append([option.lower(), " ".join(splitted[1:])])
+
+		elif subentry == "sbar":
+			if arguments[subentry].startswith("that"):
+				post_preps.append([arguments[subentry]])
 			else:
-				post_preps.append(["that", arguments[role]])
+				post_preps.append(["that", arguments[subentry]])
 
-	if not found_relevant_in_pattern and arguments["subcat"] != "NOM-INTRANS" and arguments != "NOM-INTRANS-RECIP":
-		return []
+		elif subentry == "ing":
+			post_preps.append([option.lower(), arguments[subentry]])
+
+		elif subentry == "adverb" and option == "ADVP":
+			post_preps.append([arguments["adverb"]])
+
 
 	# Finally, adding the relevant prepositions from the pattern (in any order)
 	for preps_order in itertools.permutations(post_preps, len(post_preps)):
@@ -923,11 +969,11 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 	return new_sentences
 
-def verbal_to_nominal(json_data, sent):
+def verbal_to_nominal(nomlex_entries, sent):
 	"""
 	Translates a verbal sentence into a nominal sentence, using nominalizations
 	Assumption- the sentence contain only one verb
-	:param json_data: the json formatted data of nomlex lexicon
+	:param nomlex_entries: the json formatted data of nomlex lexicon
 	:param sent: a given verbal sentence
 	:return: a list of nominal suitable sentences for the given sentence
 	"""
@@ -941,7 +987,7 @@ def verbal_to_nominal(json_data, sent):
 	# There may be many possible arguments dictionaries
 	for arguments in possible_arguments:
 		# Getting the relevant nominalization entries according to the verb that we found
-		relevant_entries = get_nomlex_entries(json_data, arguments["verb"])
+		relevant_entries = get_nomlex_entries(nomlex_entries, arguments["verb"])
 
 		# Extracting all the suitable nominalization patterns
 		nom_patterns = extract_nom_patterns(relevant_entries, arguments["subcat"])
@@ -950,7 +996,7 @@ def verbal_to_nominal(json_data, sent):
 		for nominalization, patterns in nom_patterns.items():
 			if nominalization not in founded_noms:
 				for pattern in patterns:
-					nom_sentences += pattern_to_sent(nominalization, pattern, arguments)
+					nom_sentences += pattern_to_sent(get_all_of_noms(nomlex_entries)[nominalization], pattern, arguments)
 					founded_noms.append(nominalization) # The first suitable arguments list is preferable
 
 	return list(set(nom_sentences))
@@ -988,45 +1034,37 @@ def get_dependency(sent):
 def pattern_to_UD(pattern):
 	"""
 	Translates a pattern into universal dependency sequence
-	:param pattern: a given pattern (dictionary role: role_type)
+	:param pattern: a given pattern (dictionary subentry: option)
 	:return: a suitable sequence of universal dependency links (all the links are in outside direction)
 	"""
 
 	pattern_UD = defaultdict(list)
-	print(pattern)
 
-	for role, role_type in pattern.items():
-		if role == "pval" or role == "pval2":
-			pattern_UD[role] = ["prep_" + role_type.lower()]
+	if should_print: print(pattern)
 
-		elif role == "pval-ing":
-			if pattern["subcat"] == "NOM-P-ING-SC":
-				pattern_UD[role] = ["acl"]
-			else:
-				pattern_UD[role] = ["prep_" + role_type.lower(), "pcomp"]
+	subentries_table = get_subentries_table()
+	subentries_types = [i[0] for i in subentries_table]
 
-		elif role == "ing-comp":
-			pattern_UD[role] = ["prep_" + role_type.lower(), "pcomp"]
+	for subentry, option in pattern.items():
+		if subentry in subentries_types and option != "NOM":
+			ud_links = subentries_table[subentries_types.index(subentry)][1]
 
-		elif role == "adverb":
-			if role_type == "eval-adv":
-				pattern_UD[role] = ["amod"]
-			elif role_type == "loc&dir":
-				pattern_UD[role] = ["advmod"]
+			# Dealing with preposition options that starts with "PP-"
+			temp_option = option
+			if option.startswith("PP-"):
+				option = option.replace("PP-", "")
+				temp_option = "PP-"
 
-		elif role == "sbar":
-			pattern_UD[role] = ["acl"]
+			# The ud links also depends on the option of the subentry
+			if type(ud_links) == dict:
+				ud_links = ud_links[temp_option]
 
-		elif role == "adjective":
-			pattern_UD[role] = ["prep_" + role_type.lower(), "amod"]
+			# Making some links more specific (links that ends with "_")
+			for i in range(len(ud_links)):
+				if type(ud_links[i]) == str and ud_links[i].endswith("_"):
+					ud_links[i] += option.lower()
 
-		elif role != "subcat":
-			if role_type == "DET-POSS":
-				pattern_UD[role] = ["poss"]
-			elif role_type == "N-N-MOD":
-				pattern_UD[role] = ["compound"]
-			elif role_type.startswith("PP-"):
-				pattern_UD[role] = ["prep_" + role_type.replace("PP-", "").lower(), "pobj"]
+			pattern_UD[subentry] = ud_links
 
 	return pattern_UD
 
@@ -1045,7 +1083,7 @@ def clean_argument(argument):
 		if argument.lower() in forms_list:
 			arg = pronoun
 
-	# Deleting the ending " 's" in case that the role_type was DET-POSS
+	# Deleting the ending " 's" in case that the argument was DET-POSS
 	if arg.endswith(" 's"):
 		arg = arg[:-3]
 
@@ -1072,17 +1110,42 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 		return []
 
 	arguments = []
+
+	if type(dep_links[0]) == list:
+		if extract_argument(dep_tree, dep_links[0], dep_curr_index) == []:
+			return []
+
+		arguments += extract_argument(dep_tree, dep_links[1:], dep_curr_index)
+
 	for i in range(len(dep_tree)):
+		temp_arguments = []
+
 		# Checking if the node links to the current node
 		if dep_tree[i][5] - 1 == dep_curr_index:
 			# Checking that the link type is right
-			if dep_links[0].startswith("prep_"):
+			if "_" in dep_links[0]:
 				splitted = dep_links[0].split("_")
-				if dep_tree[i][6] == splitted[0] and dep_tree[i][2] == splitted[1]:
-					arguments += extract_argument(dep_tree, dep_links[1:], i)
 
+				# link type + exact word as type_word
+				if len(splitted) == 2:
+					if dep_tree[i][6] == splitted[0] and dep_tree[i][1] == splitted[1]:
+						temp_arguments += extract_argument(dep_tree, dep_links[1:], i)
+
+				# link type + ending as type__ending
+				elif len(splitted) == 3:
+					if dep_tree[i][6] == splitted[0] and dep_tree[i][1].endswith(splitted[2]):
+						temp_arguments += extract_argument(dep_tree, dep_links[1:], i)
+
+			# Only a link type
 			elif dep_tree[i][6] == dep_links[0]:
-				arguments += extract_argument(dep_tree, dep_links[1:], i)
+				temp_arguments += extract_argument(dep_tree, dep_links[1:], i)
+
+			# We want to remember the prep number, because each preposition can relate only for one argument
+			if type(dep_links[0]) == str and dep_links[0].startswith("prep_"):
+				for _, arg in temp_arguments:
+					arguments.append((i, arg))
+			else:
+				arguments += temp_arguments
 
 	return arguments
 
@@ -1099,90 +1162,84 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 	patterns = get_nom_patterns(nom_entry)
 
 	total_arguments = []
+	subentries_types = [i[0] for i in get_subentries_table()]
+	comlex_subcats = [i[0] for i in get_comlex_table()]
 
 	# Moving over all the possible patterns for the given nominalization
 	# Trying to extract all the possible arguments for that nominalization
 	for pattern in patterns:
-		if "pval" in pattern.keys() and pattern["pval"] == "pval-nom":
-			pattern["pval"] = pattern["pval-nom"]
+		if pattern["subcat"] in comlex_subcats + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]:
 
-		# Translating the pattern into universal dependencies sequence
-		pattern_UD = pattern_to_UD(pattern)
+			if "pval" in pattern.keys() and pattern["pval"] == "pval-nom":
+				pattern["pval"] = pattern["pval-nom"]
+				pattern.remove("pval-nom")
 
-		# Initiate the current arguments dictionary
-		curr_arguments = defaultdict(tuple)
-		curr_arguments["verb"] = (-1, -1, nom_entry["VERB"])
-		curr_arguments["subcat"] = (-1, -1, pattern["subcat"])
+			if "ind-object" in pattern.keys() and pattern["ind-object"] == "pval1-nom":
+				pattern["ind-object"] = pattern["pval1-nom"]
+				pattern.remove("pval1-nom")
 
-		# Is the nominalization itself has a role in the sentence
-		if "SUBJECT" in nom_entry["NOM-TYPE"].keys():
-			curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
-		elif "OBJECT" in nom_entry["NOM-TYPE"].keys():
-			curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
+			if "pval2" in pattern.keys() and pattern["pval2"] == "pval2-nom":
+				pattern["pval2"] = pattern["pval2-nom"]
+				pattern.remove("pval2-nom")
 
-		curr_arguments_list = [curr_arguments]
-		new_curr_arguements_list = curr_arguments_list.copy()
+			# Translating the pattern into universal dependencies sequence
+			pattern_UD = pattern_to_UD(pattern)
 
-		# Looking for each argument (the order is important, because subject > indobject > object and not otherwise)
-		for role in get_subentries_order(True):
-			if role in pattern_UD.keys():
-				role_type = pattern_UD[role]
-				possible_arguments = extract_argument(dependency_tree, role_type, nom_index)
+			# Initiate the current arguments dictionary
+			curr_arguments = defaultdict(tuple)
+			curr_arguments["verb"] = (-1, -1, nom_entry["VERB"])
+			curr_arguments["subcat"] = (-1, -1, pattern["subcat"])
 
-				# Checking all the possible arguments that were extracted for the current role
-				if possible_arguments != []:
-					for arguments in curr_arguments_list:
-						for index, arg in possible_arguments:
-							temp_arguments = arguments.copy()
+			# Is the nominalization itself has a role in the sentence, rather than replacing the verb (= action)
+			if "SUBJECT" in nom_entry["NOM-TYPE"].keys():
+				curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
+			elif "OBJECT" in nom_entry["NOM-TYPE"].keys():
+				curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
 
-							# Translate adjective to adverb if needed
-							if role == "adverb" and pattern[role] == "eval-adv":
-								arg = get_adv(arg)
-							elif role in ["pval-ing", "adjective"] and pattern["subcat"] != "NOM-P-ING-SC":
-								arg = pattern[role] + " " + arg
-							else:
-								arg = clean_argument(arg)
+			curr_arguments_list = [curr_arguments]
+			new_curr_arguements_list = curr_arguments_list.copy()
 
-							curr_indexes = [i for i, _, _ in temp_arguments.values()]
-							rel_indexes = [i for _, i, _ in temp_arguments.values()]
-							if index not in curr_indexes:
-								if role in ["subject", "ind-object", "object"]:
-									if pattern[role].startswith("PP-"):
-										temp_arguments[role] = (index, -1, arg)
-									elif index > max(rel_indexes):
-										temp_arguments[role] = (index, index, arg)
+			# Looking for each argument (the order is important, because subject > indobject > object and not otherwise)
+			for subentry in subentries_types:
+				if subentry in pattern_UD.keys():
+					dep_links = pattern_UD[subentry]
+					possible_arguments = extract_argument(dependency_tree, dep_links, nom_index)
+
+					# Checking all the possible arguments that were extracted for the current subentry
+					if possible_arguments != []:
+						for arguments in curr_arguments_list:
+							for index, arg in possible_arguments:
+								temp_arguments = arguments.copy()
+
+								# Translate adjective to adverb if needed
+								if subentry == "adverb" and pattern[subentry] == "ADJP":
+									arg = get_adv(arg)
+								elif subentry == "adjective":
+									arg = pattern[subentry] + " " + arg
 								else:
-									temp_arguments[role] = (index, index, arg)
+									arg = clean_argument(arg)
 
-								new_curr_arguements_list.append(temp_arguments)
+								curr_indexes = [i for i, _, _ in temp_arguments.values()]
+								rel_indexes = [i for _, i, _ in temp_arguments.values()]
+								if index not in curr_indexes:
+									if subentry in ["subject", "ind-object", "object"]:
+										if pattern[subentry].startswith("PP-"):
+											temp_arguments[subentry] = (index, -1, arg)
+										elif index > max(rel_indexes):
+											temp_arguments[subentry] = (index, index, arg)
+									else:
+										temp_arguments[subentry] = (index, index, arg)
 
-					curr_arguments_list = new_curr_arguements_list.copy()
+									new_curr_arguements_list.append(temp_arguments)
 
-		# Add only the full lists of arguments
-		for new_curr_arguments in new_curr_arguements_list.copy():
-			print(new_curr_arguments.keys())
-			if set(pattern.keys()) == set(new_curr_arguments.keys()):
+						curr_arguments_list = new_curr_arguements_list.copy()
 
-				# Arguments with ing (gerund) subcat must also contain a gerund in the suitable argument
-				if "-ING" in pattern["subcat"]:
-					for row in get_comlex_table():
-						if row[0] == pattern["subcat"]:
-							ing_argument_type = ""
-
-							if "pval-ing" in row[2]:
-								ing_argument_type = "pval-ing"
-							elif "ing-comp" in row[2]:
-								ing_argument_type = "ing-comp"
-							elif "pval" in row[2]:
-								ing_argument_type = "pval"
-							elif "object" in row[2]:
-								ing_argument_type = "object"
-
-							if any([word.endswith("ing") for word in new_curr_arguments[ing_argument_type][2].split(" ")]):
-								total_arguments.append(new_curr_arguments)
-								break
-				else:
-					total_arguments.append(new_curr_arguments)
+			# Add only the full lists of arguments that were found
+			for new_curr_arguments in new_curr_arguements_list.copy():
+				if set(pattern.keys()) == set(new_curr_arguments.keys()):
+					if pattern["subcat"] != "NOM-INTRANS-RECIP" or \
+						(new_curr_arguments["subject"] != () and inflect_engine.singular_noun(new_curr_arguments["subject"][2])):
+						total_arguments.append(new_curr_arguments)
 
 	return total_arguments
 
@@ -1197,14 +1254,21 @@ def extract_arguments(nomlex_entries, sent):
 
 	sent = sent.replace("’", "'")
 
+	# Replacing the first upper letter only if the word isn't a name of something (using NER from spacy)
+	dependency = get_dependency(sent)
+	if dependency != [] and dependency[0][-2] == "":
+		sent = sent[0].lower() + sent[1:]
+
 	# Getting the dependency tree of the sentence
 	dependency_tree = get_dependency(sent)
 
-	# Finding all the nominalizations in the tree
+	# Finding all the nominalizations in the sentence
 	noms = []
+	all_noms = get_all_of_noms(nomlex_entries)
 	for i in range(len(dependency_tree)):
-		if dependency_tree[i][2] in nomlex_entries.keys():
-			noms.append((dependency_tree[i][2], i))
+		for nom, clean_nom in all_noms.items():
+			if dependency_tree[i][2] == clean_nom:
+				noms.append((nom, i))
 
 	# Moving over all the nominalizations
 	nom_args = {}
@@ -1340,12 +1404,14 @@ def load_json_data(json_file_name):
 
 ################################################### Utilities ####################################################
 
-def get_best_word(word, possible_list):
+def get_best_word(word, possible_list, preferable_endings):
 	"""
 	Returns the most relevant word in the possible list to the given word
 	The most relevant is a word that starts the same as the given word
+	Also prefer words according to the given list of preferable endings
 	:param word: a word
 	:param possible_list: a list of words
+	:param preferable_endings: a list of strings of preferable endings of the wanted word
 	:return: the most relevant word to the given word
 	"""
 
@@ -1360,7 +1426,7 @@ def get_best_word(word, possible_list):
 			i += 1
 
 		i -= 1
-		if i > best_subword_length:
+		if i >= best_subword_length or (i == best_subword_length and any([possible_word.endswith(end) for end in preferable_endings])):
 			best_subword_length = i
 			best_word = possible_word
 
@@ -1370,7 +1436,7 @@ def get_adj(word):
 	"""
 	Returns the best adjective that relates to the given word (if no adjective was found, None is returned)
 	:param word: a word
-	:return: an adjective that is most relevant to the given word, or None
+	:return: an adjective that is most relevant to the given word, or the given word (if no adjective was found)
 	"""
 
 	possible_adj = []
@@ -1379,15 +1445,18 @@ def get_adj(word):
 			for ps in lemmas.pertainyms():  # all possible pertainyms (the adjectives of a noun)
 				possible_adj.append(ps.name())
 
-	best_adj = get_best_word(word, possible_adj)
+	best_adj = get_best_word(word, possible_adj, ["able", "ible", "al", "ful", "ic", "ive", "less", "ous"])
 
-	return best_adj
+	if best_adj:
+		return best_adj
+
+	return word
 
 def get_adv(word):
 	"""
 	Returns the best adverb that relates to the given word (if no adverb was found, None is returned)
 	:param word: a word
-	:return: an adverb that is most relevant to the given word, or None
+	:return: an adverb that is most relevant to the given word, or the given word (if no adverb was found)
 	"""
 
 	possible_adv = []
@@ -1395,7 +1464,7 @@ def get_adv(word):
 		if get_adj(synset.lemmas()[0].name()) == word:
 			possible_adv.append(synset.lemmas()[0].name())
 
-	best_adv = get_best_word(word, possible_adv)
+	best_adv = get_best_word(word, possible_adv, ["ly", "ward", "wise"])
 
 	if best_adv:
 		return best_adv
@@ -1406,10 +1475,26 @@ def get_adv(word):
 def seperate_line_print(input_to_print):
 	if type(input_to_print) == list:
 		for x in input_to_print:
-			print(x)
+			if should_print: print(x)
 	elif type(input_to_print) == dict:
 		for tag, x in input_to_print.items():
-			print(str(tag) + ": " + str(x))
+			if should_print: print(str(tag) + ": " + str(x))
+
+
+def get_all_of_noms(nomlex_entries):
+	"""
+	Returns a dictionary of all the nominalizations in the given nomlex entries
+	:param nomlex_entries: a dictionary of nominalizations
+	:return: dictionary of nominalizations (nominalizations: nominalizations_without_numbers)
+	"""
+
+	all_noms = {}
+
+	for nom in nomlex_entries.keys():
+		all_noms.update({nom: "".join([i for i in nom if not i.isdigit()])})
+
+	return all_noms
+
 
 
 
@@ -1425,18 +1510,18 @@ def main(arguments):
 	# Extraction of patterns- from verbal sentence to nominal sentence
 	if arguments[0] == "-patterns" and len(arguments) == 3:
 		json_file_name = arguments[1]
-		sent = arguments[2]
+		verbal_sent = arguments[2]
 
-		json_data = load_json_data(json_file_name)
-		seperate_line_print(verbal_to_nominal(json_data, sent))
+		nomlex_entries = load_json_data(json_file_name)
+		seperate_line_print(verbal_to_nominal(nomlex_entries, verbal_sent))
 
 	# Extraction of arguments- from nominal sentence to verbal sentence
 	elif arguments[0] == "-args" and len(arguments) == 3:
 		json_file_name = arguments[1]
-		sent = arguments[2]
+		nominal_sent = arguments[2]
 
-		json_data = load_json_data(json_file_name)
-		seperate_line_print(extract_arguments(json_data, sent))
+		nomlex_entries = load_json_data(json_file_name)
+		seperate_line_print(extract_arguments(nomlex_entries, nominal_sent))
 
 	# Matching arguments extracted in verbal and nominal sentences
 	elif arguments[0] == "-match" and len(arguments) == 4:
@@ -1444,14 +1529,15 @@ def main(arguments):
 		verbal_sent = arguments[2]
 		nominal_sent = arguments[3]
 
-		json_data = load_json_data(json_file_name)
-		seperate_line_print(match_arguments(json_data, verbal_sent, nominal_sent))
+		nomlex_entries = load_json_data(json_file_name)
+		seperate_line_print(match_arguments(nomlex_entries, verbal_sent, nominal_sent))
 
 if __name__ == '__main__':
 	"""
 	Command line arguments-
-		 -patterns json_file_name sentence
-		 -args json_file_name sentence
+		 -patterns json_file_name verbal_sentence
+		 -args json_file_name noninal_sentence
+		 -match json_file_name verbal_sentence nominal_sentence
 	"""
 	import sys
 
