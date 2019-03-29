@@ -21,124 +21,152 @@ def get_subentries_table():
 	# exception_subcats = [] means with no exceptions
 	return [
 		("subject", 		{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["SUBJECT"], [], [])]),
-		("ind-object", 		{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["PVAL1"], [], []), ("IND-OBJ", [], [])]),
+		("ind-object", 		{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["PVAL1"], [], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP"]), ("IND-OBJ", [], [])]),
 		("object", 			{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]},	[(["OBJECT"], [], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"])]),
 		("pval", 			["prep_", ["pobj"]],													[(["PVAL"], [], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"])]),
+		("pval1", 			["prep_", ["pobj"]],													[(["PVAL1"], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP"], [])]),
 		("pval2", 			["prep_", ["pobj"]],													[(["PVAL2"], [], [])]),
 		("pval-nom", 		[],																		[(["PVAL-NOM"], [], [])]),
 		("pval1-nom", 		[],																		[(["PVAL1-NOM"], [], [])]),
 		("pval2-nom", 		[],																		[(["PVAL2-NOM"], [], [])]),
 		("pval-ing", 		["prep_", ["pcomp__ing"]],												[(["NOM-SUBC", "P-ING", "PVAL"], [], ["NOM-ING-SC"])]), # P-ING
 		("pval-comp-ing", 	["prep_", ["pobj"], ["pcomp__ing"]],									[(["PVAL"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"], [])]), # P-NP-ING
+		("pval-to-inf", 	["advcl", ["mark_"], ["aux_to"]],										[]), # P-TO-INF
 		("comp-ing", 		["prep_", "pobj__ing"],													[(["OBJECT"], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"], [])]), # NP-ING
 		("ing", 			["prep_", "pcomp__ing"],												[(["NOM-SUBC", "P-ING", "PVAL"], ["NOM-ING-SC"], [])]), # just ING
 		("adverb", 			{"ADJP": ["amod"], "ADVP": ["advmod"]},									[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
 		("sbar", 			["acl", ["mark_that"]], 												[]),
 		("adjective", 		["prep_", "amod"], 														[]),
-		("inf", 			["acl", ["aux_to"]],													[]),
+		("to-inf", 			["acl", ["aux_to"]],													[]), # TO-INF
 	]
 
 def get_special_subcats_dict():
-	# subcat: list of (subentry, default_value)
+	# subcat: (required_list, list of (subentry, default_value) pairs)
+	# About the required_list- should contain SUBJECT, OBJECT and order.
+	# However, all the other subentries always required (according to the subcat structure).
 	return {
-		"NOM-ADVP":			[("adverb", ["ADVP"])],
-		"NOM-ADVP-PP":		[("adverb", ["ADVP"])],
-		"NOM-NP-ADVP":		[("adverb", ["ADVP"])],
+		"NOM-NP":					(["OBJECT"],			[]),
 
-		"NOM-NP-TO-NP":		[("ind-object", ["PP-TO"])],
-		"NOM-NP-FOR-NP":	[("ind-object", ["PP-FOR"])],
+		"NOM-ADVP":					([],					[("adverb", ["ADVP"])]),
+		"NOM-ADVP-PP":				([],					[("adverb", ["ADVP"])]),
+		"NOM-NP-ADVP":				(["OBJECT"],			[("adverb", ["ADVP"])]),
 
-		"NOM-NP-AS-NP-SC":	[("pval", ["as"])],
-		"NOM-NP-AS-NP":		[("pval", ["as"])],
-		"NOM-AS-NP":		[("pval", ["as"])],
-		"NOM-NP-PP-AS-NP":	[("pval2", ["as"])],
-		"NOM-NP-AS-ING":	[("pval-ing", ["as"])],
+		"NOM-NP-TO-NP":				(["OBJECT"],			[("ind-object", ["PP-TO"])]),
+		"NOM-NP-FOR-NP":			(["OBJECT"],			[("ind-object", ["PP-FOR"])]),
 
-		"NOM-NP-AS-ADJP":	[("adjective", ["as"])],
+		"NOM-NP-AS-NP-SC":			(["OBJECT", "SUBJECT"],	[("pval", ["as"])]),
+		"NOM-NP-AS-NP":				([],					[("pval", ["as"])]),
+		"NOM-AS-NP":				([],					[("pval", ["as"])]),
+		"NOM-NP-PP-AS-NP":			(["OBJECT", "order"],	[("pval2", ["as"])]),
+		"NOM-NP-PP-PP":				(["OBJECT"],			[]),
+		"NOM-NP-PP":				(["OBJECT"],			[]),
 
-		"NOM-S":			[("sbar", ["NOT NONE"])],
-		"NOM-THAT-S":		[("sbar", ["NOT NONE"])],
-		"NOM-NP-S":			[("sbar", ["NOT NONE"])],
-		"NOM-PP-THAT-S":	[("sbar", ["NOT NONE"])],
+		"NOM-NP-AS-ADJP":			(["OBJECT"],			[("adjective", ["as"])]),
 
-		"NOM-FOR-TO-INF":	[("pval-inf", ["for"])],
-		"NOM-TO-INF-SC":	[("inf", ["to"])]
+		"NOM-S":					([],					[("sbar", ["NOT NONE"])]),
+		"NOM-THAT-S":				([],					[("sbar", ["NOT NONE"])]),
+		"NOM-NP-S":					(["OBJECT"],			[("sbar", ["NOT NONE"])]),
+		"NOM-PP-THAT-S":			([],					[("sbar", ["NOT NONE"])]),
+
+		"NOM-NP-AS-ING":			(["OBJECT"],			[("pval-ing", ["as"])]),
+		"NOM-NP-P-NP-ING":			(["OBJECT"],			[]),
+		"NOM-NP-P-ING":				(["OBJECT"],			[]),
+		"NOM-NP-P-ING-OC":			(["OBJECT"],			[]),
+		"NOM-NP-P-ING-SC":			(["OBJECT"],			[]),
+
+		"NOM-PP-FOR-TO-INF":		([],					[("pval-to-inf", ["for"])]),
+		"NOM-FOR-TO-INF":			([],					[("pval-to-inf", ["for"])]),
+		"NOM-PP-TO-INF-RECIP":		([],					[("to-inf", ["to"])]),
+		"NOM-P-NP-TO-INF":			([],					[("to-inf", ["to"])]),
+		"NOM-P-NP-TO-INF-OC":		([],					[("to-inf", ["to"])]),
+		"NOM-P-NP-TO-INF-VC":		([],					[("to-inf", ["to"])]),
+		"NOM-NP-TO-INF-SC":			(["OBJECT"],			[("to-inf", ["to"])]),
+		"NOM-NP-TO-INF-OC":			(["OBJECT"],			[("to-inf", ["to"])]),
+		"NOM-NP-TO-INF-VC":			(["OBJECT"],			[("to-inf", ["to"])])
 	}
 
 def get_comlex_table():
 	# subcat, structure, suitable_pattern_entities
 	# Be aware that the order matter, because the program try each line in that order and we want to find the most specific case
 	comlex_table = [
-		 ("NOM-FOR-TO-INF",		[["IN_for", ["NP", ["TO_to", ["VB"]]]]],	["pval-inf"]),									# NEW
-		 ("NOM-TO-INF-SC",		[[["TO_to", ["VB"]]]],						["inf"]),										# OK
+		 ("NOM-PP-FOR-TO-INF",			["PP", ["IN_for", ["NP", ["TO_to", ["VB"]]]]],	["pval1", "pval-to-inf"]),						# NEW
+		 ("NOM-FOR-TO-INF",				[["IN_for", ["NP", ["TO_to", ["VB"]]]]],		["pval-to-inf"]),								# NEW
+		 ("NOM-PP-TO-INF-RECIP",		["PP", [["TO_to", ["VB"]]]],					["pval1", "to-inf"]),							# NEW
+		 ("NOM-P-NP-TO-INF",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),							# NEW
+		 ("NOM-P-NP-TO-INF-OC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),							# NEW
+		 ("NOM-P-NP-TO-INF-VC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),							# NEW
+		 ("NOM-NP-TO-INF-VC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),							# NEW
+		 ("NOM-NP-TO-INF-SC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),							# NEW
+		 ("NOM-NP-TO-INF-OC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),							# NEW
+		 ("NOM-TO-INF-SC",				[[["TO_to", ["VB"]]]],							["to-inf"]),									# OK
 
 		 # ING- gerunds
-		 ("NOM-NP-P-NP-ING",	["NP", ["IN", ["NP", ["VBG"]]]],			["object", "pval-comp-ing"]),					# OK
-		 ("NOM-NP-P-NP-ING",	["NP", ["IN", ["NP", [["VBG"]]]]],			["object", "pval-comp-ing"]),					# OK
-		 ("NOM-P-NP-ING",		[["IN", ["NP", ["VBG"]]]],					["pval-comp-ing"]),								# OK
-		 ("NOM-P-NP-ING",		[["IN", ["NP", [["VBG"]]]]],				["pval-comp-ing"]),								# OK
-		 ("NOM-NP-AS-ING",		["NP", ["IN_as", ["VBG"]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-AS-ING",		["NP", ["IN_as", [["VBG"]]]],				["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING",		["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING",		["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING-OC",	["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING-OC",	["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING-SC",	["NP", ["IN", ["VBG"]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-NP-P-ING-SC",	["NP", ["IN", [["VBG"]]]],					["object", "pval-ing"]),						# OK
-		 ("NOM-P-ING-SC",		[["IN", ["VBG"]]],							["pval-ing"]),									# OK
-		 ("NOM-P-ING-SC",		[["IN", [["VBG"]]]],						["pval-ing"]),									# OK
-		 ("NOM-NP-ING",			[["NP", ["VBG"]]],							["comp-ing"]),									# OK
-		 ("NOM-NP-ING",			[["NP", [["VBG"]]]],						["comp-ing"]),									# OK
-		 ("NOM-NP-ING-OC",		[["NP", ["VBG"]]],							["comp-ing"]),									# OK
-		 ("NOM-NP-ING-OC",		[["NP", [["VBG"]]]],						["comp-ing"]),									# OK
-		 ("NOM-NP-ING-SC",		["NP", ["VBG"]],							"comp-ing"),									# OK
-		 ("NOM-NP-ING-SC",		["NP", [["VBG"]]],							"comp-ing"),									# OK
-		 ("NOM-ING-SC",			[["VBG"]],									["ing"]),										# OK
-		 ("NOM-ING-SC",			[[["VBG"]]],								["ing"]),										# OK
+		 ("NOM-NP-P-NP-ING",			["NP", ["IN", ["NP", ["VBG"]]]],				["object", "pval-comp-ing"]),					# OK
+		 ("NOM-NP-P-NP-ING",			["NP", ["IN", ["NP", [["VBG"]]]]],				["object", "pval-comp-ing"]),					# OK
+		 ("NOM-P-NP-ING",				[["IN", ["NP", ["VBG"]]]],						["pval-comp-ing"]),								# OK
+		 ("NOM-P-NP-ING",				[["IN", ["NP", [["VBG"]]]]],					["pval-comp-ing"]),								# OK
+		 ("NOM-NP-AS-ING",				["NP", ["IN_as", ["VBG"]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-AS-ING",				["NP", ["IN_as", [["VBG"]]]],					["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING",				["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING",				["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-OC",			["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-OC",			["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-SC",			["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-NP-P-ING-SC",			["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),						# OK
+		 ("NOM-P-ING-SC",				[["IN", ["VBG"]]],								["pval-ing"]),									# OK
+		 ("NOM-P-ING-SC",				[["IN", [["VBG"]]]],							["pval-ing"]),									# OK
+		 ("NOM-NP-ING",					[["NP", ["VBG"]]],								["comp-ing"]),									# OK
+		 ("NOM-NP-ING",					[["NP", [["VBG"]]]],							["comp-ing"]),									# OK
+		 ("NOM-NP-ING-OC",				[["NP", ["VBG"]]],								["comp-ing"]),									# OK
+		 ("NOM-NP-ING-OC",				[["NP", [["VBG"]]]],							["comp-ing"]),									# OK
+		 ("NOM-NP-ING-SC",				["NP", ["VBG"]],								"comp-ing"),									# OK
+		 ("NOM-NP-ING-SC",				["NP", [["VBG"]]],								"comp-ing"),									# OK
+		 ("NOM-ING-SC",					[["VBG"]],										["ing"]),										# OK
+		 ("NOM-ING-SC",					[[["VBG"]]],									["ing"]),										# OK
 
 		 # SBAR
-		 ("NOM-PP-THAT-S",		[["IN", "NP"], ["IN_that", "S"]],			[[None, "ind-object"], "sbar"]),				# OK
-		 ("NOM-NP-S",			["NP", ["S"]],								["object", "sbar"]),							# OK
-		 ("NOM-NP-S",			["NP", ["IN_that", "S"]],					["object", "sbar"]),							# OK
-		 ("NOM-THAT-S",			[["IN_that", "S"]],							["sbar"]),										# OK
-		 ("NOM-S",				[["S"]],									["sbar"]),										# OK
-		 ("NOM-S",				[["IN_that", "S"]],							["sbar"]),										# OK
+		 ("NOM-PP-THAT-S",				[["IN", "NP"], ["IN_that", "S"]],				[[None, "ind-object"], "sbar"]),				# OK
+		 ("NOM-NP-S",					["NP", ["S"]],									["object", "sbar"]),							# OK
+		 ("NOM-NP-S",					["NP", ["IN_that", "S"]],						["object", "sbar"]),							# OK
+		 ("NOM-THAT-S",					[["IN_that", "S"]],								["sbar"]),										# OK
+		 ("NOM-S",						[["S"]],										["sbar"]),										# OK
+		 ("NOM-S",						[["IN_that", "S"]],								["sbar"]),										# OK
 
 		 # Double pvals
-		 ("NOM-NP-PP-AS-NP",	["NP", ["IN", "NP"], ["IN_as", "NP"]],		["object", [None, "ind-object"], "pval2"]),
-		 ("NOM-NP-PP-AS-NP",	[["NP", ["IN", "NP"]], ["IN_as", "NP"]],	[["object", [None, "ind-object"]], "pval2"]),
-		 ("NOM-NP-PP-PP",		["NP", "PP", "PP"],							["object", "pval", "pval2"]),					# OK
-		 ("NOM-NP-PP-PP",		[["NP", "PP"], "PP"],						[["object", "pval"], "pval2"]),					# OK
-		 ("NOM-PP-PP",			["PP", "PP"],								["pval", "pval2"]),								# OK
+		 ("NOM-NP-PP-AS-NP",			["NP", ["IN", "NP"], ["IN_as", "NP"]],			["object", [None, "ind-object"], "pval2"]),
+		 ("NOM-NP-PP-AS-NP",			[["NP", ["IN", "NP"]], ["IN_as", "NP"]],		[["object", [None, "ind-object"]], "pval2"]),
+		 ("NOM-NP-PP-PP",				["NP", "PP", "PP"],								["object", "pval", "pval2"]),					# OK
+		 ("NOM-NP-PP-PP",				[["NP", "PP"], "PP"],							[["object", "pval"], "pval2"]),					# OK
+		 ("NOM-PP-PP",					["PP", "PP"],									["pval", "pval2"]),								# OK
 
 		 # Both object and indirect-object
-		 ("NOM-NP-TO-NP",		["NP", ["IN_to", "NP"]],					["object", [None, "ind-object"]]),				# OK
-		 ("NOM-NP-TO-NP",		[["IN_to", "NP"], "NP"],					[[None, "ind-object"], "object"]),				# OK
-		 ("NOM-NP-TO-NP",		["NP", "NP"],								["ind-object", "object"]),						# OK
-		 ("NOM-NP-FOR-NP",		["NP", ["IN_for", "NP"]],					["object", [None, "ind-object"]]),				# OK
-		 ("NOM-NP-FOR-NP",		[["IN_for", "NP"], "NP"],					[[None, "ind-object"], "object"]),				# OK
-		 ("NOM-NP-FOR-NP",		["NP", "NP"],								["ind-object", "object"]),						# OK
+		 ("NOM-NP-TO-NP",				["NP", ["IN_to", "NP"]],						["object", [None, "ind-object"]]),				# OK
+		 ("NOM-NP-TO-NP",				[["IN_to", "NP"], "NP"],						[[None, "ind-object"], "object"]),				# OK
+		 ("NOM-NP-TO-NP",				["NP", "NP"],									["ind-object", "object"]),						# OK
+		 ("NOM-NP-FOR-NP",				["NP", ["IN_for", "NP"]],						["object", [None, "ind-object"]]),				# OK
+		 ("NOM-NP-FOR-NP",				[["IN_for", "NP"], "NP"],						[[None, "ind-object"], "object"]),				# OK
+		 ("NOM-NP-FOR-NP",				["NP", "NP"],									["ind-object", "object"]),						# OK
 
 		 # Adjective
-		 ("NOM-NP-AS-ADJP",		["NP", ["RB_as", "JJ"]],					["object", "adjective"]),						# OK
+		 ("NOM-NP-AS-ADJP",				["NP", ["RB_as", "JJ"]],						["object", "adjective"]),						# OK
 
 		 # Single pval
-		 ("NOM-NP-AS-NP-SC",	["NP", ["IN_as", "NP"]],					["object", "pval"]),							# OK
-		 ("NOM-NP-AS-NP",		["NP", ["IN_as", "NP"]],					["object", "pval"]),							# OK
-		 ("NOM-AS-NP",			[["IN_as", "NP"]],							["pval"]),										# OK
-		 ("NOM-NP-PP",			["NP", "PP"],								["object", "pval"]),							# OK
+		 ("NOM-NP-AS-NP-SC",			["NP", ["IN_as", "NP"]],						["object", "pval"]),							# OK
+		 ("NOM-NP-AS-NP",				["NP", ["IN_as", "NP"]],						["object", "pval"]),							# OK
+		 ("NOM-AS-NP",					[["IN_as", "NP"]],								["pval"]),										# OK
+		 ("NOM-NP-PP",					["NP", "PP"],									["object", "pval"]),							# OK
 
 		 # Double objects
-		 ("NOM-NP-NP",			["NP", "NP"],								["ind-object", "object"]),						# OK
+		 ("NOM-NP-NP",					["NP", "NP"],									["ind-object", "object"]),						# OK
 
 		 # Adverb
-		 ("NOM-ADVP-PP",		["ADVP", "PP"],								["adverb", "pval"]),							# OK
-		 ("NOM-NP-ADVP",		["NP", "ADVP"],								["object", "adverb"]),							# OK
-		 ("NOM-ADVP",			["ADVP"],									["adverb"]),									# OK
+		 ("NOM-ADVP-PP",				["ADVP", "PP"],									["adverb", "pval"]),							# OK
+		 ("NOM-NP-ADVP",				["NP", "ADVP"],									["object", "adverb"]),							# OK
+		 ("NOM-ADVP",					["ADVP"],										["adverb"]),									# OK
 
 		 # Basic
-		 ("NOM-PP",				["PP"],										["pval"]),										# OK
-		 ("NOM-NP",				["NP"],										["object"])										# OK
+		 ("NOM-PP",						["PP"],											["pval"]),										# OK
+		 ("NOM-NP",						["NP"],											["object"])										# OK
 	]
 
 	return comlex_table
@@ -242,8 +270,8 @@ def get_subentries(subcat_info, subcat, default_subjects):
 
 		# Are there any special cases? checking it with the suitable dictionary
 		if subcat in special_cases.keys():
-			# Initial the relevant subentries with the suitable default value
-			for special_subentry, default_value in special_cases[subcat]:
+			# Initiating the relevant subentries with the suitable default value
+			for special_subentry, default_value in special_cases[subcat][1]:
 				if special_subentry == subentries_types_table[i][0]:
 					default_subentry_value = default_value
 
@@ -254,7 +282,8 @@ def get_subentries(subcat_info, subcat, default_subjects):
 				for x in how_to_find_subentry:
 					to_subentry = to_subentry.get(x, {})
 
-				if how_to_find_subentry == ["PVAL1"] and to_subentry not in ["*NONE*", "NONE"]:
+				# Adding "PP-" before the preposition values (for ind-object only)
+				if how_to_find_subentry == ["PVAL1"] and to_subentry not in ["*NONE*", "NONE"] and subentries_types_table[i][0] == "ind-object":
 					for j in range(len(to_subentry)):
 						to_subentry[j] = "PP-" + to_subentry[j].upper()
 
@@ -385,16 +414,13 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	elif "OBJECT" in entry["NOM-TYPE"].keys():
 		subentries[subentries_types.index("object")] = ["NOM"]
 
-	# TODO: save this information in a table
-	order_required = False
-	if subcat == "NOM-NP-PP-AS-NP":
-		order_required = True
-	elif subcat == "NOM-NP-AS-NP-SC":
-		required_list.append("SUBJECT")
-		required_list = list(set(required_list))
-	elif subcat in ["NOM-NP-P-ING"]:
-		required_list.append("OBJECT")
-		required_list = list(set(required_list))
+	# Getting required values from the special subcats dictionary
+	special_subcats_cases = get_special_subcats_dict()
+
+	if subcat in special_subcats_cases:
+		required_list += special_subcats_cases[subcat][0]
+
+	order_required = "order" in required_list
 
 	subjects = subentries[subentries_types.index("subject")]
 	objects = subentries[subentries_types.index("object")]
@@ -922,7 +948,7 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 			post_preps.append([option.replace("PP-", "").lower(), arg])
 
-		elif subentry in ["pval", "pval2", "pval-ing", "pval-comp-ing", "adjective", "inf"]:
+		elif subentry in ["pval", "pval1", "pval2", "pval-ing", "pval-comp-ing", "adjective", "to-inf", "pval-to-inf"]:
 			splitted = arguments[subentry].split(" ")
 
 			if option == "pval-nom" or option == "pval1-nom" or option == "pval2-nom":
@@ -942,7 +968,6 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 		elif subentry == "adverb" and option == "ADVP":
 			post_preps.append([arguments["adverb"]])
-
 
 	# Finally, adding the relevant prepositions from the pattern (in any order)
 	for preps_order in itertools.permutations(post_preps, len(post_preps)):
@@ -1031,6 +1056,28 @@ def get_dependency(sent):
 
 	return dep
 
+def fix_ud_links(ud_links, option):
+	"""
+	Fixes some unvirsal dependencies links recursively
+	For example, making rules that ends with "_" for specific (according to the given  option)
+	:param ud_links: a list of the universal dependencies (each x in the list can be also a list or a string)
+	:param option: a string which represent an option (like preposition string and so on)
+	:return: The fixed universal dependencies list
+	"""
+
+	new_ud_links = []
+
+	for i in range(len(ud_links)):
+		# Go recursively if x is a list
+		if type(ud_links[i]) == list:
+			new_ud_links.append(fix_ud_links(ud_links[i], option))
+		elif type(ud_links[i]) == str and ud_links[i].endswith("_"):
+			new_ud_links.append(ud_links[i] + option.lower())
+		else:
+			new_ud_links.append(ud_links[i])
+
+	return new_ud_links
+
 def pattern_to_UD(pattern):
 	"""
 	Translates a pattern into universal dependency sequence
@@ -1060,11 +1107,7 @@ def pattern_to_UD(pattern):
 				ud_links = ud_links[temp_option]
 
 			# Making some links more specific (links that ends with "_")
-			for i in range(len(ud_links)):
-				if type(ud_links[i]) == str and ud_links[i].endswith("_"):
-					ud_links[i] += option.lower()
-
-			pattern_UD[subentry] = ud_links
+			pattern_UD[subentry] = fix_ud_links(ud_links, option)
 
 	return pattern_UD
 
@@ -1140,7 +1183,7 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 			elif dep_tree[i][6] == dep_links[0]:
 				temp_arguments += extract_argument(dep_tree, dep_links[1:], i)
 
-			# We want to remember the prep number, because each preposition can relate only for one argument
+			# We want to remember the prep position, because each preposition can relate only for one argument
 			if type(dep_links[0]) == str and dep_links[0].startswith("prep_"):
 				for _, arg in temp_arguments:
 					arguments.append((i, arg))
