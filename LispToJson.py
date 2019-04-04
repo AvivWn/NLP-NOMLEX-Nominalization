@@ -15,12 +15,28 @@ def parse_lines(lisp_file_name):
 	for line in file_lines:
 		if line != "\n":
 			# Spacing up all the opening\closing brackets
-			temp_splitted_line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
+			line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n") #.replace("\"", "").split(' ')
+
+			# Dealing with a phrase of several words
+			is_between_brackets = False
+			new_line = ""
+			for char in line:
+				if char == "\"":
+					is_between_brackets = not is_between_brackets
+				else:
+					if char == " ":
+						if is_between_brackets:
+							char = '_'
+
+					new_line += char
+
+			temp_splitted_line = new_line.replace("\"", "").split(' ')
+
 			splitted_line = []
 
 			for i in range(len(temp_splitted_line)):
 				if temp_splitted_line[i] != '':
-					splitted_line.append(temp_splitted_line[i].replace('\n', ''))
+					splitted_line.append(temp_splitted_line[i].replace('_', ' ').replace('\n', ''))
 
 			lines.append(splitted_line)
 
