@@ -90,13 +90,17 @@ def match_patterns(nomlex_entries, verbal_sentence, nominal_sentence):
 						any_match = True
 						statuses.append("verb match")
 
+				# Adding any match that was found to the current matching list
 				if any_match:
 					current_matching_patterns.append(nom_arguments)
 
 				temp_verb_arguments = saved_verb_arguments.copy()
 
 			if current_matching_patterns != []:
-				matching_noms.update({nom: (verb_arguments, current_matching_patterns)})
+				if nom in matching_noms.keys():
+					matching_noms.update({nom: matching_noms[nom] + [(verb_arguments, current_matching_patterns)]})
+				else:
+					matching_noms.update({nom: [(verb_arguments, current_matching_patterns)]})
 
 	# Finding the best matching that was found (this will be that total matching status)
 	status = "not found any match"

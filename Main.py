@@ -93,7 +93,9 @@ def main(arguments):
 		nominal_sent = arguments[3]
 
 		nomlex_entries = load_json_data(json_file_name)
-		seperate_line_print(match_patterns(nomlex_entries, verbal_sent, nominal_sent))
+		matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
+		print(status, "('" + verbal_sent + "', '" + nominal_sent + "')")
+		seperate_line_print(matches)
 
 	# Matching arguments extracted in verbal and nominal sentences (multiple case- from file)
 	elif arguments[0] == "-fmatch" and len(arguments) == 4:
@@ -111,10 +113,10 @@ def main(arguments):
 				matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
 
 				if DictsAndTables.should_print:
-					print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
-					print("")
+					print(status, "('" + verbal_sent + "', '" + nominal_sent + "')")
 
 				seperate_line_print(matches)
+				print("")
 
 				if status not in statuses_counts.keys():
 					statuses_counts[status] = (0, 0)
