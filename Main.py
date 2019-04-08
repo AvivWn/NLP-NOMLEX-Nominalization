@@ -113,10 +113,8 @@ def main(arguments):
 				if status not in statuses_counts.keys():
 					statuses_counts[status] = (0, 0)
 
-				statuses_counts[status][0] += 1
-
 				# Calculating also the new average
-				statuses_counts[status][1] = statuses_counts[status][0] / len(nominal_sents)
+				statuses_counts[status] = (statuses_counts[status][0] + 1, (statuses_counts[status][0] + 1) / len(nominal_sents))
 
 		seperate_line_print(dict(statuses_counts))
 
