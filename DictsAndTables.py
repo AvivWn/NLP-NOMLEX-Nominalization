@@ -3,7 +3,7 @@ import spacy
 import inflect
 
 inflect_engine = inflect.engine()
-nlp = spacy.load('en')
+nlp = spacy.load('en_core_web_sm')
 
 # Constants
 
