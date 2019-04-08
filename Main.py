@@ -111,7 +111,6 @@ def main(arguments):
 				matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
 
 				if DictsAndTables.should_print:
-					print(matches)
 					print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
 					print("")
 

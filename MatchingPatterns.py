@@ -72,20 +72,26 @@ def match_patterns(nomlex_entries, verbal_sentence, nominal_sentence):
 					temp_nom_arguments.pop("object")
 					temp_verb_arguments.pop("object")
 
+				any_match = False
 				# Comparing between the current pair of arguments
 				if temp_verb_arguments == temp_nom_arguments:
-					current_matching_patterns.append(nom_arguments)
+					any_match = True
 					statuses.append("exact match")
 				elif temp_verb_arguments["verb"] == temp_nom_arguments["verb"]:
 					if nom_arguments["subcat"] == verb_arguments["subcat"]:
 						# More than subcat and verb
+						any_match = True
 						num_of_exact_match_args = len([arg for arg in temp_verb_arguments.keys() if arg in temp_nom_arguments.keys() and temp_verb_arguments[arg] == temp_nom_arguments[arg]])
 						if num_of_exact_match_args > 1:
 							max_exact_args = num_of_exact_match_args
 						else: # Only verb and subcat
 							statuses.append("verb and subcat match")
 					else: # Only verb
+						any_match = True
 						statuses.append("verb match")
+
+				if any_match:
+					current_matching_patterns.append(nom_arguments)
 
 				temp_verb_arguments = saved_verb_arguments.copy()
 

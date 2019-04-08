@@ -1,5 +1,10 @@
-import Main
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join('.')))
+print(sys.path)
+
 import MatchingPatterns
+import Main
 import re
 from collections import defaultdict
 
@@ -18,13 +23,14 @@ def main(arguments):
 
 	statuses_counts = defaultdict()
 	for subcat, verbal_sentence, nominal_sentence in data:
-		_, match_status = MatchingPatterns.match_patterns(nomlex_entries, verbal_sentence, nominal_sentence)
+		matches, match_status = MatchingPatterns.match_patterns(nomlex_entries, verbal_sentence, nominal_sentence)
 
 		if match_status in statuses_counts.keys():
 			statuses_counts[match_status] += 1
 		else:
 			statuses_counts[match_status] = 1
 
+		print(matches)
 		print(match_status, "(" + subcat + ", '" + verbal_sentence + "', '" + nominal_sentence + "')")
 
 	Main.seperate_line_print(dict(statuses_counts))
