@@ -4,6 +4,8 @@ from nltk.stem import WordNetLemmatizer
 from collections import defaultdict
 import inflect
 inflect_engine = inflect.engine()
+predictor = ConstituencyParserPredictor.from_path(
+	"https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 import DictsAndTables
 from DictsAndTables import get_comlex_table, seperate_line_print, get_adj, get_all_of_noms, get_pronoun_dict, det
@@ -232,7 +234,6 @@ def detect_comlex_subcat(sent):
 	:return: a list of arguments dictionaries with values that are relevant to each founded subcat
 	"""
 
-	predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 	phrase_tree = predictor.predict(sent)['trees']
 
 	# Moving over each line in the input file
