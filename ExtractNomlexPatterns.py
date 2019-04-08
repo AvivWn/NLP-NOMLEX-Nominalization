@@ -4,7 +4,6 @@ from collections import defaultdict
 import DictsAndTables
 from DictsAndTables import get_subentries_table, get_special_subcats_dict
 
-should_print = DictsAndTables.should_print
 
 
 def update_option(options, info, role=None):

@@ -8,7 +8,7 @@ import DictsAndTables
 from DictsAndTables import get_comlex_table, get_subentries_table, get_pronoun_dict, get_all_of_noms, get_adv
 from ExtractNomlexPatterns import get_nom_patterns
 
-should_print = DictsAndTables.should_print
+
 
 def get_dependency(sent):
 	"""
@@ -65,7 +65,7 @@ def pattern_to_UD(pattern):
 
 	pattern_UD_list = [defaultdict(list)]
 
-	if should_print: print(pattern)
+	if DictsAndTables.should_print: print(pattern)
 
 	subentries_table = get_subentries_table()
 	subentries_types = [i[0] for i in subentries_table]

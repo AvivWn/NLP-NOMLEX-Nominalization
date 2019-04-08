@@ -10,7 +10,6 @@ from DictsAndTables import get_comlex_table, seperate_line_print, get_adj, get_a
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import clean_argument, get_dependency
 
-should_print = DictsAndTables.should_print
 
 
 ################################################ Subcat Detection ###############################################
@@ -442,7 +441,7 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 	sentences = []
 
-	if should_print: print(pattern)
+	if DictsAndTables.should_print: print(pattern)
 
 	# Getting the sentence string before the nominalization
 	pre_nom = build_pre_nom(pattern, arguments)

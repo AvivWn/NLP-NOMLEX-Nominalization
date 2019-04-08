@@ -7,7 +7,7 @@ from VerbalPatterns import verbal_to_nominal
 from NominalPatterns import extract_patterns_from_nominal
 from MatchingPatterns import match_patterns
 
-should_print = DictsAndTables.should_print
+
 
 ############################################### Loading and Saving ###############################################
 
@@ -110,7 +110,7 @@ def main(arguments):
 			for nominal_sent in nominal_sents:
 				matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
 
-				if should_print: print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
+				if DictsAndTables.should_print: print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
 				seperate_line_print(matches)
 
 				if status not in statuses_counts.keys():
