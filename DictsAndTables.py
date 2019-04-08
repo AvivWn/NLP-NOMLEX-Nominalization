@@ -360,6 +360,6 @@ def get_all_of_noms(nomlex_entries):
 	all_noms = {}
 
 	for nom in nomlex_entries.keys():
-		all_noms.update({nom: "".join([i for i in nom if not i.isdigit() and not "#"])})
+		all_noms.update({nom: "".join([i for i in nom if not i.isdigit() and i != "#"])})
 
 	return all_noms
