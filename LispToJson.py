@@ -184,7 +184,7 @@ def translate(lines):
 
 		# Only entries that starts with "NOM"
 		if entry_type.startswith("NOM"):
-			if "ORTH" not in entry.keys():
+			if entry["ORTH"] not in entry.keys():
 				entries.append(entry)
 			else:
 				if entry["ORTH"] in founded_entries.keys():
