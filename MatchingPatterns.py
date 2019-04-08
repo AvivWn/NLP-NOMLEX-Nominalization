@@ -10,8 +10,6 @@ def clean_pattern(pattern):
 	:return: the cleaned pattern (also a dict)
 	"""
 
-	print(pattern)
-
 	preps_subentries = [i for i, _, _ in get_subentries_table() if i.startswith("pval")] + ["wh"]
 
 	# Removing the preposition word (in, on, about, ...) from preposition arguments

@@ -172,6 +172,8 @@ def translate(lines):
 	entries = []
 	index = 0
 	in_line_index = 0
+	founded_entries = {}
+	count = 0
 
 	# Moving over all the given line
 	while index < len(lines):
@@ -182,10 +184,22 @@ def translate(lines):
 
 		# Only entries that starts with "NOM"
 		if entry_type.startswith("NOM"):
-			entries.append(entry)
+			if "ORTH" not in entry.keys():
+				entries.append(entry)
+			else:
+				if entry["ORTH"] in founded_entries.keys():
+					founded_entries[entry["ORTH"]] += 1
+				else:
+					founded_entries[entry["ORTH"]] = 1
+
+				entry["ORTH"] = entry["ORTH"] + "#" + str(founded_entries[entry["ORTH"]])
+				entries.append(entry)
 
 		index += 1
+		count += 1
 		in_line_index = 0
+
+	print("Total entries in nomlex:", count)
 
 	return entries
 
@@ -209,6 +223,8 @@ def lisp_to_json(lisp_file_name, json_file_name):
 
 	for entry in entries:
 		data.update({entry['ORTH']: entry})
+
+	print("Total translated entries to json:", len(data.keys()))
 
 	# Writing the data into a output file as a json format
 	with open(json_file_name, 'w') as outfile:

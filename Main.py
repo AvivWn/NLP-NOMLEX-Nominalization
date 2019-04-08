@@ -110,7 +110,11 @@ def main(arguments):
 			for nominal_sent in nominal_sents:
 				matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
 
-				if DictsAndTables.should_print: print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
+				if DictsAndTables.should_print:
+					print(matches)
+					print(status, "(" + verbal_sent + "', '" + nominal_sent + "')")
+					print("")
+
 				seperate_line_print(matches)
 
 				if status not in statuses_counts.keys():
