@@ -172,7 +172,7 @@ def translate(lines):
 	entries = []
 	index = 0
 	in_line_index = 0
-	founded_entries = {}
+	count_founded_entries = {}
 	count = 0
 
 	# Moving over all the given line
@@ -184,15 +184,17 @@ def translate(lines):
 
 		# Only entries that starts with "NOM"
 		if entry_type.startswith("NOM"):
-			if entry["ORTH"] not in entry.keys():
+			if "ORTH" not in entry.keys():
 				entries.append(entry)
 			else:
-				if entry["ORTH"] in founded_entries.keys():
-					founded_entries[entry["ORTH"]] += 1
+				if entry["ORTH"] in count_founded_entries.keys():
+					count_founded_entries[entry["ORTH"]] += 1
 				else:
-					founded_entries[entry["ORTH"]] = 1
+					count_founded_entries[entry["ORTH"]] = 1
 
-				entry["ORTH"] = entry["ORTH"] + "#" + str(founded_entries[entry["ORTH"]])
+				if count_founded_entries[entry["ORTH"]] != 1:
+					entry["ORTH"] = entry["ORTH"] + "#" + str(count_founded_entries[entry["ORTH"]])
+
 				entries.append(entry)
 
 		index += 1
