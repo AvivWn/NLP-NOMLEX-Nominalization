@@ -4,8 +4,11 @@ import inflect
 inflect_engine = inflect.engine()
 nlp = spacy.load('en_core_web_sm')
 
-from DictsAndTables import get_comlex_table, get_subentries_table, get_pronoun_dict, should_print, get_all_of_noms, get_adv
+import DictsAndTables
+from DictsAndTables import get_comlex_table, get_subentries_table, get_pronoun_dict, get_all_of_noms, get_adv
 from ExtractNomlexPatterns import get_nom_patterns
+
+should_print = DictsAndTables.should_print
 
 def get_dependency(sent):
 	"""

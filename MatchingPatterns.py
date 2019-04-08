@@ -1,7 +1,9 @@
+import DictsAndTables
 from DictsAndTables import get_subentries_table
 from VerbalPatterns import process_a_sentence
 from NominalPatterns import extract_patterns_from_nominal
 
+should_print = DictsAndTables.should_print
 
 def clean_pattern(pattern):
 	"""
@@ -36,6 +38,8 @@ def match_patterns(nomlex_entries, verbal_sentence, nominal_sentence):
 	:return: a list of the nominalizations in the nominal sentence that their arguments match the arguments of the main verb in the verbal sentences
 			 and a status of the best nominalization match that was found
 	"""
+
+	should_print = False
 
 	# Getting the arguments for the verb in the sentence (= processing the sentence)
 	possible_verb_arguments = process_a_sentence(verbal_sentence)
@@ -100,5 +104,7 @@ def match_patterns(nomlex_entries, verbal_sentence, nominal_sentence):
 		status = "verb and subcat match"
 	elif "verb match" in statuses:
 		status = "verb match"
+
+	should_print = True
 
 	return matching_noms, status

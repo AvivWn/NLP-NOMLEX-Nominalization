@@ -1,6 +1,10 @@
 import itertools
 from collections import defaultdict
-from DictsAndTables import get_subentries_table, should_print, get_special_subcats_dict
+
+import DictsAndTables
+from DictsAndTables import get_subentries_table, get_special_subcats_dict
+
+should_print = DictsAndTables.should_print
 
 
 def update_option(options, info, role=None):

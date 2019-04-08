@@ -5,9 +5,12 @@ from collections import defaultdict
 import inflect
 inflect_engine = inflect.engine()
 
-from DictsAndTables import should_print, get_comlex_table, seperate_line_print, get_adj, get_all_of_noms, get_pronoun_dict, det
+import DictsAndTables
+from DictsAndTables import get_comlex_table, seperate_line_print, get_adj, get_all_of_noms, get_pronoun_dict, det
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import clean_argument, get_dependency
+
+should_print = DictsAndTables.should_print
 
 
 ################################################ Subcat Detection ###############################################

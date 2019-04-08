@@ -1,10 +1,13 @@
 import json
 from collections import defaultdict
-from DictsAndTables import seperate_line_print, should_print
+
+import DictsAndTables
+from DictsAndTables import seperate_line_print
 from VerbalPatterns import verbal_to_nominal
 from NominalPatterns import extract_patterns_from_nominal
 from MatchingPatterns import match_patterns
 
+should_print = DictsAndTables.should_print
 
 ############################################### Loading and Saving ###############################################
 
