@@ -1,18 +1,18 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join('.')))
-print(sys.path)
+sys.path.append(os.path.abspath(os.path.join('..')))
 
 import MatchingPatterns
 import Main
 import re
 from collections import defaultdict
+import codecs
 
 def main(arguments):
 	json_file_name, test_file_name = arguments
 
 	nomlex_entries = Main.load_json_data(json_file_name)
-	lines = open(test_file_name, "r+").readlines()
+	lines = open(test_file_name, "r").readlines()
 	data = []
 
 	for line in lines:
@@ -30,8 +30,9 @@ def main(arguments):
 		else:
 			statuses_counts[match_status] = 1
 
-		print(matches)
 		print(match_status, "(" + subcat + ", '" + verbal_sentence + "', '" + nominal_sentence + "')")
+		print(matches)
+		print("")
 
 	Main.seperate_line_print(dict(statuses_counts))
 
