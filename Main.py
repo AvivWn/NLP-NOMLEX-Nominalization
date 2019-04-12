@@ -1,5 +1,5 @@
 import json
-from collections import defaultdict
+from random import shuffle
 
 import DictsAndTables
 from DictsAndTables import seperate_line_print
@@ -7,6 +7,7 @@ from VerbalPatterns import verbal_to_nominal
 from NominalPatterns import extract_patterns_from_nominal
 from MatchingPatterns import match_patterns
 
+shuffle_data = True
 
 
 ############################################### Loading and Saving ###############################################
@@ -33,7 +34,14 @@ def load_txt_file(txt_file_name):
 		data = inputfile.readlines()
 
 	for i in range(len(data)):
+		# Ignoring spaces in the start of the line
+		while data[i].startswith(" "):
+			data[i] = data[i][1:]
+
 		data[i] = data[i].replace("\n", "").replace("\r\n", "")
+
+	if shuffle_data:
+		shuffle(data)
 
 	return data
 
@@ -107,24 +115,15 @@ def main(arguments):
 		verbal_sents = load_txt_file(verbal_sents_file_name)
 		nominal_sents = load_txt_file(nominal_sents_file_name)
 
-		statuses_counts = defaultdict()
-		for verbal_sent in verbal_sents:
-			for nominal_sent in nominal_sents:
-				matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
+		for nominal_sent in nominal_sents:
+			for verbal_sent in verbal_sents:
+				matches = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
 
 				if DictsAndTables.should_print:
-					print(status, "('" + verbal_sent + "', '" + nominal_sent + "')")
+					print("('" + verbal_sent + "', '" + nominal_sent + "')")
 
 				seperate_line_print(matches)
 				print("")
-
-				if status not in statuses_counts.keys():
-					statuses_counts[status] = (0, 0)
-
-				# Calculating also the new average
-				statuses_counts[status] = (statuses_counts[status][0] + 1, (statuses_counts[status][0] + 1) / len(nominal_sents))
-
-		seperate_line_print(dict(statuses_counts))
 
 if __name__ == '__main__':
 	"""

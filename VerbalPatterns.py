@@ -329,6 +329,35 @@ def process_a_sentence(sent):
 
 	return possible_arguments
 
+def arguments_for_noms(nomlex_entries, sent):
+	"""
+	Finds the suitable arguments for each nominalization that was created from the main verb in the given sentence
+	:param nomlex_entries: the entries of nomlex lexicon
+	:param sent: a simple sentence with a main verb
+	:return: a dictionary {nom: arguments} where each nom was created from the main verb in the given sentence
+	"""
+
+	# Getting the patterns of arguments for the verb in the sentence (= processing the sentence)
+	possible_arguments = process_a_sentence(sent)
+
+	verb_arguments_for_noms = {}
+
+	# There may be many possible arguments dictionaries
+	for arguments in possible_arguments:
+		# Getting the relevant nominalization entries according to the verb that we found
+		relevant_entries = get_nomlex_entries(nomlex_entries, arguments["verb"])
+
+		# Extracting all the suitable nominalization patterns
+		nom_patterns = extract_nom_patterns(relevant_entries, arguments["subcat"])
+
+		# Creating all the nominalization suitable sentences for the given sentence
+		for nominalization, patterns in nom_patterns.items():
+			# The first suitable arguments list is preferable
+			if patterns != [] and nominalization not in verb_arguments_for_noms.keys():
+				verb_arguments_for_noms.update({nominalization: arguments})
+
+	return verb_arguments_for_noms
+
 def build_pre_nom(pattern, arguments):
 	"""
 	Builds the pre nominalization sentence
@@ -523,7 +552,7 @@ def verbal_to_nominal(nomlex_entries, sent):
 	:return: a list of nominal suitable sentences for the given sentence
 	"""
 
-	# Getting the arguments for the verb in the sentence (= processing the sentence)
+	# Getting the patterns of arguments for the verb in the sentence (= processing the sentence)
 	possible_arguments = process_a_sentence(sent)
 
 	nom_sentences = []

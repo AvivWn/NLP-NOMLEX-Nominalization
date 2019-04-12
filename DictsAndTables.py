@@ -149,8 +149,11 @@ def get_comlex_table():
 		 ("NOM-P-NP-TO-INF-OC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
 		 ("NOM-P-NP-TO-INF-VC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
 		 ("NOM-NP-TO-INF-VC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		 ("NOM-NP-TO-INF-VC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
 		 ("NOM-NP-TO-INF-SC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		 ("NOM-NP-TO-INF-SC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
 		 ("NOM-NP-TO-INF-OC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		 ("NOM-NP-TO-INF-OC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
 		 ("NOM-TO-INF-SC",				[[["TO_to", ["VB"]]]],							["to-inf"]),
 
 		 # POSSING- possesive gerunds
@@ -341,13 +344,20 @@ def get_adv(word):
 	return word
 
 
-def seperate_line_print(input_to_print):
-	if type(input_to_print) == list:
-		for x in input_to_print:
-			if should_print: print(x)
-	elif type(input_to_print) == dict:
-		for tag, x in input_to_print.items():
-			if should_print: print(str(tag) + ": " + str(x))
+def seperate_line_print(input_to_print, indent_level=0):
+	if should_print:
+
+		indentation_str = ""
+		for _ in range(indent_level):
+			indentation_str += "--"
+
+		if type(input_to_print) == list:
+			for x in input_to_print:
+				print(str(indentation_str) + str(x))
+		elif type(input_to_print) == dict:
+			for tag, x in input_to_print.items():
+				print(str(indentation_str) + str(tag) + ": ")
+				seperate_line_print(x, indent_level + 1)
 
 
 def get_all_of_noms(nomlex_entries):

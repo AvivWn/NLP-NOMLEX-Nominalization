@@ -1,6 +1,6 @@
 import DictsAndTables
 from DictsAndTables import get_subentries_table
-from VerbalPatterns import process_a_sentence
+from VerbalPatterns import arguments_for_noms
 from NominalPatterns import extract_patterns_from_nominal
 
 def clean_pattern(pattern):
@@ -22,97 +22,74 @@ def clean_pattern(pattern):
 		pattern[argument] = pattern[argument].lower()
 
 	# Removing subcat argument
-	pattern.pop("subcat")
+	#pattern.pop("subcat")
 
 	return pattern
 
 def match_patterns(nomlex_entries, verbal_sentence, nominal_sentence):
 	"""
 	Finds all the exact matching between the arguments of the verb and nominalizations
-	The verbal sentence defines that rule that needed to be found in the nominal sentences
+	The verbal sentence defines the rule that needed to be found in the nominal sentences
 	:param nomlex_entries: NOMLEX entries (a dictionary nom: ...)
 	:param verbal_sentence: a simple sentence with a main verb
 	:param nominal_sentence: a complex sentence that may include nominalizations
 	:return: a list of the nominalizations in the nominal sentence that their arguments match the arguments of the main verb in the verbal sentences
-			 and a status of the best nominalization match that was found
 	"""
 
 	DictsAndTables.should_print = False
 
-	# Getting the arguments for the verb in the sentence (= processing the sentence)
-	possible_verb_arguments = process_a_sentence(verbal_sentence)
+	# Getting the arguments for the verb in the sentence (= processing the sentence), according to the nominalizations
+	verb_arguments_for_noms = arguments_for_noms(nomlex_entries, verbal_sentence)
 
 	# Getting the arguments for all the nouns in the sentence (= processing the sentence)
 	noms_arguments = extract_patterns_from_nominal(nomlex_entries, nominal_sentence)
 
 	matching_noms = {}
-	statuses = []
-	max_exact_args = 0
 
-	# There may be many possible arguments dictionaries
-	for verb_arguments in possible_verb_arguments:
-		temp_verb_arguments = clean_pattern(verb_arguments.copy())
-		saved_verb_arguments = temp_verb_arguments.copy()
-
-		# Checking each nominalization that was found
-		for nom, possible_nom_arguments in noms_arguments.items():
+	# Checking each nominalization that was found
+	for nom, possible_nom_arguments in noms_arguments.items():
+		# The relevant nominalization are only those that cam from the verb in the verbal sentence
+		if nom[0] in verb_arguments_for_noms.keys():
+			verb_arguments = clean_pattern(verb_arguments_for_noms[nom[0]].copy())
 			current_matching_patterns = []
 
 			# And all its possible arguments that were extracted
 			for nom_arguments in possible_nom_arguments:
-				temp_nom_arguments = clean_pattern(nom_arguments.copy())
+				cleaned_nom_arguments = clean_pattern(nom_arguments.copy())
 
 				# Removing the subject if it is the nominalization
-				if "subject" in temp_nom_arguments and "subject" in temp_verb_arguments and temp_nom_arguments["subject"] == nom[0]:
-					temp_nom_arguments.pop("subject")
-					temp_verb_arguments.pop("subject")
+				if "subject" in cleaned_nom_arguments and "subject" in verb_arguments and cleaned_nom_arguments["subject"] == nom[0]:
+					cleaned_nom_arguments.pop("subject")
+					verb_arguments.pop("subject")
 
 				# Removing the object if it is the nominalization
-				elif "object" in temp_nom_arguments and "object" in temp_verb_arguments and temp_nom_arguments["object"] == nom[0]:
-					temp_nom_arguments.pop("object")
-					temp_verb_arguments.pop("object")
+				elif "object" in cleaned_nom_arguments and "object" in verb_arguments and cleaned_nom_arguments["object"] == nom[0]:
+					cleaned_nom_arguments.pop("object")
+					verb_arguments.pop("object")
 
-				any_match = False
 				# Comparing between the current pair of arguments
-				if temp_verb_arguments == temp_nom_arguments:
-					any_match = True
-					statuses.append("exact match")
-				elif temp_verb_arguments["verb"] == temp_nom_arguments["verb"]:
-					if nom_arguments["subcat"] == verb_arguments["subcat"]:
-						# More than subcat and verb
-						any_match = True
-						num_of_exact_match_args = len([arg for arg in temp_verb_arguments.keys() if arg in temp_nom_arguments.keys() and temp_verb_arguments[arg] == temp_nom_arguments[arg]])
-						if num_of_exact_match_args > 1:
-							max_exact_args = num_of_exact_match_args
-						else: # Only verb and subcat
-							statuses.append("verb and subcat match")
-					else: # Only verb
-						any_match = True
-						statuses.append("verb match")
-
-				# Adding any match that was found to the current matching list
-				if any_match:
-					current_matching_patterns.append(nom_arguments)
-
-				temp_verb_arguments = saved_verb_arguments.copy()
+				if verb_arguments["verb"] == cleaned_nom_arguments["verb"]:
+					if cleaned_nom_arguments["subcat"] == verb_arguments["subcat"]:
+						# At least a matching of both the verb and the subcat
+						current_matching_patterns.append(nom_arguments)
 
 			if current_matching_patterns != []:
 				if nom in matching_noms.keys():
-					matching_noms.update({nom: matching_noms[nom] + [(verb_arguments, current_matching_patterns)]})
-				else:
-					matching_noms.update({nom: [(verb_arguments, current_matching_patterns)]})
+					# Adding only the new pattern matches
+					new_matching_patterns = []
+					for found_pattern in current_matching_patterns:
+						exist = False
+						for match_pattern in matching_noms[nom]:
+							if match_pattern == found_pattern:
+								exist = True
 
-	# Finding the best matching that was found (this will be that total matching status)
-	status = "not found any match"
-	if "exact match" in statuses:
-		status = "exact match"
-	elif max_exact_args > 2:
-		status = str(max_exact_args) + " arguments exact match"
-	elif "verb and subcat match" in statuses:
-		status = "verb and subcat match"
-	elif "verb match" in statuses:
-		status = "verb match"
+						if not exist:
+							new_matching_patterns.append(found_pattern)
+
+					matching_noms.update({nom: matching_noms[nom] + new_matching_patterns})
+				else:
+					matching_noms.update({nom: current_matching_patterns})
 
 	DictsAndTables.should_print = True
 
-	return matching_noms, status
+	return matching_noms
