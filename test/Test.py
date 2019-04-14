@@ -10,7 +10,9 @@ def main(arguments):
 	json_file_name, test_file_name = arguments
 
 	nomlex_entries = Main.load_json_data(json_file_name)
-	lines = open(test_file_name, "r").readlines()
+	with open(test_file_name, "r") as test_file:
+		lines = test_file.readlines()
+
 	data = []
 
 	for line in lines:
@@ -20,11 +22,7 @@ def main(arguments):
 			data.append((splitted[0], splitted[1], splitted[2]))
 
 	for subcat, verbal_sentence, nominal_sentence in data:
-		matches = MatchingPatterns.match_patterns(nomlex_entries, verbal_sentence, nominal_sentence)
-
-		print("(" + subcat + ", '" + verbal_sentence + "', '" + nominal_sentence + "')")
-		print(matches)
-		print("")
+		_ = MatchingPatterns.match_patterns(nomlex_entries, [verbal_sentence], [nominal_sentence])
 
 
 

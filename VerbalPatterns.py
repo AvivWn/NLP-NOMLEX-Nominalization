@@ -1,3 +1,4 @@
+import sys
 import itertools
 from allennlp.predictors.constituency_parser import ConstituencyParserPredictor
 from nltk.stem import WordNetLemmatizer
@@ -471,7 +472,7 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 	sentences = []
 
-	if DictsAndTables.should_print: print(pattern)
+	if DictsAndTables.should_print: print(pattern, file=DictsAndTables.output_loc)
 
 	# Getting the sentence string before the nominalization
 	pre_nom = build_pre_nom(pattern, arguments)

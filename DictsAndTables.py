@@ -1,3 +1,4 @@
+import sys
 from nltk.corpus import wordnet as wn
 import spacy
 import inflect
@@ -9,6 +10,7 @@ nlp = spacy.load('en_core_web_sm')
 
 det = "the"
 should_print = True
+output_loc = sys.stdout
 
 ############################################# Dictionaries and Tables ############################################
 
@@ -92,6 +94,7 @@ def get_special_subcats_dict():
 		"NOM-NP-TO-INF-SC":			(["OBJECT"],			[("to-inf", ["to"])]),
 		"NOM-NP-TO-INF-OC":			(["OBJECT"],			[("to-inf", ["to"])]),
 		"NOM-NP-TO-INF-VC":			(["OBJECT"],			[("to-inf", ["to"])]),
+		"NOM-TO-INF-SC":			(["OBJECT"],			[("to-inf", ["to"])]),
 
 		"NOM-WH-S":					([],					[("wh", ["of"])]),
 		"NOM-HOW-S":				([],					[("wh", ["of"])]),
@@ -298,7 +301,7 @@ def get_best_word(word, possible_list, preferable_endings):
 			i += 1
 
 		i -= 1
-		if i >= best_subword_length or (i == best_subword_length and any([possible_word.endswith(end) for end in preferable_endings])):
+		if i > best_subword_length or (i == best_subword_length and any([possible_word.endswith(end) for end in preferable_endings])):
 			best_subword_length = i
 			best_word = possible_word
 
@@ -353,10 +356,10 @@ def seperate_line_print(input_to_print, indent_level=0):
 
 		if type(input_to_print) == list:
 			for x in input_to_print:
-				print(str(indentation_str) + str(x))
+				print(str(indentation_str) + str(x), file=output_loc)
 		elif type(input_to_print) == dict:
 			for tag, x in input_to_print.items():
-				print(str(indentation_str) + str(tag) + ": ")
+				print(str(indentation_str) + str(tag) + ": ", file=output_loc)
 				seperate_line_print(x, indent_level + 1)
 
 

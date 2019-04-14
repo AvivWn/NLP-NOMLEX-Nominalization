@@ -30,18 +30,9 @@ def load_txt_file(txt_file_name):
 	:param txt_file_name: The name of the file that needed to be loaded
 	:return: The the file data (as list of lines)
 	"""
+
 	with open(txt_file_name, "r+") as inputfile:
 		data = inputfile.readlines()
-
-	for i in range(len(data)):
-		# Ignoring spaces in the start of the line
-		while data[i].startswith(" "):
-			data[i] = data[i][1:]
-
-		data[i] = data[i].replace("\n", "").replace("\r\n", "")
-
-	if shuffle_data:
-		shuffle(data)
 
 	return data
 
@@ -101,29 +92,24 @@ def main(arguments):
 		nominal_sent = arguments[3]
 
 		nomlex_entries = load_json_data(json_file_name)
-		matches, status = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
-		print(status, "('" + verbal_sent + "', '" + nominal_sent + "')")
-		seperate_line_print(matches)
+		match_patterns(nomlex_entries, [verbal_sent], [nominal_sent])
 
 	# Matching arguments extracted in verbal and nominal sentences (multiple case- from file)
-	elif arguments[0] == "-fmatch" and len(arguments) == 4:
+	elif arguments[0] == "-fmatch" and len(arguments) == 5:
 		json_file_name = arguments[1]
 		verbal_sents_file_name = arguments[2]
 		nominal_sents_file_name = arguments[3]
+		output_file_name = arguments[4]
+
+		output_file = open(output_file_name, "a")
+		DictsAndTables.output_loc = output_file
 
 		nomlex_entries = load_json_data(json_file_name)
 		verbal_sents = load_txt_file(verbal_sents_file_name)
 		nominal_sents = load_txt_file(nominal_sents_file_name)
+		match_patterns(nomlex_entries, verbal_sents, nominal_sents)
 
-		for nominal_sent in nominal_sents:
-			for verbal_sent in verbal_sents:
-				matches = match_patterns(nomlex_entries, verbal_sent, nominal_sent)
-
-				if DictsAndTables.should_print:
-					print("('" + verbal_sent + "', '" + nominal_sent + "')")
-
-				seperate_line_print(matches)
-				print("")
+		output_file.close()
 
 if __name__ == '__main__':
 	"""
@@ -133,7 +119,7 @@ if __name__ == '__main__':
 		 -args json_file_name nominal_sentence (single)
 		 -fargs json_file_name nominal_sentences_file_name (multiple)
 		 -match json_file_name verbal_sentence nominal_sentence (single)
-		 -fmatch json_file_name verbal_sentences_file_name nominal_sentences_file_name (multiple)
+		 -fmatch json_file_name verbal_sentences_file_name nominal_sentences_file_name output_file (multiple)
 	"""
 	import sys
 

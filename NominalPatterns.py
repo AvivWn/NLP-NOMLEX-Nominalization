@@ -65,7 +65,7 @@ def pattern_to_UD(pattern):
 
 	pattern_UD_list = [defaultdict(list)]
 
-	if DictsAndTables.should_print: print(pattern)
+	if DictsAndTables.should_print: print(pattern, file=DictsAndTables.output_loc)
 
 	subentries_table = get_subentries_table()
 	subentries_types = [i[0] for i in subentries_table]
@@ -305,7 +305,7 @@ def extract_patterns_from_nominal(nomlex_entries, sent):
 	all_noms = get_all_of_noms(nomlex_entries)
 	for i in range(len(dependency_tree)):
 		for nom, clean_nom in all_noms.items():
-			if dependency_tree[i][2] == clean_nom:
+			if dependency_tree[i][2] == clean_nom and dependency_tree[i][4] == "NOUN":
 				noms.append((nom, i))
 
 	# Moving over all the nominalizations

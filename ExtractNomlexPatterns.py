@@ -169,7 +169,7 @@ def get_subentries(subcat_info, subcat, default_subjects):
 	if subcat == "NOM-PP-HOW-TO-INF":
 		subentries_options[subentries_types.index("pval1")].append("NONE")
 
-	#if should_print: print(subentries)
+	#if DictsAndTables.should_print: print(subentries_options, file=DictsAndTables.output_loc)
 
 	return subentries_options
 
