@@ -1,16 +1,24 @@
 import sys
 from nltk.corpus import wordnet as wn
-import spacy
 import inflect
-
+from collections import defaultdict
+import copy
 inflect_engine = inflect.engine()
-nlp = spacy.load('en_core_web_sm')
 
 # Constants
 
 det = "the"
-should_print = True
+should_print = True					# If false than the program will print nothing (both to screen and to the output file)
+should_print_to_screen = False		# If true than the program will print to screen some debugging results
+should_clean = True					# If true than we do want a "clean" and updated results
+should_replace_preps = False		# If true than the words will be replaced in the verbal process.
+									# Oterwise, the comlex table will be updated programmatically.
+shuffle_data = True					# If true than the input data will be shuffled randomly
+
 output_loc = sys.stdout
+subcats_counts = {}
+
+
 
 ############################################# Dictionaries and Tables ############################################
 
@@ -19,32 +27,40 @@ def get_subentries_table():
 	# ud_links_list is a list of lists\dicts of universal dependencies links (suitable for a subetry)
 	# limited_subcats = [] means not limited
 	# exception_subcats = [] means with no exceptions
-	return [
-		("subject", 		[{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]}],	[(["SUBJECT"], [], [])]),
-		("ind-object", 		[{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]}],	[(["PVAL1"], [], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"]), ("IND-OBJ", [], [])]),
-		("object", 			[{"DET-POSS":["poss"], "N-N-MOD":["compound"], "PP-":["prep_", "pobj"]}],	[(["OBJECT"], [], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"])]),
-		("pval", 			[["prep_", ["pobj"]]],														[(["PVAL"], [], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-P-POSSING", "NOM-PP-P-POSSING"])]),
-		("pval1", 			[["prep_", ["pobj"]]],														[(["PVAL1"], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"], [])]),
-		("pval2", 			[["prep_", ["pobj"]]],														[(["PVAL2"], [], [])]),
-		("pval-nom", 		[],																			[(["PVAL-NOM"], [], [])]),
-		("pval1-nom", 		[],																			[(["PVAL1-NOM"], [], [])]),
-		("pval2-nom", 		[],																			[(["PVAL2-NOM"], [], [])]),
-		("pval-ing", 		[["prep_", ["pcomp__ing"]]],												[(["NOM-SUBC", "P-ING", "PVAL"], [], ["NOM-ING-SC"])]), # P-ING
-		("pval-poss-ing",	[["prep_", ["pcomp__ing"]]],												[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"], ["NOM-POSSING", "NOM-POSSING-PP"]), (["PVAL"], ["NOM-P-POSSING", "NOM-PP-P-POSSING"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-POSSING-PP"])]), # P-POSSING
-		("pval-comp-ing", 	[["prep_", ["pobj"], ["pcomp__ing"]]],										[(["PVAL"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"], ["NOM-P-POSSING", "NOM-PP-P-POSSING", "NOM-POSSING-PP"])]), # P-NP-ING
-		("pval-to-inf", 	[["advcl", ["mark_"], ["aux_to"]]],											[]), # P-TO-INF
-		("pval-wh", 		[["prep_", ["pcomp", "mark_whether"]], ["prep_", ["pcomp", "dobj_what"]]],	[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-P-WH-S", "NOM-PP-P-WH-S", "NOM-NP-P-WH-S"], [])]), # P-WH
-		("comp-ing", 		[["prep_", "pobj__ing"]],													[(["OBJECT"], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"], [])]), # NP-ING
-		("ing", 			[["prep_", "pcomp__ing"]],													[(["NOM-SUBC", "P-ING", "PVAL"], ["NOM-ING-SC"], [])]), # just ING
-		("poss-ing", 		[["prep_", "pcomp__ing"]],													[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-POSSING", "NOM-POSSING-PP"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"])]), # just POSSING
-		("adverb", 			[{"ADJP": ["amod"], "ADVP": ["advmod"]}],									[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
-		("sbar", 			[["acl", ["mark_that"]]], 													[]),
-		("adjective", 		[["prep_", "amod"]], 														[]),
-		("to-inf", 			[["acl", ["aux_to"]]],														[]), # TO-INF
-		("wh",				[{"whether": ["prep_", "pcomp", ["mark_whether"]], "what": ["prep_", "pcomp", ["dobj_what"]], "how": ["prep_", "pcomp", ["advmod_how"]]}],	[(["NOM-SUBC", "P-WH", "PVAL"], [], ["NOM-P-WH-S", "NOM-PP-P-WH-S", "NOM-NP-P-WH-S", "NOM-WHERE-WHEN-S", "NOM-PP-HOW-TO-INF"])]),
-		("where-when",		[["prep_", "pcomp", ["advmod_where"]], ["prep_", "pcomp", ["advmod_when"]], ["prep_", "pcomp", ["dobj", "amod_much", "advmod_how"]], ["prep_", "pcomp", ["dobj", "amod_many", "advmod_how"]]],[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-WHERE-WHEN-S"], [])]), # just WHERE-WHEN (and how much and many)
-		("how-to-inf",		[["prep_", "pcomp", ["advmod_how"]]],										[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-PP-HOW-TO-INF"], [])]) # HOW-TO-INF
+
+	subentries_table = [
+		("subject", 		[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["SUBJECT"], [], [])]),
+		("ind-object", 		[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["PVAL1"], [], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"]), ("IND-OBJ", [], [])]),
+		("object", 			[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["OBJECT"], [], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"])]),
+		("pval", 			[["prep_", ["pobj"]]],																[(["PVAL"], [], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-P-POSSING", "NOM-PP-P-POSSING"])]),
+		("pval1", 			[["prep_", ["pobj"]]],																[(["PVAL1"], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"], [])]),
+		("pval2", 			[["prep_", ["pobj"]]],																[(["PVAL2"], [], [])]),
+		("pval-nom", 		[],																					[(["PVAL-NOM"], [], [])]),
+		("pval1-nom", 		[],																					[(["PVAL1-NOM"], [], [])]),
+		("pval2-nom", 		[],																					[(["PVAL2-NOM"], [], [])]),
+		("pval-ing", 		[["prep_", ["pcomp__ing"]]],														[(["NOM-SUBC", "P-ING", "PVAL"], [], ["NOM-ING-SC"])]), # P-ING
+		("pval-poss-ing",	[["prep_", ["pcomp__ing"]]],														[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"], ["NOM-POSSING", "NOM-POSSING-PP"]), (["PVAL"], ["NOM-P-POSSING", "NOM-PP-P-POSSING"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-POSSING-PP"])]), # P-POSSING
+		("pval-comp-ing", 	[["prep_", ["pobj"], ["pcomp__ing"]]],												[(["PVAL"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"], ["NOM-P-POSSING", "NOM-PP-P-POSSING", "NOM-POSSING-PP"])]), # P-NP-ING
+		("pval-to-inf", 	[["advcl", ["mark_"], ["aux_to"]]],													[]), # P-TO-INF
+		("pval-wh", 		[["prep_", ["pcomp", "mark_whether"]], ["prep_", ["pcomp", "dobj_what"]]],			[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-P-WH-S", "NOM-PP-P-WH-S", "NOM-NP-P-WH-S"], [])]), # P-WH
+		("comp-ing", 		[["prep_", "pobj__ing", ["compound"]]],												[(["OBJECT"], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"], [])]), # NP-ING
+		("ing", 			[["prep_", "pcomp__ing"]],															[(["NOM-SUBC", "P-ING", "PVAL"], ["NOM-ING-SC"], [])]), # just ING
+		("poss-ing", 		[["prep_", "pcomp__ing"]],															[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-POSSING", "NOM-POSSING-PP"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"])]), # just POSSING
+		("adverb", 			[{"ADJP": [["amod"]], "ADVP": [["advmod"]]}],											[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
+		("sbar", 			[["acl", ["mark_that"]]], 															[]),
+		("adjective", 		[["prep_", "amod"]], 																[]),
+		("to-inf", 			[["acl", ["aux_to"]]],																[]), # TO-INF
+		("wh",				[{"whether": [["prep_", "pcomp", ["mark_whether"]]],
+							  "what": [["prep_", "pcomp", ["dobj_what"]]],
+							  "how": [["prep_", "pcomp", ["advmod_how"]]]}],									[(["NOM-SUBC", "P-WH", "PVAL"], [], ["NOM-P-WH-S", "NOM-PP-P-WH-S", "NOM-NP-P-WH-S", "NOM-WHERE-WHEN-S", "NOM-PP-HOW-TO-INF"])]),
+		("where-when",		[["prep_", "pcomp", ["advmod_where"]],
+							 ["prep_", "pcomp", ["advmod_when"]],
+							 ["prep_", "pcomp", ["dobj", "amod_much", "advmod_how"]],
+							 ["prep_", "pcomp", ["dobj", "amod_many", "advmod_how"]]],							[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-WHERE-WHEN-S"], [])]), # just WHERE-WHEN (and how much and many)
+		("how-to-inf",		[["prep_", "pcomp", ["advmod_how"]]],												[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-PP-HOW-TO-INF"], [])]) # HOW-TO-INF
 	]
+
+	return subentries_table
 
 def get_special_subcats_dict():
 	# subcat: (required_list, list of (subentry, default_value) pairs)
@@ -103,6 +119,61 @@ def get_special_subcats_dict():
 		"NOM-WHERE-WHEN-S":			([],					[("where-when", ["of"])]),
 		"NOM-PP-HOW-TO-INF":		([],					[("pval1", ["of"])])
 	}
+
+def replace_empty_list(a_list, replacement):
+	"""
+	Replacing the empty list somewhere in the list with the given replacement
+	:param a_list: a list
+	:param replacement: a replacement list
+	:return: None
+	"""
+
+	temp = a_list
+	last = a_list
+
+	while temp != []:
+		last = temp
+		temp = temp[-1]
+
+	last.pop()
+
+	continue_list = replacement
+	for x in continue_list:
+		last.append(x)
+
+def update_comlex_table(structure, tag, replacement):
+	"""
+	Updates the comlex table, by creating a similar structure to the given one
+	The new structure replaces the given tag with the given replacement list
+	:param structure: a given structure as a phrases list
+	:param tag: a given string tag
+	:param replacement: a replacemnt for the given tag
+	:return: the resulted new structure, and a boolean that determines whether there was a replacement or not
+	"""
+
+	new_structure = []
+
+	total_was_replaced = False
+
+	for i in range(len(structure)):
+		if type(structure[i]) == str:
+			if tag == structure[i]:
+				new_sub_structure = copy.deepcopy(replacement)
+				replace_empty_list(new_sub_structure, structure[i + 1:])
+				new_structure.append(new_sub_structure)
+
+				return new_structure, True
+
+			new_structure.append(structure[i])
+		else:
+			new_sub_structure, was_replaced = update_comlex_table(structure[i], tag, replacement)
+
+			if was_replaced:
+				total_was_replaced = True
+
+			new_structure.append(new_sub_structure)
+
+	return new_structure, total_was_replaced
 
 def get_comlex_table():
 	# subcat, structure, suitable_pattern_entities
@@ -258,22 +329,96 @@ def get_comlex_table():
 
 		 # Adverb
 		 ("NOM-ADVP-PP",				["ADVP", "PP"],									["adverb", "pval"]),
+		 ("NOM-ADVP-PP",				["RB", "PP"],									["adverb", "pval"]),
 		 ("NOM-NP-ADVP",				["NP", "ADVP"],									["object", "adverb"]),
+		 ("NOM-NP-ADVP",				["NP", "RB"],									["object", "adverb"]),
 		 ("NOM-ADVP",					["ADVP"],										["adverb"]),
+		 ("NOM-ADVP",					["RB"],											["adverb"]),
 
 		 # Basic
 		 ("NOM-PP",						["PP"],											["pval"]),
 		 ("NOM-NP",						["NP"],											["object"])
 	]
 
-	return comlex_table
+	special_preps_dict = get_special_preps_dict()
+	updated_complex_table = []
+
+	# Updating the comlex table programmatically
+	if not should_replace_preps:
+		for subcat, structure, suitable_pattern_entities in comlex_table:
+			new_structures = []
+			updated_complex_table.append((subcat, structure, suitable_pattern_entities))
+
+			# Creating new structures using the special preposition dictionary
+			for prep, replacements in special_preps_dict.items():
+				for replacement in replacements[2]:
+					new_structures.append(update_comlex_table(structure, "IN", copy.deepcopy(replacement)))
+
+			for new_structure, was_replaced in new_structures:
+				if was_replaced:
+					updated_complex_table.append((subcat, new_structure, suitable_pattern_entities))
+	else:
+		updated_complex_table = comlex_table
+
+	return updated_complex_table
 
 
 def get_pronoun_dict():
-	pronoun_dict = {"he":["his", "him"], "she":["her", "her"], "it":["its", "its"], "they":["their", "them"], "we":["our", "us"], "i":["my", "me"]}
+	pronoun_dict = {
+		"he":		["his", "him"],
+		"she":		["her", "her"],
+		"it":		["its", "it"],
+		"they":		["their", "them"],
+		"we":		["our", "us"],
+		"i":		["my", "me"],
+		"you":		["your", "you"]
+	}
 
 	return pronoun_dict
 
+def get_special_preps_dict():
+	"""
+		This dictionary replace the prepositions with multi words appeared in the NOMLEX lexicos
+		The founded multi-words prepositions in the lexicon are:
+			'in favor of', 'in connection with', 'away from', 'with regard to', 'according to',
+			'close to', 'in terms of', 'as to', 'inside of', 'next to', 'such as', 'due to', 'off of',
+			'in regard to', 'ahead of', 'up to', 'out of', 'counter to', 'with respect to'
+	"""
+
+	# prep_name: (word_replacement, links_replacement, phrases_replacement)
+	# word_replacement is a single preposition that can replace the special preposition (the meaning of the sentence may be changed)
+	# links_replacement replaces prep_
+	# phrases_Replaement replaces a phrase P\PP, meaning a phrase that start with IN
+	# [] meanes other data the continue the role both in the dependency case and the phrases case
+	special_preps_dict = {
+		'in favor of': 				('toward',			["prep_with", ["pobj_favor", ["prep_to", []]]],				[["IN_in", ["NP_favor", ["IN_of", []]]]]),
+		'in connection with':		('over',			["prep_in", ["pobj_connection", ["prep_with", []]]],		[["IN_in", ["NP_connection", ["IN_with", []]]]]),
+		'away from': 				('at',				["advmod_away", ["prep_from", []]],							[[["RB_away"], ["IN_from", []]], ["RB_away", ["IN_from", []]]]),
+		'with regard to': 			('with',			["prep_with", ["pobj_regard", ["prep_to", []]]],			[["IN_with", ["NP_regard", ["IN_to", []]]]]),
+		'according to': 			('of',				["prep_according", ["prep_to", []]],						[["_according", ["IN_to", []]]]),
+		'close to':					('near',			["amod_close", ["prep_to", []]],							[["RB_close", ["IN_to", []]], [["RB_close"], ["IN_to", []]]]),
+		'in terms of':				('concerning', 		["prep_in", ["pobj_terms", ["prep_of", []]]],				[["IN_in", ["NP_terms", ["IN_of", []]]]]),
+		'inside of':				('in',				["advmod_inside", ["prep_of", []]],							[[["RB_inside"], ["IN_of", []]], ["RB_inside", ["IN_of", []]]]),
+		'as to':					('about',			["prep_as", ["prep_to", []]],								[["IN_as", ["IN_to", []]]]),
+		'next to':					('beside',			["advmod_next", ["prep_to", []]],							[[["RB_next"], ["IN_to", []]], ["RB_next", ["IN_to", []]]]),
+		'such as':					('like',			["prep_as", ["amod_such"], []],								[["JJ_such", "IN_as", []]]),
+		'due to':					('since',			["amod_due", ["pcomp_to"], []],								[["_due", ["_to", []]]]),
+		'off of':					('off',				["prep_off", ["prep_of", []]],								[["IN_off", ["IN_of", []]]]),
+		'in regard to':				('regarding',		["prep_in", ["pobj_regard", ["prep_to", []]]],				[["IN_in", ["NP_regard", ["IN_to", []]]]]),
+		'ahead of':					('before',			["advmod_ahead", ["prep_of", []]],							[[["RB_ahead"], ["IN_of"], []], ["RB_ahead", ["IN_of", []]]]),
+		'up to':					('after',			["prep_up", ["prep_to", []]],								[["IN_up", ["IN_to", []]]]),
+		'out of':					('from',			["prep_out", ["prep_of", []]],								[["IN_out", ["IN_of", []]]]),
+		'counter to':				('against',			["prep_counter", ["prep_to", []]],							[[["RB_counter"], ["IN_to", []]], ["RB_counter", ["IN_to", []]]]),
+		'with respect to':			('on',				["prep_with", ["pobj_respect", ["prep_to", []]]],			[["IN_with", ["NP_respect", ["IN_to", []]]]])
+	}
+
+	return special_preps_dict
+
+subentries_table = get_subentries_table()
+special_subcats_dict = get_special_subcats_dict()
+comlex_table = get_comlex_table()
+pronoun_dict = get_pronoun_dict()
+special_preps_dict = get_special_preps_dict()
 
 
 
@@ -347,20 +492,33 @@ def get_adv(word):
 	return word
 
 
+def arranged_print(input_to_print):
+	if should_print:
+		print(input_to_print, file=output_loc)
+		output_loc.flush()
+
+		# Printing also to screen if needed
+		if output_loc != sys.stdout and should_print_to_screen:
+			print(input_to_print)
+
 def seperate_line_print(input_to_print, indent_level=0):
 	if should_print:
-
 		indentation_str = ""
 		for _ in range(indent_level):
 			indentation_str += "--"
 
 		if type(input_to_print) == list:
 			for x in input_to_print:
-				print(str(indentation_str) + str(x), file=output_loc)
+				if type(x) == defaultdict:
+					x = dict(x)
+
+				arranged_print(str(indentation_str) + str(x))
+
 		elif type(input_to_print) == dict:
 			for tag, x in input_to_print.items():
-				print(str(indentation_str) + str(tag) + ": ", file=output_loc)
-				seperate_line_print(x, indent_level + 1)
+				if x != []: # Print only if it is not an empty list (meaning only if it is worth printing)
+					arranged_print(str(indentation_str) + str(tag) + ": ")
+					seperate_line_print(x, indent_level + 1)
 
 
 def get_all_of_noms(nomlex_entries):

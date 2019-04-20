@@ -2,41 +2,43 @@ import itertools
 from collections import defaultdict
 
 import DictsAndTables
-from DictsAndTables import get_subentries_table, get_special_subcats_dict
+from DictsAndTables import subentries_table, special_subcats_dict
 
 
 
-def update_option(options, info, role=None):
+########################################## Extracting NOMLEX Patterns ###########################################
+
+def update_options(options, info, subentry=None):
 	"""
 	Updates the options in the right way
 	:param options: the current possible options (list)
 	:param info: where to get alternatives (for PP)
-	:param role: helps to know where to get alternatives (for PP)
+	:param subentry: helps to know where to get alternatives (for PP), optional
 	:return: the updated possible options
 	"""
 
 	if "NOM" in options:
 		return options
 
-	if role == "SUBJECT" or not role:
+	if subentry == "SUBJECT" or not subentry:
 		options.append("PP-BY")
 
 		if "NOT-PP-BY" in options:
 			options.remove("PP-BY")
 			options.remove("NOT-PP-BY")
 
-	elif role == "IND-OBJ":
+	elif subentry == "IND-OBJ":
 		if "IND-OBJ-OTHER" in options:
 			options.remove("IND-OBJ-OTHER")
 
-			other_info = info[role]["IND-OBJ-OTHER"]
+			other_info = info[subentry]["IND-OBJ-OTHER"]
 			options += ["PP-" + s.upper() for s in list(other_info.values())[0]]
 
 	if "PP" in options:
 		options.remove("PP")
 
-		if role:
-			PP_info = info[role]["PP"]
+		if subentry:
+			PP_info = info[subentry]["PP"]
 		else:
 			PP_info = info["PP"]
 
@@ -51,12 +53,12 @@ def get_options(a_list, order_required):
 	"""
 	Returns all the different possibilities of the arguments in the given list
 	:param a_list: a list of arguments (each argument of several possible values = a list)
-	:param order_required: is the order (of pvals) is improtant
+	:param order_required: is the order (of pvals- pval and pval2) improtant
 	:return: all the possible tuples, also the illegal ones
 	"""
 
 	all_tuples = list(itertools.product(*a_list))
-	subentries_types = [i[0] for i in get_subentries_table()]
+	subentries_types = [i[0] for i in subentries_table]
 
 	if a_list[subentries_types.index("pval")] != ["NONE"] and \
 	   		a_list[subentries_types.index("pval2")] != ["NONE"] and \
@@ -67,7 +69,6 @@ def get_options(a_list, order_required):
 		all_tuples += list(itertools.product(*a_list))
 
 	return all_tuples
-
 
 def get_subentries(subcat_info, subcat, default_subjects):
 	"""
@@ -80,10 +81,8 @@ def get_subentries(subcat_info, subcat, default_subjects):
 	:return: a list of lists (its order defined by the get_subentries_order() function)
 	"""
 
-	subentries_types_table = get_subentries_table()
-	subentries_types = [i[0] for i in get_subentries_table()]
-
-	special_cases = get_special_subcats_dict()
+	subentries_types_table = subentries_table
+	subentries_types = [i[0] for i in subentries_table]
 
 	subentries_options = []
 
@@ -93,9 +92,9 @@ def get_subentries(subcat_info, subcat, default_subjects):
 		default_subentry_value = []
 
 		# Are there any special cases? checking it with the suitable dictionary
-		if subcat in special_cases.keys():
+		if subcat in special_subcats_dict.keys():
 			# Initiating the relevant subentries with the suitable default value
-			for special_subentry, default_value in special_cases[subcat][1]:
+			for special_subentry, default_value in special_subcats_dict[subcat][1]:
 				if special_subentry == subentries_types_table[i][0]:
 					default_subentry_value = default_value
 
@@ -126,12 +125,12 @@ def get_subentries(subcat_info, subcat, default_subjects):
 					subentry_options = "*NONE*"
 				else:
 					if how_to_find_subentry in [["OBJECT"], ["IND-OBJ"]]:
-						subentry_options = update_option(subentry_options, subcat_info, how_to_find_subentry[0])
+						subentry_options = update_options(subentry_options, subcat_info, how_to_find_subentry[0])
 					elif how_to_find_subentry == ["SUBJECT"]:
 						if subentry_options == []:
 							subentry_options = default_subjects
 						else:
-							subentry_options = update_option(subentry_options, subcat_info, how_to_find_subentry[0])
+							subentry_options = update_options(subentry_options, subcat_info, how_to_find_subentry[0])
 
 		if subentry_options == []:
 			subentry_options = default_subentry_value
@@ -142,6 +141,8 @@ def get_subentries(subcat_info, subcat, default_subjects):
 			subentry_options = ['NONE']
 
 		subentries_options.append(subentry_options)
+
+	# Some manual updates
 
 	pval_subentry = subentries_options[subentries_types.index("pval-nom")]
 	if pval_subentry != ["NONE"]:
@@ -169,7 +170,7 @@ def get_subentries(subcat_info, subcat, default_subjects):
 	if subcat == "NOM-PP-HOW-TO-INF":
 		subentries_options[subentries_types.index("pval1")].append("NONE")
 
-	#if DictsAndTables.should_print: print(subentries_options, file=DictsAndTables.output_loc)
+	#if DictsAndTables.should_print and DictsAndTables.should_print_to_screen: print(subentries_options)
 
 	return subentries_options
 
@@ -227,7 +228,7 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	if verb_subj_info == "NONE":
 		verb_subj_info = {"NONE": {}}
 
-	default_subjects = update_option(list(verb_subj_info.keys()), verb_subj_info)
+	default_subjects = update_options(list(verb_subj_info.keys()), verb_subj_info)
 
 	patterns = []
 
@@ -246,9 +247,8 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 
 	# Finding the subentries possible types
 	subentries = get_subentries(subcat_info, subcat, default_subjects)
-	subentries_types = [i[0] for i in get_subentries_table()]
+	subentries_types = [i[0] for i in subentries_table]
 
-	# TODO: dealing with nominalization like prayer
 	# Is the nominalization itself has a role in the sentence
 	if "SUBJECT" in entry["NOM-TYPE"].keys():
 		subentries[subentries_types.index("subject")] = ["NOM"]
@@ -256,7 +256,7 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 		subentries[subentries_types.index("object")] = ["NOM"]
 
 	# Getting required values from the special subcats dictionary
-	special_subcats_cases = get_special_subcats_dict()
+	special_subcats_cases = special_subcats_dict
 
 	if subcat in special_subcats_cases:
 		required_list += special_subcats_cases[subcat][0]
@@ -340,19 +340,20 @@ def get_nom_patterns(entry, subcat=None):
 
 	return patterns
 
-def extract_nom_patterns(entries, subcat=None):
+def extract_nom_patterns(nomlex_entries, subcat=None):
 	"""
 	Extracts all the nominalization patterns from the given nomlex entries
-	:param entries: the json formatted data to extract from (entries)
+	:param nomlex_entries: the json formatted data to extract from (entries)
+						   This argument can be the whole NOMLEX lexicon, or only few entries from their
 	:param subcat: a sub-categorization type, optional argument.
-		   If subcat is None, than the extraction won't be specific for a given subcat.
+		   		   If subcat is None, than the extraction won't be specific for a given subcat.
 	:return: the nominalization patterns that can be found in the given entries
 	"""
 
 	patterns_list = []
 	patterns_dict = {}
 
-	for nominalization, entry in entries.items():
+	for nominalization, entry in nomlex_entries.items():
 		patterns = get_nom_patterns(entry, subcat=subcat)
 		patterns_dict.update({nominalization: patterns})
 		patterns_list += patterns

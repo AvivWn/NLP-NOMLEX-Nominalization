@@ -1,5 +1,9 @@
 import json
 
+# Constants
+
+phrases = []
+
 def parse_lines(lisp_file_name):
 	"""
 	Parses the line of the file with the given name (a file with lisp format)
@@ -17,13 +21,20 @@ def parse_lines(lisp_file_name):
 			# Spacing up all the opening\closing brackets
 			line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n") #.replace("\"", "").split(' ')
 
-			# Dealing with a phrase of several words
+			word = ""
+
+			# Dealing with a phrase of several words (seperated with spaces)
 			is_between_brackets = False
 			new_line = ""
 			for char in line:
 				if char == "\"":
 					is_between_brackets = not is_between_brackets
+					if " " in word and all([i.isalpha() or i == " " for i in word]): phrases.append(word)
+					word = ""
 				else:
+					if is_between_brackets:
+						word += char
+
 					if char == " ":
 						if is_between_brackets:
 							char = '_'
@@ -183,10 +194,12 @@ def translate(lines):
 		index, in_line_index, entry = translate_entry(lines, index, in_line_index + 2)
 
 		# Only entries that starts with "NOM"
-		if entry_type.startswith("NOM"):
+		if entry_type == "NOM": #entry_type.startswith("NOM"):
 			if "ORTH" not in entry.keys():
 				entries.append(entry)
 			else:
+				# Dealing with entries that appear with the same "ORTH" more than once
+				# (each time with differnt entry type, like NOM, NOM-LIKE and more)
 				if entry["ORTH"] in count_founded_entries.keys():
 					count_founded_entries[entry["ORTH"]] += 1
 				else:
@@ -240,3 +253,5 @@ if __name__ == '__main__':
 	import sys
 
 	lisp_to_json(sys.argv[1], sys.argv[2])
+
+	#print(list(set(phrases)))
