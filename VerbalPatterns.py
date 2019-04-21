@@ -1,5 +1,6 @@
 import itertools
 import re
+import copy
 from allennlp.predictors.constituency_parser import ConstituencyParserPredictor
 from nltk.stem import WordNetLemmatizer
 from collections import defaultdict
@@ -159,13 +160,13 @@ def get_sub_phrases(phrases_tree, phrases_tags, arguments_types = None):
 	index = 0
 	phrases = []
 
-	default_arguments = defaultdict(list)
+	default_arguments = defaultdict(tuple)
 	default_phrases = []
 
 	if not arguments_types:
 		default_arguments = None
 
-	arguments = defaultdict(list)
+	arguments = defaultdict(tuple)
 
 	if type(arguments_types) == str:
 		phrases_tree = [{"S": phrases_tree}]
@@ -180,6 +181,7 @@ def get_sub_phrases(phrases_tree, phrases_tags, arguments_types = None):
 
 			# Moving over the sub-phrases trees in the current sub-phrases list
 			for tag, sub_phrases_tree in sub_phrases_trees.items():
+				curr_phrase = get_phrase(sub_phrases_tree)
 
 				# Continue only if all the wanted phrases haven't found yet
 				if index < len(phrases_tags) and (not arguments_types or index < len(arguments_types)):
@@ -197,11 +199,12 @@ def get_sub_phrases(phrases_tree, phrases_tags, arguments_types = None):
 								if temp_arguments:
 									for temp_argument, value in temp_arguments.items():
 										if temp_argument in arguments.keys():
-											arguments[temp_argument] += [(" ", -1)] + value
+											x = arguments[temp_argument]
+											arguments[temp_argument] = (x[0] + " " + value[0], x[1], value[2])
 										else:
-											arguments[temp_argument] = [value]
+											arguments[temp_argument] = value
 								else:
-									arguments[arguments_types[index]] = [get_phrase(sub_phrases_tree)]
+									arguments[arguments_types[index]] = curr_phrase
 							phrases.append(inner_phrases)
 							index += 1
 						else:
@@ -216,16 +219,18 @@ def get_sub_phrases(phrases_tree, phrases_tags, arguments_types = None):
 						splitted = temp_tag.split("_")
 						if len(splitted) == 2:
 							temp_tag, value = splitted
-							equal_values = value == sub_phrases_tree[0]
+							equal_values = type(sub_phrases_tree[0]) == tuple and value == sub_phrases_tree[0][0]
 						elif len(splitted) == 3:
 							temp_tag, _, value = splitted
-							equal_values = get_phrase(sub_phrases_tree)[0].endswith(value)
+							equal_values = curr_phrase[0].endswith(value)
 
 						if tag == temp_tag and equal_values:
 							if arguments_types and arguments_types[index]:
-								if arguments[arguments_types[index]] != []:
-									arguments[arguments_types[index]] += [(" ", -1)]
-								arguments[arguments_types[index]] += [get_phrase(sub_phrases_tree)]
+								if arguments_types[index] in arguments.keys():
+									x = arguments[arguments_types[index]]
+									arguments[arguments_types[index]] = (x[0] + " " + curr_phrase[0], x[1], curr_phrase[2])
+								else:
+									arguments[arguments_types[index]] = curr_phrase
 							phrases.append({phrases_tags[index]: sub_phrases_tree})
 							index += 1
 						else:
@@ -249,9 +254,11 @@ def detect_comlex_subcat(sent):
 	:param sent: a sentence string
 	:return: a list of arguments dictionaries with values that are relevant to each founded subcat
 	"""
-	global chars_count
+	global chars_count, predictor
 
 	phrase_tree = predictor.predict_batch_json([{"sentence": sent}])[0]['trees']
+	predictor = ConstituencyParserPredictor.from_path(
+		"https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 	# Spacing up all the opening\closing brackets
 	splitted_phrase_tree = phrase_tree.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
@@ -280,21 +287,19 @@ def detect_comlex_subcat(sent):
 
 		wordnet_lemmatizer = WordNetLemmatizer()
 		verb_phrase = get_phrase(vp_phrase_tree)
-		default_arguments["verb"] = (wordnet_lemmatizer.lemmatize(verb_phrase[0].split(" ")[0], 'v'), verb_phrase[1], verb_phrase[2])
+		verb = verb_phrase[0].split(" ")[0]
+		default_arguments["verb"] = (wordnet_lemmatizer.lemmatize(verb, 'v'), verb_phrase[1], verb_phrase[1] + len(verb) - 1)
 		default_arguments["subject"] = get_phrase(np_phrase_tree)
 
 		for subcat_info in comlex_table:
 			subcat, tags_phrases, suitable_arguments = subcat_info
 
 			# Even if the suitable subcat was found, a general case may also work
-			_, founded_arguments = get_sub_phrases(vp_phrase_tree["VP"][1:], tags_phrases, suitable_arguments)
+			_, founded_arguments = get_sub_phrases(vp_phrase_tree["VP"][1:], copy.deepcopy(tags_phrases), copy.deepcopy(suitable_arguments))
 
 			# Cleaning arguments
 			for arg_str, arg_value in founded_arguments.items():
-				first_index = arg_value[0][1]
-				last_index = arg_value[-1][-1]
-				arg_value = "".join([phrase for phrase, _, _ in arg_value])
-
+				arg_value, first_index, last_index = arg_value
 				founded_arguments[arg_str] = (clean_argument(arg_value), first_index, last_index)
 
 			# Checking if a suitable subcat was found
@@ -381,7 +386,7 @@ def process_sentence(sent):
 	"""
 	Processes a sentence, returns its relevant arguments
 	:param sent: the sentence that should be processed. The sentence can contain specific arguments names
-	:return: all the possible arguments of the verb in the sentence (as a list of dictionaries)
+	:return: all the possible arguments of the verb in the sentence (as a list of tuples (dictionary, matching_names))
 	"""
 
 	# Cleaning the given sentence
@@ -654,7 +659,7 @@ def pattern_to_sent(nominalization, pattern, arguments):
 
 				starter_prep_length = 1
 				for prep in special_preps_dict.keys():
-					if arguments[subentry].startswith(prep):
+					if arguments[subentry].lower().startswith(prep):
 						starter_prep_length = len(prep.split(" "))
 
 				if option == "pval-nom" or option == "pval1-nom" or option == "pval2-nom":

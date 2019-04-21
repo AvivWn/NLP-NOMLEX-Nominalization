@@ -21,8 +21,15 @@ def main(arguments):
 			splitted = re.split(r'\t+', line.rstrip('\t'))
 			data.append((splitted[0], splitted[1], splitted[2]))
 
+	num_of_exact_matches = 0
+	total = len(data)
 	for subcat, verbal_sentence, nominal_sentence in data:
-		_ = MatchingPatterns.match_patterns(nomlex_entries, [verbal_sentence], [nominal_sentence])
+		print(subcat, '"' + verbal_sentence + '"', '"' + nominal_sentence + '"')
+		found_match = MatchingPatterns.match_patterns(nomlex_entries, [verbal_sentence], [nominal_sentence], exact_match=True)
+		print("Found match?", found_match, "\n")
+		num_of_exact_matches += found_match
+
+	print("Found " + str(num_of_exact_matches) + " from " + str(total) + " sentences!")
 
 
 

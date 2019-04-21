@@ -142,17 +142,18 @@ def main(args):
 		# Counting the founded subcats so far
 		DictsAndTables.subcats_counts = Counter()
 
-		subcats = list(set([i[0] for i in get_comlex_table()] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
-		with open(DictsAndTables.output_loc.name, 'r') as read_output_file:
-			output_file_lines = read_output_file.readlines()
+		if DictsAndTables.output_loc != sys.stdout:
+			subcats = list(set([i[0] for i in get_comlex_table()] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
+			with open(DictsAndTables.output_loc.name, 'r') as read_output_file:
+				output_file_lines = read_output_file.readlines()
 
-		for subcat in subcats:
-			DictsAndTables.subcats_counts[subcat] = 0
-
-		for line in output_file_lines:
 			for subcat in subcats:
-				if "'" + subcat + "'" in line:
-					DictsAndTables.subcats_counts[subcat] += 1
+				DictsAndTables.subcats_counts[subcat] = 0
+
+			for line in output_file_lines:
+				for subcat in subcats:
+					if "'" + subcat + "'" in line:
+						DictsAndTables.subcats_counts[subcat] += 1
 
 		seperate_line_print(match_patterns(nomlex_entries, inputs[0], inputs[1]))
 
@@ -165,12 +166,13 @@ if __name__ == '__main__':
 									 description='This program has tree main modules:\n'
 												 '1. Extracting arguments from sentences with a main verb, and translating the sentence to nominal form\n'
 												 '\tExample- "[A0 IBM] appointed [A1 Alice Smith]" --> arguments of "appoint"\n'
-												 '\t\tNote: brackets and arguments names are optional\n'
+												 '\t\tNote: brackets and arguments names (limited to one word) are optional\n'
 												 '2. Extracting arguments from sentences with nominalizations\n'
 												 '\tExample- "Alice Smith\'s appointment by IBM" --> arguments of "appointment"\n'
 												 '3. Finding matches between verbal sentences and nominal sentences\n'
 												 '\tExample- "[A0 IBM] appointed [A1 Alice Smith]", "Alice Smith\'s appointment by IBM" --> match\n'
-												 '\t\tNote: The order in important (verbal_sentences, verbal_sentences)')
+												 '\t\tNote: The order in important (verbal_sentences, verbal_sentences)\n\n'
+												 'Currently the nominalizations are taken from the nomlex lexicon.')
 
 	parser.add_argument('-lexicon', nargs=1, type=argparse.FileType('r'), required=True, help='name of a NOMLEX lexicon file')
 

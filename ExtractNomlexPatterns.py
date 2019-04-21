@@ -250,9 +250,10 @@ def get_nom_subcat_patterns(entry, main_subentry, subcat):
 	subentries_types = [i[0] for i in subentries_table]
 
 	# Is the nominalization itself has a role in the sentence
-	if "SUBJECT" in entry["NOM-TYPE"].keys():
+	# Here we ignore cases that NOM-TYPE is SUBJECT + OBJECT or SUBJECT\OBJECT + VERB-NOM
+	if list(entry["NOM-TYPE"].keys()) == ["SUBJECT"]:
 		subentries[subentries_types.index("subject")] = ["NOM"]
-	elif "OBJECT" in entry["NOM-TYPE"].keys():
+	elif list(entry["NOM-TYPE"].keys()) == ["OBJECT"]:
 		subentries[subentries_types.index("object")] = ["NOM"]
 
 	# Getting required values from the special subcats dictionary

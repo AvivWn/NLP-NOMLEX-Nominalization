@@ -56,9 +56,12 @@ def fix_ud_links(ud_links, option):
 
 		# "prep_" case
 		elif type(ud_links[i]) == str and ud_links[i].endswith("_"):
-			if option in special_preps_dict.keys():
-				# Replacing prep_ with special links for a specific preposition (with more than one word)
-				new_ud_links += copy.deepcopy(special_preps_dict[option][1])
+			if option.lower() in special_preps_dict.keys():
+				# Replacing prep_ with special links f"NOM-TYPE"or a specific preposition (with more than one word)
+				if i + 1 < len(ud_links) and type(ud_links[i + 1]) == list:
+					new_ud_links += copy.deepcopy(special_preps_dict[option.lower()][1][1])
+				else:
+					new_ud_links += copy.deepcopy(special_preps_dict[option.lower()][1][0])
 
 				# Adding the next dependency links in the right place aftr the new added links
 				replace_empty_list(new_ud_links, ud_links[i + 1:])
@@ -257,9 +260,10 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 			curr_arguments["subcat"] = (-1, -1, pattern["subcat"])
 
 			# Is the nominalization itself has a role in the sentence, rather than replacing the verb (= action)
-			if "SUBJECT" in nom_entry["NOM-TYPE"].keys():
+			# Here we ignore cases that NOM-TYPE is SUBJECT + OBJECT or SUBJECT\OBJECT + VERB-NOM
+			if list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"]:
 				curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
-			elif "OBJECT" in nom_entry["NOM-TYPE"].keys():
+			elif list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"]:
 				curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
 
 			curr_arguments_list = [curr_arguments]
@@ -340,7 +344,7 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
 			sent = sent[1:]
 
 		while sent.endswith(" "):
-			sent = sent[1:]
+			sent = sent[:-1]
 
 		sent = sent.replace("’", "'").replace("\n", "").replace("\r\n", "").replace("\r", "")
 
@@ -364,11 +368,11 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
 	for i in range(len(dependency_tree)):
 		for nom, clean_nom in all_noms.items():
 			if dependency_tree[i][2] == clean_nom and dependency_tree[i][4] == "NOUN":
-				noms.append((nom, i))
+				noms.append((nom, dependency_tree[i][1], i))
 
 	# Moving over all the nominalizations
 	nom_args = {}
-	for nom, nom_index in noms:
+	for nom, original_nom, nom_index in noms:
 		# Getting the suitable nominalization entry
 		nom_entry = nomlex_entries[nom]
 
@@ -396,6 +400,6 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
 				best_args.append(new_args)
 				best_args_items.append(args.items())
 
-		nom_args.update({(nom, nom_index): best_args})
+		nom_args.update({(nom, original_nom, nom_index): best_args})
 
 	return nom_args

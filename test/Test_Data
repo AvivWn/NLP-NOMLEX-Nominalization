@@ -2,11 +2,16 @@
 verb-and-subcat-match	"He needs to win every argument."												"Her need to win every single argument."
 verb-match				"She knows John is a student."													"I know what he will do."
 
+special-preps-1			"They discussed whether they are going to pass the test."						"Their discussion with respect to whether they are going to pass the test."
+special-preps-2			"Alice dreamed her boyfriend with regard to his future."						"Alice's dream of her boyfriend with regard to his future."
+special-preps-3			"Alice dreamed her boyfriend with regard to his future."						"Alice's dream of her boyfriend with respect to his future."
+special-preps-4			"Alice dreamed her boyfriend in connection with his future."					"Alice's dream of her boyfriend with respect to his future."
+
 NOM-PP-HOW-TO-INF		"The man explained how they played."											"The explanation by the man, of how they played."
 NOM-PP-HOW-TO-INF		"She described how to do it."													"Her description of how to do it."
 NOM-PP-HOW-TO-INF		"The president explained to the man how to cheat."								"The president's explanation to the man, of how to cheat."
 NOM-PP-HOW-TO-INF		"The man explained to his wife how they played."								"The man's explanation to his wife, of how they played."
-NOM-WHERE-WHEN-S		"Tom asked how many cats they expected to raise."								"Tom's asking of how many cats they expect"
+NOM-WHERE-WHEN-S		"Tom asked how many cats they expected."										"Tom's asking of how many cats they expected."
 NOM-WHERE-WHEN-S		"Tom asked how much snow they would have."										"Tom's asking of how much snow they would have."
 NOM-WHERE-WHEN-S		"John asked where they should go."												"The asking by John, of where they should go."
 NOM-WHERE-WHEN-S		"John asked when they should go."												"John's asking of when they should go."
@@ -87,14 +92,14 @@ NOM-NP-FOR-NP			"The chef prepared breakfast for the guest."									"The chef's
 NOM-NP-FOR-NP			"The chef prepared the guest a breakfast."										"The chef's preparation for the guest, of a breakfast."
 NOM-NP-FOR-NP			"The chef prepared for the guest a breakfast."									"The chef's preparation of a breakfast, for the guest."
 
-NOM-NP-AS-ADJP			"They characterized the play as amazing."										"The play's characterization by they as amazing."
+NOM-NP-AS-ADJP			"They characterized the play as amazing."										"The play's characterization by them as amazing."
 
 NOM-NP-AS-NP-SC			"He judged the facts as a scientist."											"His judgement of the facts, as a scientist."
 NOM-NP-AS-NP			"They accepted him as a doctor."												"Their acceptance of him as a doctor."
 NOM-AS-NP				"Lulu failed as a pastry cook."													"Lulu's failure as a pastry cook."
 NOM-NP-PP				"They attributed the painting to Masaccio."										"Their attribution of the painting to Masaccio."
 
-NOM-NP-NP				"She envied him his car."														"Her envy of him to his car."
+NOM-NP-NP				"She envied him his car."														"Her envy of his car to him."
 
 NOM-ADVP-PP				"He reacted positively to the news."											"His positive reaction to the news."
 NOM-NP-ADVP				"They treated the boy there."													"Their treatment of the boy there."

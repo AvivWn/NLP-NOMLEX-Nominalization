@@ -8,12 +8,12 @@ inflect_engine = inflect.engine()
 # Constants
 
 det = "the"
-should_print = True					# If false than the program will print nothing (both to screen and to the output file)
-should_print_to_screen = False		# If true than the program will print to screen some debugging results
-should_clean = True					# If true than we do want a "clean" and updated results
-should_replace_preps = False		# If true than the words will be replaced in the verbal process.
+should_print = True					# If false, then the program will print nothing (both to screen and to the output file)
+should_print_to_screen = False		# If true, then the program will print to screen some debugging results
+should_clean = True					# If true, then we do want a "clean" and updated results
+should_replace_preps = False		# If true, then the words will be replaced in the verbal process.
 									# Oterwise, the comlex table will be updated programmatically.
-shuffle_data = True					# If true than the input data will be shuffled randomly
+shuffle_data = True					# If true, then the input data will be shuffled randomly
 
 output_loc = sys.stdout
 subcats_counts = {}
@@ -30,7 +30,7 @@ def get_subentries_table():
 
 	subentries_table = [
 		("subject", 		[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["SUBJECT"], [], [])]),
-		("ind-object", 		[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["PVAL1"], [], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"]), ("IND-OBJ", [], [])]),
+		("ind-object", 		[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["PVAL1"], [], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"]), (["IND-OBJ"], [], [])]),
 		("object", 			[{"DET-POSS":[["poss"]], "N-N-MOD":[["compound"]], "PP-":[["prep_", "pobj"]]}],		[(["OBJECT"], [], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"])]),
 		("pval", 			[["prep_", ["pobj"]]],																[(["PVAL"], [], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-P-POSSING", "NOM-PP-P-POSSING"])]),
 		("pval1", 			[["prep_", ["pobj"]]],																[(["PVAL1"], ["NOM-PP-FOR-TO-INF", "NOM-PP-TO-INF-RECIP", "NOM-PP-P-POSSING", "NOM-PP-WH-S", "NOM-PP-P-WH-S", "NOM-PP-HOW-TO-INF"], [])]),
@@ -39,14 +39,14 @@ def get_subentries_table():
 		("pval1-nom", 		[],																					[(["PVAL1-NOM"], [], [])]),
 		("pval2-nom", 		[],																					[(["PVAL2-NOM"], [], [])]),
 		("pval-ing", 		[["prep_", ["pcomp__ing"]]],														[(["NOM-SUBC", "P-ING", "PVAL"], [], ["NOM-ING-SC"])]), # P-ING
-		("pval-poss-ing",	[["prep_", ["pcomp__ing"]]],														[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"], ["NOM-POSSING", "NOM-POSSING-PP"]), (["PVAL"], ["NOM-P-POSSING", "NOM-PP-P-POSSING"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-POSSING-PP"])]), # P-POSSING
+		("pval-poss-ing",	[["prep_", ["pcomp__ing"]], ["prep_", ["pobj__ing", ["poss"]]]],					[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"], ["NOM-POSSING", "NOM-POSSING-PP"]), (["PVAL"], ["NOM-P-POSSING", "NOM-PP-P-POSSING"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING", "NOM-POSSING-PP"])]), # P-POSSING
 		("pval-comp-ing", 	[["prep_", ["pobj"], ["pcomp__ing"]]],												[(["PVAL"], ["NOM-P-NP-ING", "NOM-NP-P-NP-ING"], ["NOM-P-POSSING", "NOM-PP-P-POSSING", "NOM-POSSING-PP"])]), # P-NP-ING
 		("pval-to-inf", 	[["advcl", ["mark_"], ["aux_to"]]],													[]), # P-TO-INF
 		("pval-wh", 		[["prep_", ["pcomp", "mark_whether"]], ["prep_", ["pcomp", "dobj_what"]]],			[(["NOM-SUBC", "P-WH", "PVAL"], ["NOM-P-WH-S", "NOM-PP-P-WH-S", "NOM-NP-P-WH-S"], [])]), # P-WH
 		("comp-ing", 		[["prep_", "pobj__ing", ["compound"]]],												[(["OBJECT"], ["NOM-NP-ING", "NOM-NP-ING-SC", "NOM-NP-ING-OC"], [])]), # NP-ING
 		("ing", 			[["prep_", "pcomp__ing"]],															[(["NOM-SUBC", "P-ING", "PVAL"], ["NOM-ING-SC"], [])]), # just ING
 		("poss-ing", 		[["prep_", "pcomp__ing"]],															[(["NOM-SUBC", "P-POSSING", "PVAL"], ["NOM-POSSING", "NOM-POSSING-PP"], ["NOM-P-POSSING", "NOM-NP-P-POSSING"])]), # just POSSING
-		("adverb", 			[{"ADJP": [["amod"]], "ADVP": [["advmod"]]}],											[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
+		("adverb", 			[{"ADJP": [["amod"]], "ADVP": [["advmod"]]}],										[(["NOM-SUBC"], ["NOM-ADVP-PP", "NOM-NP-ADVP", "NOM-ADVP"], [])]),
 		("sbar", 			[["acl", ["mark_that"]]], 															[]),
 		("adjective", 		[["prep_", "amod"]], 																[]),
 		("to-inf", 			[["acl", ["aux_to"]]],																[]), # TO-INF
@@ -179,165 +179,168 @@ def get_comlex_table():
 	# subcat, structure, suitable_pattern_entities
 	# Be aware that the order matter, because the program try each line in that order and we want to find the most specific case
 	comlex_table = [
-		 ("NOM-PP-HOW-TO-INF",			[["WRB_how", [["TO_to"]]]],						["how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			[[["WRB_how"], [["TO_to"]]]],					["how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			[["WRB_how", "S"]],								["how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			[[["WRB_how"], "S"]],							["how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			["PP", ["WRB_how", [["TO_to"]]]],				["pval1", "how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			["PP", [["WRB_how"], [["TO_to"]]]],				["pval1", "how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			["PP", ["WRB_how", "S"]],						["pval1", "how-to-inf"]),
-		 ("NOM-PP-HOW-TO-INF",			["PP", [["WRB_how"], "S"]],						["pval1", "how-to-inf"]),
-		 ("NOM-WHERE-WHEN-S",			[[[["WRB_how", "JJ_many"]], "S"]],				["where-when"]),
-		 ("NOM-WHERE-WHEN-S",			[[["WRB_how", "JJ_many"], "S"]],				["where-when"]),
-		 ("NOM-WHERE-WHEN-S",			[[[["WRB_how", "JJ_much"]], "S"]],				["where-when"]),
-		 ("NOM-WHERE-WHEN-S",			[[["WRB_how", "JJ_much"], "S"]],				["where-when"]),
-		 ("NOM-WHERE-WHEN-S",			[[["WRB_where"], "S"]],							["where-when"]),
-		 ("NOM-WHERE-WHEN-S",			[[["WRB_when"], "S"]],							["where-when"]),
-		 ("NOM-NP-P-WH-S",				["NP", ["IN", ["IN_whether", "S"]]],			["object", "pval-wh"]),
-		 ("NOM-NP-P-WH-S",				["NP", ["IN", [["WP_what"], "S"]]],				["object", "pval-wh"]),
-		 ("NOM-NP-P-WH-S",				["NP", ["IN", [["WP_what"], "S"]]],				["object", "pval-wh"]),
-		 ("NOM-PP-P-WH-S",				["PP", ["IN", ["IN_whether", "S"]]],			["pval1", "pval-wh"]),
-		 ("NOM-PP-P-WH-S",				["PP", ["IN", ["WP_what", "S"]]],				["pval1", "pval-wh"]),
-		 ("NOM-PP-P-WH-S",				["PP", ["IN", [["WP_what"], "S"]]],				["pval1", "pval-wh"]),
-		 ("NOM-PP-WH-S",				["PP", ["IN_whether", "S"]],					["pval1", "wh"]),
-		 ("NOM-PP-WH-S",				["PP", ["WP_what", "S"]],						["pval1", "wh"]),
-		 ("NOM-PP-WH-S",				["PP", [["WP_what"], "S"]],						["pval1", "wh"]),
-		 ("NOM-PP-WH-S",				["PP", ["IN_if", "S"]],							["pval1", "wh"]),
-		 ("NOM-P-WH-S",					[["IN", ["IN_if", "S"]]],						["pval-wh"]),
-		 ("NOM-P-WH-S",					[["IN", ["IN_whether", "S"]]],					["pval-wh"]),
-		 ("NOM-P-WH-S",					[["IN", ["WP_what", "S"]]],						["pval-wh"]),
-		 ("NOM-P-WH-S",					[["IN", [["WP_what"], "S"]]],					["pval-wh"]),
-		 ("NOM-NP-WH-S",				["NP", ["IN_whether", "S"]],					["object", "wh"]),
-		 ("NOM-HOW-S",					[["WRB_how", "S"]],								["wh"]),
-		 ("NOM-HOW-S",					[[["WRB_how"], "S"]],							["wh"]),
-		 ("NOM-WH-S",					[["WP_what", "S"]],								["wh"]),
-		 ("NOM-WH-S",					[[["WP_what"], "S"]],							["wh"]),
-		 ("NOM-WH-S",					[["IN_whether", "S"]],							["wh"]),
-		 ("NOM-WH-S",					[["IN_if", "S"]],								["wh"]),
+		("NOM-WHERE-WHEN-S",			[[[["WRB_how", "JJ_many"]], "S"]],				["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WRB_how", "JJ_many"], "S"]],				["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WHADJP_how many"], "S"]],					["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[[["WRB_how", "JJ_much"]], "S"]],				["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WRB_how", "JJ_much"], "S"]],				["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WHADJP_how much"], "S"]],					["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WRB_where"], "S"]],							["where-when"]),
+		("NOM-WHERE-WHEN-S",			[[["WRB_when"], "S"]],							["where-when"]),
+		("NOM-PP-HOW-TO-INF",			[["WRB_how", [["TO_to"]]]],						["how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			[[["WRB_how"], [["TO_to"]]]],					["how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			[["WRB_how", "S"]],								["how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			[[["WRB_how"], "S"]],							["how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			["PP", ["WRB_how", [["TO_to"]]]],				["pval1", "how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			["PP", [["WRB_how"], [["TO_to"]]]],				["pval1", "how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			["PP", ["WRB_how", "S"]],						["pval1", "how-to-inf"]),
+		("NOM-PP-HOW-TO-INF",			["PP", [["WRB_how"], "S"]],						["pval1", "how-to-inf"]),
+		("NOM-NP-P-WH-S",				["NP", ["IN", ["IN_whether", "S"]]],			["object", "pval-wh"]),
+		("NOM-NP-P-WH-S",				["NP", ["IN", [["WP_what"], "S"]]],				["object", "pval-wh"]),
+		("NOM-NP-P-WH-S",				["NP", ["IN", [["WP_what"], "S"]]],				["object", "pval-wh"]),
+		("NOM-PP-P-WH-S",				["PP", ["IN", ["IN_whether", "S"]]],			["pval1", "pval-wh"]),
+		("NOM-PP-P-WH-S",				["PP", ["IN", ["WP_what", "S"]]],				["pval1", "pval-wh"]),
+		("NOM-PP-P-WH-S",				["PP", ["IN", [["WP_what"], "S"]]],				["pval1", "pval-wh"]),
+		("NOM-PP-WH-S",					["PP", ["IN_whether", "S"]],					["pval1", "wh"]),
+		("NOM-PP-WH-S",					["PP", ["WP_what", "S"]],						["pval1", "wh"]),
+		("NOM-PP-WH-S",					["PP", [["WP_what"], "S"]],						["pval1", "wh"]),
+		("NOM-PP-WH-S",					["PP", ["IN_if", "S"]],							["pval1", "wh"]),
+		("NOM-P-WH-S",					[["IN", ["IN_if", "S"]]],						["pval-wh"]),
+		("NOM-P-WH-S",					[["IN", ["IN_whether", "S"]]],					["pval-wh"]),
+		("NOM-P-WH-S",					[["IN", ["WP_what", "S"]]],						["pval-wh"]),
+		("NOM-P-WH-S",					[["IN", [["WP_what"], "S"]]],					["pval-wh"]),
+		("NOM-NP-WH-S",					["NP", ["IN_whether", "S"]],					["object", "wh"]),
+		("NOM-HOW-S",					[["WRB_how", "S"]],								["wh"]),
+		("NOM-HOW-S",					[[["WRB_how"], "S"]],							["wh"]),
+		("NOM-WH-S",					[["WP_what", "S"]],								["wh"]),
+		("NOM-WH-S",					[[["WP_what"], "S"]],							["wh"]),
+		("NOM-WH-S",					[["IN_whether", "S"]],							["wh"]),
+		("NOM-WH-S",					[["IN_if", "S"]],								["wh"]),
 
-		 # TO-INF- infinitival phrases
-		 ("NOM-PP-FOR-TO-INF",			["PP", ["IN_for", ["NP", ["TO_to", ["VB"]]]]],	["pval1", "pval-to-inf"]),
-		 ("NOM-FOR-TO-INF",				[["IN_for", ["NP", ["TO_to", ["VB"]]]]],		["pval-to-inf"]),
-		 ("NOM-PP-TO-INF-RECIP",		["PP", [["TO_to", ["VB"]]]],					["pval1", "to-inf"]),
-		 ("NOM-P-NP-TO-INF",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
-		 ("NOM-P-NP-TO-INF-OC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
-		 ("NOM-P-NP-TO-INF-VC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
-		 ("NOM-NP-TO-INF-VC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
-		 ("NOM-NP-TO-INF-VC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
-		 ("NOM-NP-TO-INF-SC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
-		 ("NOM-NP-TO-INF-SC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
-		 ("NOM-NP-TO-INF-OC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
-		 ("NOM-NP-TO-INF-OC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
-		 ("NOM-TO-INF-SC",				[[["TO_to", ["VB"]]]],							["to-inf"]),
+		# TO-INF- infinitival phrases
+		("NOM-PP-FOR-TO-INF",			["PP", ["IN_for", ["NP", ["TO_to", ["VB"]]]]],	["pval1", "pval-to-inf"]),
+		("NOM-FOR-TO-INF",				[["IN_for", ["NP", ["TO_to", ["VB"]]]]],		["pval-to-inf"]),
+		("NOM-PP-TO-INF-RECIP",			["PP", [["TO_to", ["VB"]]]],					["pval1", "to-inf"]),
+		("NOM-P-NP-TO-INF",				[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
+		("NOM-P-NP-TO-INF-OC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
+		("NOM-P-NP-TO-INF-VC",			[["IN", "NP"], [["TO_to", ["VB"]]]],			["pval", "to-inf"]),
+		("NOM-NP-TO-INF-VC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		("NOM-NP-TO-INF-VC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
+		("NOM-NP-TO-INF-SC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		("NOM-NP-TO-INF-SC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
+		("NOM-NP-TO-INF-OC",			["NP", [["TO_to", ["VB"]]]],					["object", "to-inf"]),
+		("NOM-NP-TO-INF-OC",			[["NP", [["TO_to", ["VB"]]]]],					[["object", "to-inf"]]),
+		("NOM-TO-INF-SC",				[[["TO_to", ["VB"]]]],							["to-inf"]),
 
-		 # POSSING- possesive gerunds
-		 ("NOM-POSSING-PP",				[[["VBG", "PP"]]],								[[["poss-ing", "pval"]]]),
-		 ("NOM-POSSING-PP",				[[["PRP$", "VBG", "NP", "PP"]]],				[[["poss-ing", "poss-ing", "poss-ing", "pval"]]]),
-		 ("NOM-POSSING-PP",				[[[["PRP$"], "VBG", "NP", "PP"]]],				[[["poss-ing", "poss-ing", "poss-ing", "pval"]]]),
-		 ("NOM-POSSING-PP",				[["PRP$", "VBG", "NP", "PP"]],					[["poss-ing", "poss-ing", "poss-ing", "pval"]]),
-		 ("NOM-POSSING-PP",				[[["PRP$"], "VBG", "NP", "PP"]],				[["poss-ing", "poss-ing", "poss-ing", "pval"]]),
-		 ("NOM-POSSING-PP",				[["NP__'s", ["VBG", "NP", "PP"]]],				[["poss-ing", ["poss-ing", "poss-ing", "pval"]]]),
-		 ("NOM-POSSING-PP",				[["NP__s '", ["VBG", "NP", "PP"]]],				[["poss-ing", ["poss-ing", "poss-ing", "pval"]]]),
-		 ("NOM-POSSING-PP",				["PP", ["VBG"]],								["pval", "poss-ing"]),
-		 ("NOM-POSSING-PP",				["PP", [["VBG"]]],								["pval", "poss-ing"]),
-		 ("NOM-POSSING-PP",				["PP", ["PRP$", ["VBG"]]],						["pval", "poss-ing"]),
-		 ("NOM-POSSING-PP",				["PP", [["PRP$"], ["VBG"]]],					["pval", "poss-ing"]),
-		 ("NOM-POSSING-PP",				["PP", ["NP__'s", ["VBG"]]],					["pval", "poss-ing"]),
-		 ("NOM-POSSING-PP",				["PP", ["NP__s '", ["VBG"]]],					["pval", "poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", ["VBG"]]],						["object", "pval-poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", [["VBG"]]]],						["object", "pval-poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", [["PRP$"], ["VBG"]]]],			["object", "pval-poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", ["PRP$", ["VBG"]]]],				["object", "pval-poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", ["NP__'s", ["VBG"]]]],			["object", "pval-poss-ing"]),
-		 ("NOM-NP-P-POSSING",			["NP", ["IN", ["NP__s '", ["VBG"]]]],			["object", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", ["VBG"]]],						["pval1", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", [["VBG"]]]],						["pval1", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", [["PRP$"], ["VBG"]]]],			["pval1", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", ["PRP$", ["VBG"]]]],				["pval1", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", ["NP__'s", ["VBG"]]]],			["pval1", "pval-poss-ing"]),
-		 ("NOM-PP-P-POSSING",			["PP", ["IN", ["NP__s '", ["VBG"]]]],			["pval1", "pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", ["VBG"]]],								["pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", [["VBG"]]]],							["pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", [["PRP$"], ["VBG"]]]],					["pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", ["PRP$", ["VBG"]]]],					["pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", ["NP__'s", ["VBG"]]]],					["pval-poss-ing"]),
-		 ("NOM-P-POSSING",				[["IN", ["NP__s '", ["VBG"]]]],					["pval-poss-ing"]),
-		 ("NOM-POSSING",				[[["VBG"]]],									["poss-ing"]),
-		 ("NOM-POSSING",				[[["PRP$"], ["VBG"]]],							["poss-ing"]),
-		 ("NOM-POSSING",				[["PRP$", ["VBG"]]],							["poss-ing"]),
-		 ("NOM-POSSING",				[["NP__'s", ["VBG"]]],							["poss-ing"]),
-		 ("NOM-POSSING",				[["NP__s '", ["VBG"]]],							["poss-ing"]),
+		# POSSING- possesive gerunds
+		("NOM-POSSING-PP",				[[["VBG", "PP"]]],								[[["poss-ing", "pval"]]]),
+		("NOM-POSSING-PP",				[[["PRP$", "VBG", "NP", "PP"]]],				[[["poss-ing", "poss-ing", "poss-ing", "pval"]]]),
+		("NOM-POSSING-PP",				[[[["PRP$"], "VBG", "NP", "PP"]]],				[[["poss-ing", "poss-ing", "poss-ing", "pval"]]]),
+		("NOM-POSSING-PP",				[["PRP$", "VBG", "NP", "PP"]],					[["poss-ing", "poss-ing", "poss-ing", "pval"]]),
+		("NOM-POSSING-PP",				[[["PRP$"], "VBG", "NP", "PP"]],				[["poss-ing", "poss-ing", "poss-ing", "pval"]]),
+		("NOM-POSSING-PP",				[["NP__'s", ["VBG", "NP", "PP"]]],				[["poss-ing", ["poss-ing", "poss-ing", "pval"]]]),
+		("NOM-POSSING-PP",				[["NP__s '", ["VBG", "NP", "PP"]]],				[["poss-ing", ["poss-ing", "poss-ing", "pval"]]]),
+		("NOM-POSSING-PP",				["PP", ["VBG"]],								["pval", "poss-ing"]),
+		("NOM-POSSING-PP",				["PP", [["VBG"]]],								["pval", "poss-ing"]),
+		("NOM-POSSING-PP",				["PP", ["PRP$", ["VBG"]]],						["pval", "poss-ing"]),
+		("NOM-POSSING-PP",				["PP", [["PRP$"], ["VBG"]]],					["pval", "poss-ing"]),
+		("NOM-POSSING-PP",				["PP", ["NP__'s", ["VBG"]]],					["pval", "poss-ing"]),
+		("NOM-POSSING-PP",				["PP", ["NP__s '", ["VBG"]]],					["pval", "poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", ["VBG"]]],						["object", "pval-poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", [["VBG"]]]],						["object", "pval-poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", [["PRP$"], ["VBG"]]]],			["object", "pval-poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", ["PRP$", ["VBG"]]]],				["object", "pval-poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", ["NP__'s", ["VBG"]]]],			["object", "pval-poss-ing"]),
+		("NOM-NP-P-POSSING",			["NP", ["IN", ["NP__s '", ["VBG"]]]],			["object", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", ["VBG"]]],						["pval1", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", [["VBG"]]]],						["pval1", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", [["PRP$"], ["VBG"]]]],			["pval1", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", ["PRP$", ["VBG"]]]],				["pval1", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", ["NP__'s", ["VBG"]]]],			["pval1", "pval-poss-ing"]),
+		("NOM-PP-P-POSSING",			["PP", ["IN", ["NP__s '", ["VBG"]]]],			["pval1", "pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", ["VBG"]]],								["pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", [["VBG"]]]],							["pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", [["PRP$"], ["VBG"]]]],					["pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", ["PRP$", ["VBG"]]]],					["pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", ["NP__'s", ["VBG"]]]],					["pval-poss-ing"]),
+		("NOM-P-POSSING",				[["IN", ["NP__s '", ["VBG"]]]],					["pval-poss-ing"]),
+		("NOM-POSSING",					[[["VBG"]]],									["poss-ing"]),
+		("NOM-POSSING",					[[["PRP$"], ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[["PRP$", ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[["NP__'s", ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[["NP__s '", ["VBG"]]],							["poss-ing"]),
 
-		 # ING- gerunds
-		 ("NOM-NP-P-NP-ING",			["NP", ["IN", ["NP", ["VBG"]]]],				["object", "pval-comp-ing"]),
-		 ("NOM-NP-P-NP-ING",			["NP", ["IN", ["NP", [["VBG"]]]]],				["object", "pval-comp-ing"]),
-		 ("NOM-P-NP-ING",				[["IN", ["NP", ["VBG"]]]],						["pval-comp-ing"]),
-		 ("NOM-P-NP-ING",				[["IN", ["NP", [["VBG"]]]]],					["pval-comp-ing"]),
-		 ("NOM-NP-AS-ING",				["NP", ["IN_as", ["VBG"]]],						["object", "pval-ing"]),
-		 ("NOM-NP-AS-ING",				["NP", ["IN_as", [["VBG"]]]],					["object", "pval-ing"]),
-		 ("NOM-NP-P-ING",				["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
-		 ("NOM-NP-P-ING",				["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
-		 ("NOM-NP-P-ING-OC",			["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
-		 ("NOM-NP-P-ING-OC",			["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
-		 ("NOM-NP-P-ING-SC",			["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
-		 ("NOM-NP-P-ING-SC",			["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
-		 ("NOM-P-ING-SC",				[["IN", ["VBG"]]],								["pval-ing"]),
-		 ("NOM-P-ING-SC",				[["IN", [["VBG"]]]],							["pval-ing"]),
-		 ("NOM-NP-ING",					[["NP", ["VBG"]]],								["comp-ing"]),
-		 ("NOM-NP-ING",					[["NP", [["VBG"]]]],							["comp-ing"]),
-		 ("NOM-NP-ING-OC",				[["NP", ["VBG"]]],								["comp-ing"]),
-		 ("NOM-NP-ING-OC",				[["NP", [["VBG"]]]],							["comp-ing"]),
-		 ("NOM-NP-ING-SC",				["NP", ["VBG"]],								"comp-ing"),
-		 ("NOM-NP-ING-SC",				["NP", [["VBG"]]],								"comp-ing"),
-		 ("NOM-ING-SC",					[["VBG"]],										["ing"]),
-		 ("NOM-ING-SC",					[[["VBG"]]],									["ing"]),
+		# ING- gerunds
+		("NOM-NP-P-NP-ING",				["NP", ["IN", ["NP", ["VBG"]]]],				["object", "pval-comp-ing"]),
+		("NOM-NP-P-NP-ING",				["NP", ["IN", ["NP", [["VBG"]]]]],				["object", "pval-comp-ing"]),
+		("NOM-P-NP-ING",				[["IN", ["NP", ["VBG"]]]],						["pval-comp-ing"]),
+		("NOM-P-NP-ING",				[["IN", ["NP", [["VBG"]]]]],					["pval-comp-ing"]),
+		("NOM-NP-AS-ING",				["NP", ["IN_as", ["VBG"]]],						["object", "pval-ing"]),
+		("NOM-NP-AS-ING",				["NP", ["IN_as", [["VBG"]]]],					["object", "pval-ing"]),
+		("NOM-NP-P-ING",				["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
+		("NOM-NP-P-ING",				["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
+		("NOM-NP-P-ING-OC",				["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
+		("NOM-NP-P-ING-OC",				["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
+		("NOM-NP-P-ING-SC",				["NP", ["IN", ["VBG"]]],						["object", "pval-ing"]),
+		("NOM-NP-P-ING-SC",				["NP", ["IN", [["VBG"]]]],						["object", "pval-ing"]),
+		("NOM-P-ING-SC",				[["IN", ["VBG"]]],								["pval-ing"]),
+		("NOM-P-ING-SC",				[["IN", [["VBG"]]]],							["pval-ing"]),
+		("NOM-NP-ING",					[["NP", ["VBG"]]],								["comp-ing"]),
+		("NOM-NP-ING",					[["NP", [["VBG"]]]],							["comp-ing"]),
+		("NOM-NP-ING-OC",				[["NP", ["VBG"]]],								["comp-ing"]),
+		("NOM-NP-ING-OC",				[["NP", [["VBG"]]]],							["comp-ing"]),
+		("NOM-NP-ING-SC",				["NP", ["VBG"]],								"comp-ing"),
+		("NOM-NP-ING-SC",				["NP", [["VBG"]]],								"comp-ing"),
+		("NOM-ING-SC",					[["VBG"]],										["ing"]),
+		("NOM-ING-SC",					[[["VBG"]]],									["ing"]),
 
-		 # SBAR
-		 ("NOM-PP-THAT-S",				[["IN", "NP"], ["IN_that", "S"]],				[[None, "ind-object"], "sbar"]),
-		 ("NOM-NP-S",					["NP", ["S"]],									["object", "sbar"]),
-		 ("NOM-NP-S",					["NP", ["IN_that", "S"]],						["object", "sbar"]),
-		 ("NOM-THAT-S",					[["IN_that", "S"]],								["sbar"]),
-		 ("NOM-S",						[["S"]],										["sbar"]),
-		 ("NOM-S",						[["IN_that", "S"]],								["sbar"]),
+		# SBAR
+		("NOM-PP-THAT-S",				[["IN", "NP"], ["IN_that", "S"]],				[[None, "ind-object"], "sbar"]),
+		("NOM-NP-S",					["NP", ["S"]],									["object", "sbar"]),
+		("NOM-NP-S",					["NP", ["IN_that", "S"]],						["object", "sbar"]),
+		("NOM-THAT-S",					[["IN_that", "S"]],								["sbar"]),
+		("NOM-S",						[["S"]],										["sbar"]),
+		("NOM-S",						[["IN_that", "S"]],								["sbar"]),
 
-		 # Double pvals
-		 ("NOM-NP-PP-AS-NP",			["NP", ["IN", "NP"], ["IN_as", "NP"]],			["object", [None, "ind-object"], "pval2"]),
-		 ("NOM-NP-PP-AS-NP",			[["NP", ["IN", "NP"]], ["IN_as", "NP"]],		[["object", [None, "ind-object"]], "pval2"]),
-		 ("NOM-NP-PP-PP",				["NP", "PP", "PP"],								["object", "pval", "pval2"]),
-		 ("NOM-NP-PP-PP",				[["NP", "PP"], "PP"],							[["object", "pval"], "pval2"]),
-		 ("NOM-PP-PP",					["PP", "PP"],									["pval", "pval2"]),
+		# Double pvals
+		("NOM-NP-PP-AS-NP",				["NP", ["IN", "NP"], ["IN_as", "NP"]],			["object", [None, "ind-object"], "pval2"]),
+		("NOM-NP-PP-AS-NP",				[["NP", ["IN", "NP"]], ["IN_as", "NP"]],		[["object", [None, "ind-object"]], "pval2"]),
+		("NOM-NP-PP-PP",				["NP", "PP", "PP"],								["object", "pval", "pval2"]),
+		("NOM-NP-PP-PP",				[["NP", "PP"], "PP"],							[["object", "pval"], "pval2"]),
+		("NOM-PP-PP",					["PP", "PP"],									["pval", "pval2"]),
 
-		 # Both object and indirect-object
-		 ("NOM-NP-TO-NP",				["NP", ["IN_to", "NP"]],						["object", [None, "ind-object"]]),
-		 ("NOM-NP-TO-NP",				[["IN_to", "NP"], "NP"],						[[None, "ind-object"], "object"]),
-		 ("NOM-NP-TO-NP",				["NP", "NP"],									["ind-object", "object"]),
-		 ("NOM-NP-FOR-NP",				["NP", ["IN_for", "NP"]],						["object", [None, "ind-object"]]),
-		 ("NOM-NP-FOR-NP",				[["IN_for", "NP"], "NP"],						[[None, "ind-object"], "object"]),
-		 ("NOM-NP-FOR-NP",				["NP", "NP"],									["ind-object", "object"]),
+		# Both object and indirect-object
+		("NOM-NP-TO-NP",				["NP", ["IN_to", "NP"]],						["object", [None, "ind-object"]]),
+		("NOM-NP-TO-NP",				[["IN_to", "NP"], "NP"],						[[None, "ind-object"], "object"]),
+		("NOM-NP-TO-NP",				["NP", "NP"],									["ind-object", "object"]),
+		("NOM-NP-FOR-NP",				["NP", ["IN_for", "NP"]],						["object", [None, "ind-object"]]),
+		("NOM-NP-FOR-NP",				[["IN_for", "NP"], "NP"],						[[None, "ind-object"], "object"]),
+		("NOM-NP-FOR-NP",				["NP", "NP"],									["ind-object", "object"]),
 
-		 # Adjective
-		 ("NOM-NP-AS-ADJP",				["NP", ["RB_as", "JJ"]],						["object", "adjective"]),
+		# Adjective
+		("NOM-NP-AS-ADJP",				["NP", ["RB_as", "JJ"]],						["object", "adjective"]),
+		("NOM-NP-AS-ADJP",				["NP", ["RB_as", "ADJP"]],						["object", "adjective"]),
 
-		 # Single pval
-		 ("NOM-NP-AS-NP-SC",			["NP", ["IN_as", "NP"]],						["object", "pval"]),
-		 ("NOM-NP-AS-NP",				["NP", ["IN_as", "NP"]],						["object", "pval"]),
-		 ("NOM-AS-NP",					[["IN_as", "NP"]],								["pval"]),
-		 ("NOM-NP-PP",					["NP", "PP"],									["object", "pval"]),
+		# Single pval
+		("NOM-NP-AS-NP-SC",				["NP", ["IN_as", "NP"]],						["object", "pval"]),
+		("NOM-NP-AS-NP",				["NP", ["IN_as", "NP"]],						["object", "pval"]),
+		("NOM-AS-NP",					[["IN_as", "NP"]],								["pval"]),
+		("NOM-NP-PP",					["NP", "PP"],									["object", "pval"]),
 
-		 # Double objects
-		 ("NOM-NP-NP",					["NP", "NP"],									["ind-object", "object"]),
+		# Double objects
+		("NOM-NP-NP",					["NP", "NP"],									["ind-object", "object"]),
 
-		 # Adverb
-		 ("NOM-ADVP-PP",				["ADVP", "PP"],									["adverb", "pval"]),
-		 ("NOM-ADVP-PP",				["RB", "PP"],									["adverb", "pval"]),
-		 ("NOM-NP-ADVP",				["NP", "ADVP"],									["object", "adverb"]),
-		 ("NOM-NP-ADVP",				["NP", "RB"],									["object", "adverb"]),
-		 ("NOM-ADVP",					["ADVP"],										["adverb"]),
-		 ("NOM-ADVP",					["RB"],											["adverb"]),
+		# Adverb
+		("NOM-ADVP-PP",					["ADVP", "PP"],									["adverb", "pval"]),
+		("NOM-ADVP-PP",					["RB", "PP"],									["adverb", "pval"]),
+		("NOM-NP-ADVP",					["NP", "ADVP"],									["object", "adverb"]),
+		("NOM-NP-ADVP",					["NP", "RB"],									["object", "adverb"]),
+		("NOM-ADVP",					["ADVP"],										["adverb"]),
+		("NOM-ADVP",					["RB"],											["adverb"]),
 
-		 # Basic
-		 ("NOM-PP",						["PP"],											["pval"]),
-		 ("NOM-NP",						["NP"],											["object"])
+		# Basic
+		("NOM-PP",						["PP"],											["pval"]),
+		("NOM-NP",						["NP"],											["object"])
 	]
 
 	special_preps_dict = get_special_preps_dict()
@@ -391,25 +394,25 @@ def get_special_preps_dict():
 	# phrases_Replaement replaces a phrase P\PP, meaning a phrase that start with IN
 	# [] meanes other data the continue the role both in the dependency case and the phrases case
 	special_preps_dict = {
-		'in favor of': 				('toward',			["prep_with", ["pobj_favor", ["prep_to", []]]],				[["IN_in", ["NP_favor", ["IN_of", []]]]]),
-		'in connection with':		('over',			["prep_in", ["pobj_connection", ["prep_with", []]]],		[["IN_in", ["NP_connection", ["IN_with", []]]]]),
-		'away from': 				('at',				["advmod_away", ["prep_from", []]],							[[["RB_away"], ["IN_from", []]], ["RB_away", ["IN_from", []]]]),
-		'with regard to': 			('with',			["prep_with", ["pobj_regard", ["prep_to", []]]],			[["IN_with", ["NP_regard", ["IN_to", []]]]]),
-		'according to': 			('of',				["prep_according", ["prep_to", []]],						[["_according", ["IN_to", []]]]),
-		'close to':					('near',			["amod_close", ["prep_to", []]],							[["RB_close", ["IN_to", []]], [["RB_close"], ["IN_to", []]]]),
-		'in terms of':				('concerning', 		["prep_in", ["pobj_terms", ["prep_of", []]]],				[["IN_in", ["NP_terms", ["IN_of", []]]]]),
-		'inside of':				('in',				["advmod_inside", ["prep_of", []]],							[[["RB_inside"], ["IN_of", []]], ["RB_inside", ["IN_of", []]]]),
-		'as to':					('about',			["prep_as", ["prep_to", []]],								[["IN_as", ["IN_to", []]]]),
-		'next to':					('beside',			["advmod_next", ["prep_to", []]],							[[["RB_next"], ["IN_to", []]], ["RB_next", ["IN_to", []]]]),
-		'such as':					('like',			["prep_as", ["amod_such"], []],								[["JJ_such", "IN_as", []]]),
-		'due to':					('since',			["amod_due", ["pcomp_to"], []],								[["_due", ["_to", []]]]),
-		'off of':					('off',				["prep_off", ["prep_of", []]],								[["IN_off", ["IN_of", []]]]),
-		'in regard to':				('regarding',		["prep_in", ["pobj_regard", ["prep_to", []]]],				[["IN_in", ["NP_regard", ["IN_to", []]]]]),
-		'ahead of':					('before',			["advmod_ahead", ["prep_of", []]],							[[["RB_ahead"], ["IN_of"], []], ["RB_ahead", ["IN_of", []]]]),
-		'up to':					('after',			["prep_up", ["prep_to", []]],								[["IN_up", ["IN_to", []]]]),
-		'out of':					('from',			["prep_out", ["prep_of", []]],								[["IN_out", ["IN_of", []]]]),
-		'counter to':				('against',			["prep_counter", ["prep_to", []]],							[[["RB_counter"], ["IN_to", []]], ["RB_counter", ["IN_to", []]]]),
-		'with respect to':			('on',				["prep_with", ["pobj_respect", ["prep_to", []]]],			[["IN_with", ["NP_respect", ["IN_to", []]]]])
+		'in favor of': 				('toward',			(["prep_with", "pobj_favor", "prep_to", []],		["prep_with", ["pobj_favor", ["prep_to", []]]]),			[["IN_in", ["NP_favor", ["IN_of", []]]]]),
+		'in connection with':		('over',			(["prep_in", "pobj_connection", "prep_with", []],	["prep_in", ["pobj_connection", ["prep_with", []]]]),		[["IN_in", ["NP_connection", ["IN_with", []]]]]),
+		'away from': 				('at',				(["advmod_away", "prep_from", []],					["advmod_away", ["prep_from", []]]),						[[["RB_away"], ["IN_from", []]], ["RB_away", ["IN_from", []]]]),
+		'with regard to': 			('with',			(["prep_with", "pobj_regard", "prep_to", []],		["prep_with", ["pobj_regard", ["prep_to", []]]]),			[["IN_with", ["NP_regard", ["IN_to", []]]]]),
+		'according to': 			('of',				(["prep_according", "prep_to", []],					["prep_according", ["prep_to", []]]),						[["_according", ["IN_to", []]]]),
+		'close to':					('near',			(["amod_close", "prep_to", []],						["amod_close", ["prep_to", []]]),							[["RB_close", ["IN_to", []]], [["RB_close"], ["IN_to", []]]]),
+		'in terms of':				('concerning', 		(["prep_in", "pobj_terms", "prep_of", []],			["prep_in", ["pobj_terms", ["prep_of", []]]]),				[["IN_in", ["NP_terms", ["IN_of", []]]]]),
+		'inside of':				('in',				(["advmod_inside", "prep_of", []],					["advmod_inside", ["prep_of", []]]),						[[["RB_inside"], ["IN_of", []]], ["RB_inside", ["IN_of", []]]]),
+		'as to':					('about',			(["prep_as", "prep_to", []],						["prep_as", ["prep_to", []]]),								[["IN_as", ["IN_to", []]]]),
+		'next to':					('beside',			(["advmod_next", "prep_to", []],					["advmod_next", ["prep_to", []]]),							[[["RB_next"], ["IN_to", []]], ["RB_next", ["IN_to", []]]]),
+		'such as':					('like',			(["prep_as", ["amod_such"], []],					["prep_as", ["amod_such"], []]),							[["JJ_such", "IN_as", []]]),
+		'due to':					('since',			(["amod_due", ["pcomp_to"], []],					["amod_due", ["pcomp_to"], []]),							[["_due", ["_to", []]]]),
+		'off of':					('off',				(["prep_off", "prep_of", []],						["prep_off", ["prep_of", []]]),								[["IN_off", ["IN_of", []]]]),
+		'in regard to':				('regarding',		(["prep_in", "pobj_regard", "prep_to", []],			["prep_in", ["pobj_regard", ["prep_to", []]]]),				[["IN_in", ["NP_regard", ["IN_to", []]]]]),
+		'ahead of':					('before',			(["advmod_ahead", "prep_of", []],					["advmod_ahead", ["prep_of", []]]),							[[["RB_ahead"], ["IN_of"], []], ["RB_ahead", ["IN_of", []]]]),
+		'up to':					('after',			(["prep_up", "prep_to", []],						["prep_up", ["prep_to", []]]),								[["IN_up", ["IN_to", []]]]),
+		'out of':					('from',			(["prep_out", "prep_of", []],						["prep_out", ["prep_of", []]]),								[["IN_out", ["IN_of", []]]]),
+		'counter to':				('against',			(["prep_counter", "prep_to", []],					["prep_counter", ["prep_to", []]]),							[[["RB_counter"], ["IN_to", []]], ["RB_counter", ["IN_to", []]]]),
+		'with respect to':			('on',				(["prep_with", "pobj_respect", "prep_to", []],		["prep_with", ["pobj_respect", ["prep_to", []]]]),			[["IN_with", ["NP_respect", ["IN_to", []]]]])
 	}
 
 	return special_preps_dict
