@@ -8,7 +8,7 @@ nlp = spacy.load('en_core_web_sm')
 
 import DictsAndTables
 from DictsAndTables import comlex_table, subentries_table, pronoun_dict, special_preps_dict, \
-						   get_all_of_noms, get_adv, replace_empty_list
+						   get_adv, replace_empty_list
 from ExtractNomlexPatterns import get_nom_patterns
 
 
@@ -215,17 +215,19 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 
 	return arguments
 
-def get_arguments(dependency_tree, nom_entry, nom_index):
+def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 	"""
 	Returns all the possible arguments for a specific nominalization in a sentence according to it dependency tree
 	:param dependency_tree: a dependency tree (a list of tuples)
 	:param nom_entry: the information inside a specific nominalization entry of NOMLEX lexicon
 	:param nom_index: the index of the nominalization in the given dependency tree
+	:param patterns: the already known patterns for the nominalization (list of patterns, each pattern is a dictionary), optional
 	:return: a list of dictionaries (in the list all the possible arguments, dictionary for each possible set of arguments (=pattern))
 	"""
 
 	# Getting the nominalization patterns using the nomlex lexicon
-	patterns = get_nom_patterns(nom_entry)
+	if not patterns:
+		patterns = get_nom_patterns(nom_entry)
 
 	total_arguments = []
 	subentries_types = [i[0] for i in subentries_table]
@@ -318,14 +320,15 @@ def get_arguments(dependency_tree, nom_entry, nom_index):
 
 	return total_arguments
 
-def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
+def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, limited_noms_dict=None):
 	"""
 	Extracts the arguments of the nominalizations in the given sentence
 	The given sentence can be presented using a string, or a dependency tree
 	A sentence is preferable if both are given
 	:param nomlex_entries: NOMLEX entries (a dictionary {nom: ...})
-	:param sent: a sentence (string)
-	:param dependency_tree: a dependency tree (list)
+	:param sent: a sentence (string), optional
+	:param dependency_tree: a dependency tree (list), optional
+	:param limited_noms_dict: a limited dictionary of nominalization ({nom: patterns}), option. Ingoring other nominalization with other patterns
 	:return: a dictionary of lists of dictionaries
 			 dictionary of each founded nominalization (nom, index) -> list of each suitable pattern -> dictionary of arguments
 	"""
@@ -364,11 +367,20 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
 
 	# Finding all the nominalizations in the sentence
 	noms = []
-	all_noms = get_all_of_noms(nomlex_entries)
-	for i in range(len(dependency_tree)):
-		for nom, clean_nom in all_noms.items():
-			if dependency_tree[i][2] == clean_nom and dependency_tree[i][4] == "NOUN":
-				noms.append((nom, dependency_tree[i][1], i))
+
+	if limited_noms_dict or limited_noms_dict == {}:
+		for i in range(len(dependency_tree)):
+			# Nominalization must be a noun
+			if dependency_tree[i][4] == "NOUN":
+				for nom in DictsAndTables.all_noms_backwards.get(dependency_tree[i][2], []):
+					if nom in limited_noms_dict.keys():
+						noms.append((nom, dependency_tree[i][1], i))
+	else:
+		for i in range(len(dependency_tree)):
+			# Nominalization must be a noun
+			if dependency_tree[i][4] == "NOUN":
+				for nom in DictsAndTables.all_noms_backwards.get(dependency_tree[i][2], []):
+					noms.append((nom, dependency_tree[i][1], i))
 
 	# Moving over all the nominalizations
 	nom_args = {}
@@ -377,7 +389,10 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None):
 		nom_entry = nomlex_entries[nom]
 
 		# Getting all the possible arguments
-		possible_args = get_arguments(dependency_tree, nom_entry, nom_index)
+		if not limited_noms_dict:
+			possible_args = get_arguments(dependency_tree, nom_entry, nom_index)
+		else:
+			possible_args = get_arguments(dependency_tree, nom_entry, nom_index, patterns=limited_noms_dict[nom][1])
 
 		# Finding the maximum number of arguments that were extracted
 		best_num_of_args = 0

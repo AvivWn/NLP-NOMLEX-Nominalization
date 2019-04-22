@@ -6,12 +6,11 @@ from nltk.stem import WordNetLemmatizer
 from collections import defaultdict
 import inflect
 inflect_engine = inflect.engine()
-predictor = ConstituencyParserPredictor.from_path(
-	"https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
+predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 import DictsAndTables
-from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, \
-						   seperate_line_print, get_adj, get_all_of_noms, det
+from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det, \
+						   seperate_line_print, get_adj
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import get_dependency, clean_argument
 
@@ -257,8 +256,7 @@ def detect_comlex_subcat(sent):
 	global chars_count, predictor
 
 	phrase_tree = predictor.predict_batch_json([{"sentence": sent}])[0]['trees']
-	predictor = ConstituencyParserPredictor.from_path(
-		"https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
+	#predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 	# Spacing up all the opening\closing brackets
 	splitted_phrase_tree = phrase_tree.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n").replace("\"", "").split(' ')
@@ -277,7 +275,7 @@ def detect_comlex_subcat(sent):
 
 	# Use the first NP, VP pair that was found in the phrases tree
 	if "S" not in phrases_tree.keys():
-		return []
+		return possible_arguments
 
 	np_vp_phrases_trees, _ = get_sub_phrases(phrases_tree["S"], ["NP", "VP"], ["NP", "VP"])
 
@@ -398,14 +396,11 @@ def process_sentence(sent):
 
 	sent = sent.replace("\n", "").replace("\r\n", "").replace("\r", "")
 
+	if sent.endswith("]."):
+		sent = sent[:-1] + " ."
+
 	if sent == "":
 		return []
-
-	if DictsAndTables.should_clean:
-		# Replacing the first upper letter only if the word isn't a name of something (using NER from spacy)
-		dependency = get_dependency(sent)
-		if dependency != [] and dependency[0][-2] == "":
-			sent = sent[0].lower() + sent[1:]
 
 	# The sentence may contain a specific names of the arguments
 	# We want to extract those names
@@ -415,6 +410,13 @@ def process_sentence(sent):
 	if DictsAndTables.should_print and DictsAndTables.should_print_to_screen:
 		print("Arguments Names: " + str(arguments_names))
 		print("Cleaned Sentence: " + sent)
+
+	new_first_letter = sent[0]
+	if DictsAndTables.should_clean:
+		# Saving a new first upper letter only if the word isn't a name of something (using NER from spacy)
+		dependency = get_dependency(sent)
+		if dependency != [] and dependency[0][-2] == "":
+			new_first_letter = sent[0].lower()
 
 
 	replaced_indexes = []
@@ -462,10 +464,15 @@ def process_sentence(sent):
 					elif index >= first_index and index < first_index + arg_value:
 						arg_value = arg_value[:index - first_index] + original_prep + arg_value[index - first_index + len(replace_prep):]
 
+				# Updating the first letter of the argument that starts the sentence
+				if first_index == 0:
+					arg_value = new_first_letter + arg_value[1:]
+
 				# Updating the arguments names according to the founded names
 				found = False
 				for argument_name, indexes in arguments_names.items():
 					arg_first_index, arg_last_index = indexes
+
 					if arg_first_index == first_index and arg_last_index == last_index:
 						new_arguments[argument_name] = arg_value
 						matching_arguments_names[arg_str] = argument_name
@@ -493,7 +500,7 @@ def extract_args_from_verbal(nomlex_entries, sent):
 	Finds the suitable arguments for each nominalization that was created from the main verb in the given sentence
 	:param nomlex_entries: the entries of nomlex lexicon
 	:param sent: a simple sentence with a main verb
-	:return: a dictionary {nom: (arguments, matching_names)} where each nom was created from the main verb in the given sentence
+	:return: a dictionary {nom: (nom_patterns, verba_arguments, matching_names)} where each nom was created from the main verb in the given sentence
 	"""
 
 	# Getting the patterns of arguments for the verb in the sentence (= processing the sentence)
@@ -510,12 +517,12 @@ def extract_args_from_verbal(nomlex_entries, sent):
 		nom_patterns = extract_nom_patterns(relevant_entries, arguments["subcat"])
 
 		for nominalization, patterns in nom_patterns.items():
-			# The first suitable arguments list is preferable
+			clean_nom, patterns = patterns
+
+			# The first suitable arguments list is preferable, for each nominalization
 			if nominalization not in verb_arguments_for_noms.keys():
 				if patterns != []:
-					verb_arguments_for_noms.update({nominalization: (arguments, matching_names)})
-			else:
-				break
+					verb_arguments_for_noms.update({nominalization: ((clean_nom, patterns), arguments, matching_names)})
 
 	return verb_arguments_for_noms
 
@@ -730,11 +737,10 @@ def verbal_to_nominal(nomlex_entries, sent):
 
 		# Creating all the nominalization suitable sentences for the given sentence
 		for nominalization, patterns in nom_patterns.items():
+			clean_nom, patterns = patterns
 			if nominalization not in founded_noms:
 				for pattern in patterns:
-					nom_sentences += pattern_to_sent(get_all_of_noms(nomlex_entries)[nominalization], pattern, arguments)
+					nom_sentences += pattern_to_sent(DictsAndTables.all_noms[nominalization], pattern, arguments)
 					founded_noms.append(nominalization) # The first suitable arguments list is preferable
-			else:
-				break
 
 	return list(set(nom_sentences))

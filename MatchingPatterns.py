@@ -85,10 +85,23 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 
 	subcats = list(set([i[0] for i in comlex_table] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
 
-	verbs_arguments_for_noms = []
+	limited_noms_dict = {}
+	verb_arguments_for_noms = {}
 	for verbal_sentence in verbal_sentences:
-		# Getting the arguments for the verb in the sentence (= processing the sentence)
-		verbs_arguments_for_noms.append(extract_args_from_verbal(nomlex_entries, verbal_sentence))
+		# Getting the arguments for the verb in the sentence (= processing the sentence),
+		# for each nominalization that created from that verb
+		curr_verb_arguments_for_noms = extract_args_from_verbal(nomlex_entries, verbal_sentence)
+
+		for nom, nom_data in curr_verb_arguments_for_noms.items():
+			nom_patterns, arguments, matching_names = nom_data
+			clean_nom, patterns = nom_patterns
+
+			if nom not in limited_noms_dict.keys():
+				limited_noms_dict[nom] = (clean_nom, patterns)
+				verb_arguments_for_noms[nom] = [(arguments, matching_names)]
+			else:
+				limited_noms_dict[nom] = (clean_nom, limited_noms_dict[nom][1] + patterns)
+				verb_arguments_for_noms[nom] += [(arguments, matching_names)]
 
 	# Use a random order of the nominal sentences (if needed)
 	random_indexes = np.arange(len(nominal_sentences))
@@ -111,77 +124,72 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 			nominal_sentence_str, nominal_sentence_dep = nominal_sentence
 
 			# Getting the arguments for all the nouns in the sentence (= processing the sentence) using the given dependency links
-			noms_arguments = extract_args_from_nominal(nomlex_entries, dependency_tree=nominal_sentence_dep)
+			noms_arguments = extract_args_from_nominal(nomlex_entries, dependency_tree=nominal_sentence_dep, limited_noms_dict=limited_noms_dict)
 		else:  # Input is the sentence string
 			nominal_sentence_str = nominal_sentence
 
 			# Getting the arguments for all the nouns in the sentence (= processing the sentence)
-			noms_arguments = extract_args_from_nominal(nomlex_entries, sent=nominal_sentence_str)
+			noms_arguments = extract_args_from_nominal(nomlex_entries, sent=nominal_sentence_str, limited_noms_dict=limited_noms_dict)
 
 		curr_matching_noms = {}
 
 		# For each nominal sentence, moving each nominalization that was found
 		for nom, possible_nom_arguments in noms_arguments.items():
+			for verb_arguments, matching_names in verb_arguments_for_noms[nom[0]]:
+				verb_arguments = clean_pattern(verb_arguments.copy())
+				current_matching_patterns = []
 
-			# Trying each verbal sentence
-			for verb_arguments_for_noms in verbs_arguments_for_noms:
+				# And all its possible arguments that were extracted
+				for nom_arguments in possible_nom_arguments:
+					cleaned_nom_arguments = clean_pattern(nom_arguments.copy())
 
-				# The relevant nominalization are only those that came from the verb in the verbal sentence
-				if nom[0] in verb_arguments_for_noms.keys():
-					verb_arguments = clean_pattern(verb_arguments_for_noms[nom[0]][0].copy())
-					current_matching_patterns = []
+					# Removing the subject if it is the nominalization
+					if "subject" in cleaned_nom_arguments and "subject" in verb_arguments and cleaned_nom_arguments["subject"] == nom[1]:
+						cleaned_nom_arguments.pop("subject")
+						verb_arguments.pop("subject")
 
-					# And all its possible arguments that were extracted
-					for nom_arguments in possible_nom_arguments:
-						cleaned_nom_arguments = clean_pattern(nom_arguments.copy())
+					# Removing the object if it is the nominalization
+					elif "object" in cleaned_nom_arguments and "object" in verb_arguments and cleaned_nom_arguments["object"] == nom[1]:
+						cleaned_nom_arguments.pop("object")
+						verb_arguments.pop("object")
 
-						# Removing the subject if it is the nominalization
-						if "subject" in cleaned_nom_arguments and "subject" in verb_arguments and cleaned_nom_arguments["subject"] == nom[1]:
-							cleaned_nom_arguments.pop("subject")
-							verb_arguments.pop("subject")
+					if exact_match:
+						#print(str(dict(verb_arguments)) + "\n" + str(dict(cleaned_nom_arguments)))
+						if verb_arguments == cleaned_nom_arguments:
+							found_exact_match = True
 
-						# Removing the object if it is the nominalization
-						elif "object" in cleaned_nom_arguments and "object" in verb_arguments and cleaned_nom_arguments["object"] == nom[1]:
-							cleaned_nom_arguments.pop("object")
-							verb_arguments.pop("object")
+					# Comparing between the current pair of arguments
+					if verb_arguments["verb"] == cleaned_nom_arguments["verb"]:
+						if cleaned_nom_arguments["subcat"] == verb_arguments["subcat"]:
+							# At least a matching of both the verb and the subcat
+							current_matching_patterns.append(replace_names(nom_arguments, matching_names))
 
-						if exact_match:
-							#print(str(dict(verb_arguments)) + "\n" + str(dict(cleaned_nom_arguments)))
-							if verb_arguments == cleaned_nom_arguments:
-								found_exact_match = True
+				if current_matching_patterns != []:
+					if nom in curr_matching_noms.keys():
+						# Adding only the new pattern matches
+						new_matching_patterns = []
+						for found_pattern in current_matching_patterns:
+							exist = False
+							for match_pattern in curr_matching_noms[nom]:
+								if match_pattern == found_pattern:
+									exist = True
 
-						# Comparing between the current pair of arguments
-						if verb_arguments["verb"] == cleaned_nom_arguments["verb"]:
-							if cleaned_nom_arguments["subcat"] == verb_arguments["subcat"]:
-								# At least a matching of both the verb and the subcat
-								current_matching_patterns.append(replace_names(nom_arguments, verb_arguments_for_noms[nom[0]][1]))
+							if not exist:
+								new_matching_patterns.append(found_pattern)
 
-					if current_matching_patterns != []:
-						if nom in curr_matching_noms.keys():
-							# Adding only the new pattern matches
-							new_matching_patterns = []
-							for found_pattern in current_matching_patterns:
-								exist = False
-								for match_pattern in curr_matching_noms[nom]:
-									if match_pattern == found_pattern:
-										exist = True
-
-								if not exist:
-									new_matching_patterns.append(found_pattern)
-
-							curr_matching_noms.update({nom: curr_matching_noms[nom] + new_matching_patterns})
-						else:
-							curr_matching_noms.update({nom: current_matching_patterns})
+						curr_matching_noms.update({nom: curr_matching_noms[nom] + new_matching_patterns})
+					else:
+						curr_matching_noms.update({nom: current_matching_patterns})
 
 		DictsAndTables.should_print = last_should_print_status
 
-		# Printing results and updating counts (for debuging)
-		arranged_print("'" + nominal_sentence_str + "'")
-		seperate_line_print(curr_matching_noms)
-		if len(nominal_sentences) != 1:
-			arranged_print("")
-
 		if curr_matching_noms != {}:
+			# Printing results and updating counts (for debuging)
+			arranged_print("'" + nominal_sentence_str + "'")
+			seperate_line_print(curr_matching_noms)
+			if len(nominal_sentences) != 1:
+				arranged_print("")
+
 			found_match_count += 1
 
 			if DictsAndTables.output_loc != sys.stdout:

@@ -5,11 +5,12 @@ import numpy as np
 
 import DictsAndTables
 from collections import Counter
-from DictsAndTables import get_comlex_table, \
-						   seperate_line_print, arranged_print
+from DictsAndTables import comlex_table, \
+						   seperate_line_print, arranged_print, get_all_of_noms
 from VerbalPatterns import verbal_to_nominal
 from NominalPatterns import extract_args_from_nominal
 from MatchingPatterns import match_patterns
+from ExtractNomlexPatterns import extract_nom_patterns
 
 
 
@@ -69,6 +70,81 @@ def load_txt_file(txt_file_name):
 
 
 
+#################################################### Modules #####################################################
+
+def verb_module(nomlex_entries, inputs):
+	num_of_checked_sentences = 0
+	total_num_of_sentences = len(inputs)
+
+	# Use a random order of the data
+	random_indexes = np.arange(len(inputs))
+	if DictsAndTables.shuffle_data: np.random.shuffle(random_indexes)
+
+	for i in random_indexes:
+		arranged_print(inputs[i])
+		seperate_line_print(verbal_to_nominal(nomlex_entries, inputs[i]))
+		arranged_print("")
+
+		num_of_checked_sentences += 1
+		if not DictsAndTables.should_print_to_screen and total_num_of_sentences != 1:
+			if num_of_checked_sentences == 1:
+				print("Scanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
+			else:
+				print("\033[1AScanning " + str(num_of_checked_sentences) + "/" + str(
+					total_num_of_sentences) + " sentences!")
+
+def nom_moudle(nomlex_entries, inputs):
+	num_of_checked_sentences = 0
+	total_num_of_sentences = len(inputs)
+
+	# Use a random order of the data
+	random_indexes = np.arange(len(inputs))
+	if DictsAndTables.shuffle_data: np.random.shuffle(random_indexes)
+
+	limited_noms_dict = None
+
+	# In case of big amount of data, extract the patterns for each nominalization in the given lexicon before
+	if total_num_of_sentences > 1:
+		limited_noms_dict = extract_nom_patterns(nomlex_entries)
+
+	for i in random_indexes:
+		if type(inputs[i]) == tuple:  # Input is already parsed
+			sent, dep = inputs[i]
+			arranged_print(sent)
+			seperate_line_print(extract_args_from_nominal(nomlex_entries, dependency_tree=dep, limited_noms_dict=limited_noms_dict))
+		else:  # Input is the sentence string
+			arranged_print(inputs[i])
+			seperate_line_print(extract_args_from_nominal(nomlex_entries, sent=inputs[i], limited_noms_dict=limited_noms_dict))
+		arranged_print("")
+
+		num_of_checked_sentences += 1
+		if not DictsAndTables.should_print_to_screen and total_num_of_sentences != 1:
+			if num_of_checked_sentences == 1:
+				print("Scanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
+			else:
+				print("\033[1AScanning " + str(num_of_checked_sentences) + "/" + str(
+					total_num_of_sentences) + " sentences!")
+
+def match_module(nomlex_entries, verbal_inputs, nominal_inputs):
+	# Counting the founded subcats so far
+	DictsAndTables.subcats_counts = Counter()
+
+	if DictsAndTables.output_loc != sys.stdout:
+		subcats = list(set([i[0] for i in comlex_table] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
+		with open(DictsAndTables.output_loc.name, 'r') as read_output_file:
+			output_file_lines = read_output_file.readlines()
+
+		for subcat in subcats:
+			DictsAndTables.subcats_counts[subcat] = 0
+
+		for line in output_file_lines:
+			for subcat in subcats:
+				if "'" + subcat + "'" in line:
+					DictsAndTables.subcats_counts[subcat] += 1
+
+	seperate_line_print(match_patterns(nomlex_entries, verbal_inputs, nominal_inputs))
+
+
 ###################################################### Main ######################################################
 
 def main(args):
@@ -78,7 +154,20 @@ def main(args):
 	:return: None
 	"""
 
+	if args.verb and len(args.input) != 1:
+		print('error: the inputs list should contain exactly one input in case of --verb module')
+		return
+
+	if args.nom and len(args.input) != 1:
+		print('error: the inputs list should contain exactly one input in case of --nom module')
+		return
+
+	if args.match and len(args.input) != 2:
+		print('error: the inputs list should contain exactly two inputs in case of --match module')
+		return
+
 	nomlex_entries = json.load(args.lexicon[0])
+	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
 
 	# Each input can be a string sentence or a name of file
 	# Name of file is preferable
@@ -93,69 +182,17 @@ def main(args):
 
 	DictsAndTables.output_loc = args.output[0]
 
-	num_of_checked_sentences = 0
-	total_num_of_sentences = len(inputs[0])
-
-	# Use a random order of the data (if needed)
-	random_indexes = np.arange(len(inputs[0]))
-	if DictsAndTables.shuffle_data: np.random.shuffle(random_indexes)
-
 	# Verb module
 	if args.verb:
-		for i in random_indexes:
-			arranged_print(inputs[0][i])
-			seperate_line_print(verbal_to_nominal(nomlex_entries, inputs[0][i]))
-			arranged_print("")
-
-			num_of_checked_sentences += 1
-			if not DictsAndTables.should_print_to_screen and total_num_of_sentences != 1:
-				if num_of_checked_sentences == 1:
-					print("Scanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
-				else:
-					print("\033[1AScanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
+		verb_module(nomlex_entries, inputs[0])
 
 	# Nominalization module
 	if args.nom:
-		for i in random_indexes:
-			if type(inputs[0][i]) == tuple: # Input is already parsed
-				sent, dep = inputs[0][i]
-				arranged_print(sent)
-				seperate_line_print(extract_args_from_nominal(nomlex_entries, dependency_tree=dep))
-			else: # Input is the sentence string
-				arranged_print(inputs[0][i])
-				seperate_line_print(extract_args_from_nominal(nomlex_entries, sent=inputs[0][i]))
-			arranged_print("")
-
-			num_of_checked_sentences += 1
-			if not DictsAndTables.should_print_to_screen and total_num_of_sentences!= 1:
-				if num_of_checked_sentences == 1:
-					print("Scanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
-				else:
-					print("\033[1AScanning " + str(num_of_checked_sentences) + "/" + str(total_num_of_sentences) + " sentences!")
+		nom_moudle(nomlex_entries, inputs[0])
 
 	# Matching module
 	if args.match:
-		if len(inputs) < 2:
-			print('error: input should contain two inputs in case of --match module')
-			return
-
-		# Counting the founded subcats so far
-		DictsAndTables.subcats_counts = Counter()
-
-		if DictsAndTables.output_loc != sys.stdout:
-			subcats = list(set([i[0] for i in get_comlex_table()] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
-			with open(DictsAndTables.output_loc.name, 'r') as read_output_file:
-				output_file_lines = read_output_file.readlines()
-
-			for subcat in subcats:
-				DictsAndTables.subcats_counts[subcat] = 0
-
-			for line in output_file_lines:
-				for subcat in subcats:
-					if "'" + subcat + "'" in line:
-						DictsAndTables.subcats_counts[subcat] += 1
-
-		seperate_line_print(match_patterns(nomlex_entries, inputs[0], inputs[1]))
+		match_module(nomlex_entries, inputs[0], inputs[1])
 
 	DictsAndTables.output_loc.close()
 

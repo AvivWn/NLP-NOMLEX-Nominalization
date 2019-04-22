@@ -17,6 +17,8 @@ shuffle_data = True					# If true, then the input data will be shuffled randomly
 
 output_loc = sys.stdout
 subcats_counts = {}
+all_noms = {}
+all_noms_backwards = {}
 
 
 
@@ -159,7 +161,10 @@ def update_comlex_table(structure, tag, replacement):
 		if type(structure[i]) == str:
 			if tag == structure[i]:
 				new_sub_structure = copy.deepcopy(replacement)
-				replace_empty_list(new_sub_structure, structure[i + 1:])
+
+				if structure[i + 1:] != []:
+					replace_empty_list(new_sub_structure, structure[i + 1:])
+
 				new_structure.append(new_sub_structure)
 
 				return new_structure, True
@@ -266,9 +271,13 @@ def get_comlex_table():
 		("NOM-P-POSSING",				[["IN", ["NP__s '", ["VBG"]]]],					["pval-poss-ing"]),
 		("NOM-POSSING",					[[["VBG"]]],									["poss-ing"]),
 		("NOM-POSSING",					[[["PRP$"], ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[[[["PRP$"], ["VBG"]]]],							["poss-ing"]),
 		("NOM-POSSING",					[["PRP$", ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[[["PRP$", ["VBG"]]]],							["poss-ing"]),
 		("NOM-POSSING",					[["NP__'s", ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[[["NP__'s", ["VBG"]]]],							["poss-ing"]),
 		("NOM-POSSING",					[["NP__s '", ["VBG"]]],							["poss-ing"]),
+		("NOM-POSSING",					[[["NP__s '", ["VBG"]]]],							["poss-ing"]),
 
 		# ING- gerunds
 		("NOM-NP-P-NP-ING",				["NP", ["IN", ["NP", ["VBG"]]]],				["object", "pval-comp-ing"]),
@@ -296,10 +305,10 @@ def get_comlex_table():
 
 		# SBAR
 		("NOM-PP-THAT-S",				[["IN", "NP"], ["IN_that", "S"]],				[[None, "ind-object"], "sbar"]),
-		("NOM-NP-S",					["NP", ["S"]],									["object", "sbar"]),
+		("NOM-NP-S",					["NP", "S"],									["object", "sbar"]),				# Should be ["NP", ["S"]]- updated programmatically
 		("NOM-NP-S",					["NP", ["IN_that", "S"]],						["object", "sbar"]),
 		("NOM-THAT-S",					[["IN_that", "S"]],								["sbar"]),
-		("NOM-S",						[["S"]],										["sbar"]),
+		("NOM-S",						["S"],											["sbar"]),							# Should be [["S"]]- updated programmatically
 		("NOM-S",						[["IN_that", "S"]],								["sbar"]),
 
 		# Double pvals
@@ -351,11 +360,16 @@ def get_comlex_table():
 		for subcat, structure, suitable_pattern_entities in comlex_table:
 			new_structures = []
 			updated_complex_table.append((subcat, structure, suitable_pattern_entities))
+			new_structures.append(update_comlex_table(structure, "S", ["S"]))
 
 			# Creating new structures using the special preposition dictionary
 			for prep, replacements in special_preps_dict.items():
 				for replacement in replacements[2]:
-					new_structures.append(update_comlex_table(structure, "IN", copy.deepcopy(replacement)))
+					new_structure, was_replaced = update_comlex_table(structure, "IN", copy.deepcopy(replacement))
+
+					if was_replaced:
+						new_structures.append((new_structure, was_replaced))
+						new_structures.append(update_comlex_table(new_structure, "S", ["S"]))
 
 			for new_structure, was_replaced in new_structures:
 				if was_replaced:
@@ -524,16 +538,27 @@ def seperate_line_print(input_to_print, indent_level=0):
 					seperate_line_print(x, indent_level + 1)
 
 
+def get_clean_nom(nom):
+	return "".join([i for i in nom if not (i.isdigit() or i == "#")])
+
 def get_all_of_noms(nomlex_entries):
 	"""
 	Returns a dictionary of all the nominalizations in the given nomlex entries
 	:param nomlex_entries: a dictionary of nominalizations
-	:return: dictionary of nominalizations (nominalizations: nominalizations_without_numbers)
+	:return: dictionary of nominalizations ({nom: clean_nom}),
+			 and a "backwards" dictionary of nominalizations ({clean_nom: [nom]})
 	"""
 
 	all_noms = {}
+	all_noms_backwards = {}
 
 	for nom in nomlex_entries.keys():
-		all_noms.update({nom: "".join([i for i in nom if not (i.isdigit() or i == "#")])})
+		clean_nom = get_clean_nom(nom)
+		all_noms.update({nom: clean_nom})
+		
+		if clean_nom in all_noms_backwards.keys():
+			all_noms_backwards.update({clean_nom: all_noms_backwards[clean_nom] + [nom]})
+		else:
+			all_noms_backwards.update({clean_nom: [nom]})
 
-	return all_noms
+	return all_noms, all_noms_backwards

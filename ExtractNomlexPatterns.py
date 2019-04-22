@@ -2,7 +2,8 @@ import itertools
 from collections import defaultdict
 
 import DictsAndTables
-from DictsAndTables import subentries_table, special_subcats_dict
+from DictsAndTables import subentries_table, special_subcats_dict, \
+						   get_clean_nom
 
 
 
@@ -348,15 +349,13 @@ def extract_nom_patterns(nomlex_entries, subcat=None):
 						   This argument can be the whole NOMLEX lexicon, or only few entries from their
 	:param subcat: a sub-categorization type, optional argument.
 		   		   If subcat is None, than the extraction won't be specific for a given subcat.
-	:return: the nominalization patterns that can be found in the given entries
+	:return: the nominalization patterns that can be found in the given entries (dictionary {nom: (clean_nom, [pattern])z})
 	"""
 
-	patterns_list = []
 	patterns_dict = {}
 
 	for nominalization, entry in nomlex_entries.items():
 		patterns = get_nom_patterns(entry, subcat=subcat)
-		patterns_dict.update({nominalization: patterns})
-		patterns_list += patterns
+		patterns_dict.update({nominalization: (get_clean_nom(nominalization), patterns)})
 
 	return patterns_dict

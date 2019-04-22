@@ -5,6 +5,8 @@ sys.path.append(os.path.abspath(os.path.join('..')))
 import MatchingPatterns
 import Main
 import re
+import DictsAndTables
+from DictsAndTables import get_all_of_noms
 
 def main(arguments):
 	json_file_name, test_file_name = arguments
@@ -20,6 +22,8 @@ def main(arguments):
 			line = line.replace("\n", "").replace("\"", "")
 			splitted = re.split(r'\t+', line.rstrip('\t'))
 			data.append((splitted[0], splitted[1], splitted[2]))
+
+	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
 
 	num_of_exact_matches = 0
 	total = len(data)
