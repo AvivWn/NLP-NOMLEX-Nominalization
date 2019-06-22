@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join('..')))
 
 import MatchingPatterns
-import Main
+import NomlexExtractor
 import re
 import DictsAndTables
 from DictsAndTables import get_all_of_noms
@@ -11,7 +11,7 @@ from DictsAndTables import get_all_of_noms
 def main(arguments):
 	json_file_name, test_file_name = arguments
 
-	nomlex_entries = Main.load_json_data(json_file_name)
+	nomlex_entries = NomlexExtractor.load_json_data(json_file_name)
 	with open(test_file_name, "r") as test_file:
 		lines = test_file.readlines()
 

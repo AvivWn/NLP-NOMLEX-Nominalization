@@ -11,14 +11,18 @@ det = "the"
 should_print = True					# If false, then the program will print nothing (both to screen and to the output file)
 should_print_to_screen = False		# If true, then the program will print to screen some debugging results
 should_clean = True					# If true, then we do want a "clean" and updated results
-should_replace_preps = False		# If true, then the words will be replaced in the verbal process.
+should_replace_preps = False		# If true, then the preposition phrases will be replaced in the verbal process.
 									# Oterwise, the comlex table will be updated programmatically.
 shuffle_data = True					# If true, then the input data will be shuffled randomly
+should_print_as_dataset = False		# If true, then the resulted output style will be like a dataset
+									# Otherwise, the resulted output will be more readable
 
 output_loc = sys.stdout
 subcats_counts = {}
 all_noms = {}
 all_noms_backwards = {}
+
+redundant_subcast = ["NOM-INTRANS", "NOM-INTRANS-RECIP"]
 
 
 
@@ -437,6 +441,14 @@ comlex_table = get_comlex_table()
 pronoun_dict = get_pronoun_dict()
 special_preps_dict = get_special_preps_dict()
 
+# Get all the possible subcats
+temp_comlex_subcats = list(set([i[0] for i in comlex_table])) + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]
+comlex_subcats = []
+
+# Clean the comlex subcats from redundant ones
+for curr_subcat in temp_comlex_subcats:
+	if curr_subcat not in redundant_subcast:
+		comlex_subcats.append(curr_subcat)
 
 
 ################################################### Utilities ####################################################
@@ -537,6 +549,13 @@ def seperate_line_print(input_to_print, indent_level=0):
 					arranged_print(str(indentation_str) + str(tag) + ": ")
 					seperate_line_print(x, indent_level + 1)
 
+def print_as_dataset(sentence, noms_arguments_list):
+	if should_print:
+		for nom, arguments_list in noms_arguments_list.items():
+			nom_str = nom[0]
+			for arguments in arguments_list:
+				for argument, argument_value in arguments.items():
+					arranged_print("\t".join([sentence, nom_str, argument, argument_value]))
 
 def get_clean_nom(nom):
 	return "".join([i for i in nom if not (i.isdigit() or i == "#")])

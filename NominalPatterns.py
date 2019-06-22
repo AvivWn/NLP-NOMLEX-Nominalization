@@ -7,7 +7,7 @@ inflect_engine = inflect.engine()
 nlp = spacy.load('en_core_web_sm')
 
 import DictsAndTables
-from DictsAndTables import comlex_table, subentries_table, pronoun_dict, special_preps_dict, \
+from DictsAndTables import subentries_table, pronoun_dict, special_preps_dict, comlex_subcats,\
 						   get_adv, replace_empty_list
 from ExtractNomlexPatterns import get_nom_patterns
 
@@ -231,7 +231,6 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 
 	total_arguments = []
 	subentries_types = [i[0] for i in subentries_table]
-	comlex_subcats = list(set([i[0] for i in comlex_table])) + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]
 
 	# Moving over all the possible patterns for the given nominalization
 	# Trying to extract all the possible arguments for that nominalization

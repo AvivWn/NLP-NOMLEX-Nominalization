@@ -9,7 +9,7 @@ inflect_engine = inflect.engine()
 predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 import DictsAndTables
-from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det, \
+from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det, redundant_subcast,\
 						   seperate_line_print, get_adj
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import get_dependency, clean_argument
@@ -292,36 +292,39 @@ def detect_comlex_subcat(sent):
 		for subcat_info in comlex_table:
 			subcat, tags_phrases, suitable_arguments = subcat_info
 
-			# Even if the suitable subcat was found, a general case may also work
-			_, founded_arguments = get_sub_phrases(vp_phrase_tree["VP"][1:], copy.deepcopy(tags_phrases), copy.deepcopy(suitable_arguments))
+			if subcat not in redundant_subcast:
+				# Even if the suitable subcat was found, a general case may also work
+				_, founded_arguments = get_sub_phrases(vp_phrase_tree["VP"][1:], copy.deepcopy(tags_phrases), copy.deepcopy(suitable_arguments))
 
-			# Cleaning arguments
-			for arg_str, arg_value in founded_arguments.items():
-				arg_value, first_index, last_index = arg_value
-				founded_arguments[arg_str] = (clean_argument(arg_value), first_index, last_index)
+				# Cleaning arguments
+				for arg_str, arg_value in founded_arguments.items():
+					arg_value, first_index, last_index = arg_value
+					founded_arguments[arg_str] = (clean_argument(arg_value), first_index, last_index)
 
-			# Checking if a suitable subcat was found
-			if list(founded_arguments.keys()) != []:
-				default_arguments["subcat"] = subcat
+				# Checking if a suitable subcat was found
+				if list(founded_arguments.keys()) != []:
+					default_arguments["subcat"] = subcat
 
-				# Adding the updated arguments to the possible arguments list
-				curr_arguments = default_arguments.copy()
-				curr_arguments.update(founded_arguments)
+					# Adding the updated arguments to the possible arguments list
+					curr_arguments = default_arguments.copy()
+					curr_arguments.update(founded_arguments)
 
-				if "wh" in curr_arguments.keys():
-					if not curr_arguments["wh"][0].lower().startswith("how to"):
+					if "wh" in curr_arguments.keys():
+						if not curr_arguments["wh"][0].lower().startswith("how to"):
+							possible_arguments.append(curr_arguments)
+					else:
 						possible_arguments.append(curr_arguments)
-				else:
-					possible_arguments.append(curr_arguments)
 
-		# NOM-INTRANS- always suitable subcat
-		default_arguments["subcat"] = "NOM-INTRANS"
-		possible_arguments.append(default_arguments.copy())
-
-		# NOM-INTRANS-RECIP- always suitable subcat in case of plural subject NP
-		if inflect_engine.singular_noun(get_phrase(np_phrase_tree)[0]):
-			default_arguments["subcat"] = "NOM-INTRANS-RECIP"
+		if "NOM-INTRANS" not in redundant_subcast:
+			# NOM-INTRANS- always suitable subcat
+			default_arguments["subcat"] = "NOM-INTRANS"
 			possible_arguments.append(default_arguments.copy())
+
+		if "NOM-INTRANS-RECIP" not in redundant_subcast:
+			# NOM-INTRANS-RECIP- always suitable subcat in case of plural subject NP
+			if inflect_engine.singular_noun(get_phrase(np_phrase_tree)[0]):
+				default_arguments["subcat"] = "NOM-INTRANS-RECIP"
+				possible_arguments.append(default_arguments.copy())
 
 	return possible_arguments
 

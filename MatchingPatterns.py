@@ -4,7 +4,7 @@ import numpy as np
 import DictsAndTables
 from collections import defaultdict
 
-from DictsAndTables import subentries_table, comlex_table, special_preps_dict, \
+from DictsAndTables import subentries_table, comlex_subcats, special_preps_dict, print_as_dataset,\
 						   seperate_line_print, arranged_print
 from VerbalPatterns import extract_args_from_verbal
 from NominalPatterns import extract_args_from_nominal
@@ -82,8 +82,6 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 
 	last_should_print_status = DictsAndTables.should_print
 	DictsAndTables.should_print = False
-
-	subcats = list(set([i[0] for i in comlex_table] + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]))
 
 	limited_noms_dict = {}
 	verb_arguments_for_noms = {}
@@ -184,17 +182,22 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 		DictsAndTables.should_print = last_should_print_status
 
 		if curr_matching_noms != {}:
-			# Printing results and updating counts (for debuging)
-			arranged_print("'" + nominal_sentence_str + "'")
-			seperate_line_print(curr_matching_noms)
-			if len(nominal_sentences) != 1:
-				arranged_print("")
+			if DictsAndTables.should_print_as_dataset:
+				# Printing the results as a dataset (one data in each line)
+				print_as_dataset(nominal_sentence, curr_matching_noms)
+			else:
+				# Printing results
+				arranged_print("'" + nominal_sentence_str + "'")
+				seperate_line_print(curr_matching_noms)
+				if len(nominal_sentences) != 1:
+					arranged_print("")
 
 			found_match_count += 1
 
+			# Updating counts (for debuging)
 			if DictsAndTables.output_loc != sys.stdout:
 				# Updating the suitable subcat
-				for subcat in subcats:
+				for subcat in comlex_subcats:
 					if "'" + subcat + "'" in str(curr_matching_noms):
 						DictsAndTables.subcats_counts[subcat] += 1
 		else:

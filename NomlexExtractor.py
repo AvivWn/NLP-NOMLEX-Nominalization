@@ -2,16 +2,7 @@ import json
 import argparse
 import os
 import numpy as np
-
-import DictsAndTables
-from collections import Counter
-from DictsAndTables import comlex_table, \
-						   seperate_line_print, arranged_print, get_all_of_noms
-from VerbalPatterns import verbal_to_nominal
-from NominalPatterns import extract_args_from_nominal
-from MatchingPatterns import match_patterns
-from ExtractNomlexPatterns import extract_nom_patterns
-
+import pickle
 
 
 ############################################### Loading and Saving ###############################################
@@ -73,6 +64,8 @@ def load_txt_file(txt_file_name):
 #################################################### Modules #####################################################
 
 def verb_module(nomlex_entries, inputs):
+	from VerbalPatterns import verbal_to_nominal
+
 	num_of_checked_sentences = 0
 	total_num_of_sentences = len(inputs)
 
@@ -94,6 +87,9 @@ def verb_module(nomlex_entries, inputs):
 					total_num_of_sentences) + " sentences!")
 
 def nom_moudle(nomlex_entries, inputs):
+	from NominalPatterns import extract_args_from_nominal
+	from ExtractNomlexPatterns import extract_nom_patterns
+
 	num_of_checked_sentences = 0
 	total_num_of_sentences = len(inputs)
 
@@ -110,12 +106,17 @@ def nom_moudle(nomlex_entries, inputs):
 	for i in random_indexes:
 		if type(inputs[i]) == tuple:  # Input is already parsed
 			sent, dep = inputs[i]
-			arranged_print(sent)
-			seperate_line_print(extract_args_from_nominal(nomlex_entries, dependency_tree=dep, limited_noms_dict=limited_noms_dict))
+			noms_arguments_list = extract_args_from_nominal(nomlex_entries, dependency_tree=dep, limited_noms_dict=limited_noms_dict)
 		else:  # Input is the sentence string
-			arranged_print(inputs[i])
-			seperate_line_print(extract_args_from_nominal(nomlex_entries, sent=inputs[i], limited_noms_dict=limited_noms_dict))
-		arranged_print("")
+			sent = inputs[i]
+			noms_arguments_list = extract_args_from_nominal(nomlex_entries, sent=inputs[i], limited_noms_dict=limited_noms_dict)
+
+		if DictsAndTables.should_print_as_dataset:
+			print_as_dataset(sent, noms_arguments_list)
+		else:
+			arranged_print(sent)
+			seperate_line_print(noms_arguments_list)
+			arranged_print("")
 
 		num_of_checked_sentences += 1
 		if not DictsAndTables.should_print_to_screen and total_num_of_sentences != 1:
@@ -126,6 +127,8 @@ def nom_moudle(nomlex_entries, inputs):
 					total_num_of_sentences) + " sentences!")
 
 def match_module(nomlex_entries, verbal_inputs, nominal_inputs):
+	from MatchingPatterns import match_patterns
+
 	# Counting the founded subcats so far
 	DictsAndTables.subcats_counts = Counter()
 
@@ -142,7 +145,7 @@ def match_module(nomlex_entries, verbal_inputs, nominal_inputs):
 				if "'" + subcat + "'" in line:
 					DictsAndTables.subcats_counts[subcat] += 1
 
-	seperate_line_print(match_patterns(nomlex_entries, verbal_inputs, nominal_inputs))
+	match_patterns(nomlex_entries, verbal_inputs, nominal_inputs)
 
 
 ###################################################### Main ######################################################
@@ -174,10 +177,18 @@ def main(args):
 	inputs = []
 	for input_str in args.input:
 		if os.path.isfile(input_str):
-			input_data = load_txt_file(input_str)
+			# Save the list in binary file for next time
+			if not os.path.exists(input_str + "_as_list"):
+				input_data = load_txt_file(input_str)
+
+				with open(input_str + "_as_list", "wb") as patterns_file:
+					pickle.dump(input_data, patterns_file)
+			else:
+				# Used the last saved file
+				with open(input_str + "_as_list", "rb") as patterns_file:
+					input_data = pickle.load(patterns_file)
 		else:
 			input_data = [input_str]
-
 		inputs.append(input_data)
 
 	DictsAndTables.output_loc = args.output[0]
@@ -203,12 +214,12 @@ if __name__ == '__main__':
 									 description='This program has tree main modules:\n'
 												 '1. Extracting arguments from sentences with a main verb, and translating the sentence to nominal form\n'
 												 '\tExample- "[A0 IBM] appointed [A1 Alice Smith]" --> arguments of "appoint"\n'
-												 '\t\tNote: brackets and arguments names (limited to one word) are optional\n'
+												 '\t\tNote: brackets and arguments names (limited to one word without spaces) are optional\n'
 												 '2. Extracting arguments from sentences with nominalizations\n'
 												 '\tExample- "Alice Smith\'s appointment by IBM" --> arguments of "appointment"\n'
 												 '3. Finding matches between verbal sentences and nominal sentences\n'
 												 '\tExample- "[A0 IBM] appointed [A1 Alice Smith]", "Alice Smith\'s appointment by IBM" --> match\n'
-												 '\t\tNote: The order in important (verbal_sentences, verbal_sentences)\n\n'
+												 '\t\tNote: The order in important (verbal_sentences, nominals_sentences)\n\n'
 												 'Currently the nominalizations are taken from the nomlex lexicon.')
 
 	parser.add_argument('-lexicon', nargs=1, type=argparse.FileType('r'), required=True, help='name of a NOMLEX lexicon file')
@@ -225,5 +236,10 @@ if __name__ == '__main__':
 	parser.add_argument('-output', nargs=1, type=argparse.FileType('a'), default=[sys.stdout], help='the program results output in that file')
 
 	args = parser.parse_args(sys.argv[1:])
+
+	import DictsAndTables
+	from collections import Counter
+	from DictsAndTables import comlex_table, \
+							   seperate_line_print, arranged_print, print_as_dataset, get_all_of_noms
 
 	main(args)
