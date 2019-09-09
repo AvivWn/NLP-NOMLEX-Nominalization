@@ -349,7 +349,7 @@ def extract_nom_patterns(nomlex_entries, subcat=None):
 						   This argument can be the whole NOMLEX lexicon, or only few entries from their
 	:param subcat: a sub-categorization type, optional argument.
 		   		   If subcat is None, than the extraction won't be specific for a given subcat.
-	:return: the nominalization patterns that can be found in the given entries (dictionary {nom: (clean_nom, [pattern])z})
+	:return: the nominalization patterns that can be found in the given entries (dictionary {nom: (clean_nom, [pattern])})
 	"""
 
 	patterns_dict = {}
@@ -359,3 +359,31 @@ def extract_nom_patterns(nomlex_entries, subcat=None):
 		patterns_dict.update({nominalization: (get_clean_nom(nominalization), patterns)})
 
 	return patterns_dict
+
+
+
+######################################### Aggregating NOMLEX Patterns ###########################################
+
+def aggregate_patterns(patterns_dict):
+	"""
+	Aggregates all the patterns in the given dictionary into a single list of patterns
+	:param patterns_dict: a dictionary of patterns, a list of pattern for each nominalization
+	:return: a list of all the aggreated patterns, each pattern appear twice.
+			 The patterns don't include information about "verb" or "subcat"
+	"""
+
+	unique_patterns = []
+
+	possible_subcats = [row[0] for row in DictsAndTables.comlex_table]
+
+	for _, possible_arguments in patterns_dict.values():
+		for args_dict in possible_arguments:
+			if args_dict["subcat"] in possible_subcats:
+				del args_dict["verb"]
+				del args_dict["subcat"]
+
+				if args_dict != {}:
+					if args_dict not in unique_patterns:
+						unique_patterns.append(args_dict)
+
+	return unique_patterns
