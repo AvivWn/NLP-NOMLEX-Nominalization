@@ -57,7 +57,7 @@ def fix_ud_links(ud_links, option):
 		# "prep_" case
 		elif type(ud_links[i]) == str and ud_links[i].endswith("_"):
 			if option.lower() in special_preps_dict.keys():
-				# Replacing prep_ with special links f"NOM-TYPE"or a specific preposition (with more than one word)
+				# Replacing prep_ with special links for a specific preposition (with more than one word)
 				if i + 1 < len(ud_links) and type(ud_links[i + 1]) == list:
 					new_ud_links += copy.deepcopy(special_preps_dict[option.lower()][1][1])
 				else:
@@ -87,12 +87,27 @@ def pattern_to_UD(pattern):
 
 	pattern_UD_list = [defaultdict(list)]
 
+	tmp_pattern = pattern.copy()
+
+	# Fixing special arguments for nominalization
+	if "pval" in tmp_pattern.keys() and tmp_pattern["pval"] == "pval-nom":
+		tmp_pattern["pval"] = tmp_pattern["pval-nom"]
+		tmp_pattern.remove("pval-nom")
+
+	if "ind-object" in tmp_pattern.keys() and tmp_pattern["ind-object"] == "pval1-nom":
+		tmp_pattern["ind-object"] = tmp_pattern["pval1-nom"]
+		tmp_pattern.remove("pval1-nom")
+
+	if "pval2" in tmp_pattern.keys() and tmp_pattern["pval2"] == "pval2-nom":
+		tmp_pattern["pval2"] = tmp_pattern["pval2-nom"]
+		tmp_pattern.remove("pval2-nom")
+
 	if DictsAndTables.should_print and DictsAndTables.should_print_to_screen:
-		print(dict(pattern))
+		print(dict(tmp_pattern))
 
 	subentries_types = [i[0] for i in subentries_table]
 
-	for subentry, option in pattern.items():
+	for subentry, option in tmp_pattern.items():
 		if subentry in subentries_types and option != "NOM":
 			ud_links_list = subentries_table[subentries_types.index(subentry)][1]
 
@@ -118,9 +133,10 @@ def pattern_to_UD(pattern):
 					ud_links = [ud_links]
 
 				for x in ud_links:
-					# Making some links more specific (links that ends with "_")
 					for pattern_UD in last_pattern_UD_list:
+						# Making some links more specific (for example links that ends with "_")
 						pattern_UD[subentry] = fix_ud_links(x, option)
+
 						pattern_UD_list.append(pattern_UD.copy())
 
 	return pattern_UD_list
@@ -166,7 +182,13 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 
 		# The argument is the appropriate sentence to the subtree rooted at the current index in the tree
 		arg = dep_tree[dep_curr_index][9]
-		return [(dep_tree[dep_curr_index][0], arg)]
+
+		first_index = dep_tree[dep_curr_index][0] - 1
+
+		while dep_tree[first_index][1] != arg.split(" ")[0]:
+			first_index -= 1
+
+		return [(first_index, arg)]
 
 	if dep_curr_index == -1:
 		return []
@@ -230,67 +252,126 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 		patterns = get_nom_patterns(nom_entry)
 
 	total_arguments = []
-	subentries_types = [i[0] for i in subentries_table]
+	remembered_arguments_dict = {}
 
 	# Moving over all the possible patterns for the given nominalization
 	# Trying to extract all the possible arguments for that nominalization
 	for pattern in patterns:
+		# a pattern can already iclude the ud_pattern
+		if type(pattern) == tuple:
+			tmp_pattern = pattern[0].copy()
+		else:
+			tmp_pattern = pattern.copy()
 
 		# Ignoring subcats that don't appear in our comlex table
-		if pattern["subcat"] in comlex_subcats:
+		if "subcat" not in tmp_pattern.keys() or tmp_pattern["subcat"] in comlex_subcats:
 
-			# Fixing special arguments for nominalization
-			if "pval" in pattern.keys() and pattern["pval"] == "pval-nom":
-				pattern["pval"] = pattern["pval-nom"]
-				pattern.remove("pval-nom")
-
-			if "ind-object" in pattern.keys() and pattern["ind-object"] == "pval1-nom":
-				pattern["ind-object"] = pattern["pval1-nom"]
-				pattern.remove("pval1-nom")
-
-			if "pval2" in pattern.keys() and pattern["pval2"] == "pval2-nom":
-				pattern["pval2"] = pattern["pval2-nom"]
-				pattern.remove("pval2-nom")
-
-			# Translating the pattern into dependency links sequences (can be more than one possibel sequence)
-			pattern_UD_list = pattern_to_UD(pattern)
+			# a pattern can already iclude the ud_pattern
+			if type(pattern) == tuple:
+				pattern_UD_list = [pattern[1]]
+			else:
+				# Translating the pattern into dependency links sequences (can be more than one possibel sequence)
+				pattern_UD_list = pattern_to_UD(tmp_pattern)
 
 			# Initiating the current arguments dictionary
 			curr_arguments = defaultdict(tuple)
-			curr_arguments["verb"] = (-1, -1, nom_entry["VERB"])
-			curr_arguments["subcat"] = (-1, -1, pattern["subcat"])
+			if "verb" in tmp_pattern.keys():
+				curr_arguments["verb"] = (-1, -1, nom_entry["VERB"])
+
+			if "subcat" in tmp_pattern.keys():
+				curr_arguments["subcat"] = (-1, -1, tmp_pattern["subcat"])
 
 			# Is the nominalization itself has a role in the sentence, rather than replacing the verb (= action)
 			# Here we ignore cases that NOM-TYPE is SUBJECT + OBJECT or SUBJECT\OBJECT + VERB-NOM
-			if list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"]:
+			if list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"] and tmp_pattern["subject"] == "NOM":
 				curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
-			elif list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"]:
+			elif list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"] and tmp_pattern["object"] == "NOM":
 				curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
 
-			curr_arguments_list = [curr_arguments]
-			new_arguements_list = curr_arguments_list.copy()
+			# Moving over each dependency links sequence that was found
+			for pattern_UD in pattern_UD_list:
+				full_arguments = True
 
-			# Looking for each argument (the order is important, because it should be subject > indobject > object and not otherwise)
-			for subentry in subentries_types:
-				# Moving over each dependency links sequence that was found
-				for pattern_UD in pattern_UD_list:
-					if subentry in pattern_UD.keys():
-						dep_links = pattern_UD[subentry]
-						possible_arguments = extract_argument(dependency_tree, dep_links, nom_index)
+				# Initiating the basic arguments lists (for pattern sequence)
+				curr_arguments_list = [curr_arguments]
+
+				# Looking for each argument
+				for subentry in list(pattern_UD.keys()):
+					dep_links = pattern_UD[subentry]
+
+					# That dependency links looks familiar
+					remembered_arguments = remembered_arguments_dict.get(str(dep_links), -1)
+					if remembered_arguments == []:
+						full_arguments = False
+						break
+
+				if full_arguments:
+					full_arguments = False
+
+					# The order of arguments\subentries is important, because it should be subject > indobject > object and not otherwise
+					subentries_types = list(tmp_pattern.keys())
+					for x in ["object", "indobject", "subject"]:
+						if x in subentries_types:
+							subentries_types.remove(x)
+							subentries_types = [x] + subentries_types
+
+					if "subcat" in subentries_types:
+						subentries_types.remove("subcat")
+
+					if "verb" in subentries_types:
+						subentries_types.remove("verb")
+
+					# Looking for each argument
+					for subentry in subentries_types:
+						if subentry in pattern_UD.keys():
+							dep_links = pattern_UD[subentry]
+						elif tmp_pattern[subentry] == "NOM":
+							dep_links = "NOM"
+						else:
+							continue
+
+						# That dependency links looks familiar
+						remembered_arguments = remembered_arguments_dict.get(str(dep_links), -1)
+						if remembered_arguments == -1:
+							# If not, then the arguments should be extracted (for the first time, from the sentence)
+							if tmp_pattern[subentry] == "NOM":
+								possible_arguments = [(nom_index, dependency_tree[nom_index][1])]
+							else:
+								possible_arguments = extract_argument(dependency_tree, dep_links, nom_index)
+
+							updated_possible_arguments = []
+
+							# Fixing and cleaning specific arguments, like translating adjective to adverb if needed
+							for index, arg in possible_arguments:
+								if subentry == "adverb" and tmp_pattern[subentry] == "ADJP" and DictsAndTables.should_clean:
+									updated_possible_arguments.append((index, get_adv(arg)))
+								elif subentry == "adjective":
+									updated_possible_arguments.append((index, tmp_pattern[subentry] + " " + arg))
+								elif subentry == "subject":
+									# The subcat "NOT-INTRANS-RECIP" is legal only when the extracted subject is plural
+									if "subcat" not in tmp_pattern.keys() or tmp_pattern["subcat"] != "NOM-INTRANS-RECIP" or \
+										inflect_engine.singular_noun(arg):
+										updated_possible_arguments.append((index, clean_argument(arg)))
+								else:
+									updated_possible_arguments.append((index, clean_argument(arg)))
+
+							possible_arguments = updated_possible_arguments
+
+							# Saving the extracted arguments in the dictionary
+							remembered_arguments_dict[str(dep_links)] = possible_arguments
+						else:
+							possible_arguments = remembered_arguments
 
 						# Checking all the possible arguments that were extracted for the current subentry
 						if possible_arguments != []:
+							full_arguments = True
+							new_arguments_list = []
+
 							for arguments in curr_arguments_list:
 								for index, arg in possible_arguments:
 									temp_arguments = arguments.copy()
 
-									# Fixing and cleaning specific arguments, like translating adjective to adverb if needed
-									if subentry == "adverb" and pattern[subentry] == "ADJP" and DictsAndTables.should_clean:
-										arg = get_adv(arg)
-									elif subentry == "adjective":
-										arg = pattern[subentry] + " " + arg
-									else:
-										arg = clean_argument(arg)
+									is_good_arg = True
 
 									# Avoiding from extracting multiple arguments from the same part of the sentence
 									# More over, this code deals with the importance of the order of subject > ind-object > object (before the nominalization)
@@ -298,28 +379,35 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 									relevant_indexes = [i for _, i, _ in temp_arguments.values()]
 									if index not in curr_indexes:
 										if subentry in ["subject", "ind-object", "object"]:
-											if pattern[subentry].startswith("PP-"):
+											if tmp_pattern[subentry].startswith("PP-"):
 												temp_arguments[subentry] = (index, -1, arg)
-											elif index > max(relevant_indexes):
+											elif relevant_indexes == [] or index > max(relevant_indexes):
 												temp_arguments[subentry] = (index, index, arg)
+											else:
+												is_good_arg = False
 										else:
 											temp_arguments[subentry] = (index, index, arg)
 
-										new_arguements_list.append(temp_arguments)
+										if is_good_arg:
+											new_arguments_list.append(temp_arguments)
 
-							curr_arguments_list = new_arguements_list.copy()
+							curr_arguments_list = new_arguments_list
+						else:
+							full_arguments = False
+							break # Ignoring not full lists of arguments
 
-			# Add only the full lists of arguments that were found
-			for new_arguments in new_arguements_list.copy():
-				if set(pattern.keys()) == set(new_arguments.keys()):
-					# The subcat "NOT-INTRANS-RECIP" is legal only when the extracted subject is plural
-					if pattern["subcat"] != "NOM-INTRANS-RECIP" or \
-						(new_arguments["subject"] != () and inflect_engine.singular_noun(new_arguments["subject"][2])):
-						total_arguments.append(new_arguments)
+					# Add the current arguments lists only if all the relevant arguments were found
+					if full_arguments:
+						# Add only the full lists of arguments that were found
+						for arguments in curr_arguments_list:
+							if set(tmp_pattern.keys()) == set(arguments.keys()):
+								total_arguments.append(arguments)
 
 	return total_arguments
 
-def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, limited_noms_dict=None):
+def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None,
+							  limited_patterns_func=None, limited_indexes=None,
+							  keep_arguments_locations=False, get_all_possibilities=False):
 	"""
 	Extracts the arguments of the nominalizations in the given sentence
 	The given sentence can be presented using a string, or a dependency tree
@@ -327,9 +415,12 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, lim
 	:param nomlex_entries: NOMLEX entries (a dictionary {nom: ...})
 	:param sent: a sentence (string), optional
 	:param dependency_tree: a dependency tree (list), optional
-	:param limited_noms_dict: a limited dictionary of nominalization ({nom: patterns}), option. Ingoring other nominalization with other patterns
+	:param limited_patterns_func: a limited function that should return a limited list of patterns according to the dependency_tree and the nom_index
+	:param limited_indexes: a limited list indexes in which to search for nominalizations
+	:param keep_arguments_locations: define whether to return also the locations of the arguments or not
+	:param get_all_possibilities: define whether to return all the arguments possibilities or to choose the best ones
 	:return: a dictionary of lists of dictionaries
-			 dictionary of each founded nominalization (nom, index) -> list of each suitable pattern -> dictionary of arguments
+			 dictionary of each founded nominalization (nom, original_nom, index) -> list of each suitable pattern -> dictionary of arguments
 	"""
 
 	if dependency_tree is None:
@@ -340,7 +431,7 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, lim
 		return {}
 
 	# Checking what is the input base form that is given, and getting the dependency tree with it
-	if sent != "":
+	if sent != "" and dependency_tree == []:
 		# Cleaning the given sentence
 		while sent.startswith(" "):
 			sent = sent[1:]
@@ -353,7 +444,6 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, lim
 		if sent == "":
 			return {}
 
-		# Getting the dependency tree of the sentence
 		dependency_tree = get_dependency(sent)
 
 	# Replacing the first upper letter only if the word isn't a name of something (using NER from spacy)
@@ -367,52 +457,59 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None, lim
 	# Finding all the nominalizations in the sentence
 	noms = []
 
-	if limited_noms_dict or limited_noms_dict == {}:
-		for i in range(len(dependency_tree)):
-			# Nominalization must be a noun
-			if dependency_tree[i][4] == "NOUN":
-				for nom in DictsAndTables.all_noms_backwards.get(dependency_tree[i][2], []):
-					if nom in limited_noms_dict.keys():
-						noms.append((nom, dependency_tree[i][1], i))
-	else:
-		for i in range(len(dependency_tree)):
-			# Nominalization must be a noun
-			if dependency_tree[i][4] == "NOUN":
-				for nom in DictsAndTables.all_noms_backwards.get(dependency_tree[i][2], []):
-					noms.append((nom, dependency_tree[i][1], i))
+	if not limited_indexes:
+		limited_indexes = range(len(dependency_tree))
 
-	# Moving over all the nominalizations
+	for i in limited_indexes:
+		# Nominalization must be a noun
+		if dependency_tree[i][4] == "NOUN":
+			for nom in DictsAndTables.all_noms_backwards.get(dependency_tree[i][2], []):
+				noms.append((nom, dependency_tree[i][1], i))
+
+	# Moving over all the founded nominalizations
 	nom_args = {}
 	for nom, original_nom, nom_index in noms:
 		# Getting the suitable nominalization entry
 		nom_entry = nomlex_entries[nom]
 
-		# Getting all the possible arguments
-		if not limited_noms_dict:
+		# Getting all the possible arguments for the specific nominalization
+		if not limited_patterns_func:
 			possible_args = get_arguments(dependency_tree, nom_entry, nom_index)
 		else:
-			possible_args = get_arguments(dependency_tree, nom_entry, nom_index, patterns=limited_noms_dict[nom][1])
+			limited_patterns = limited_patterns_func(dependency_tree, nom_index)
+			possible_args = get_arguments(dependency_tree, nom_entry, nom_index, patterns=limited_patterns)
 
-		# Finding the maximum number of arguments that were extracted
-		best_num_of_args = 0
-		for args in possible_args:
-			if len(args.keys()) > best_num_of_args:
-				best_num_of_args = len(args.keys())
+		best_args = possible_args
 
-		# Add all the "best arguments" that were extracted (best = maximum number of arguments)
-		best_args = []
-		best_args_items = [] # List of list of the items that were extracted (for singularity)
-		for args in possible_args:
-			# Checking the number of arguments in args, and singularity
-			if len(args.keys()) == best_num_of_args and args.items() not in best_args_items:
+		# Cutting down the arguments lists that were found if needed
+		if not get_all_possibilities:
+			# Finding the maximum number of arguments that were extracted
+			best_num_of_args = 0
+			for args in possible_args:
+				if len(args.keys()) > best_num_of_args:
+					best_num_of_args = len(args.keys())
 
-				# Ignoring temp values for each argument
-				new_args = defaultdict(str)
-				for arg_name, (_, _, arg_value) in args.items():
-					new_args[arg_name] = arg_value
+			# Add all the "best arguments" that were extracted (best = maximum number of arguments)
+			best_args = []
+			best_args_items = [] # List of list of the items that were extracted (for singularity)
+			for args in possible_args:
+				# Checking the number of arguments in args, and singularity
+				if len(args.keys()) == best_num_of_args and args.items() not in best_args_items:
+					if keep_arguments_locations:
+						new_args = defaultdict(tuple)
 
-				best_args.append(new_args)
-				best_args_items.append(args.items())
+						# Ignoring temp values for each argument
+						for arg_name, (index, _, arg_value) in args.items():
+							new_args[arg_name] = (index, arg_value)
+					else:
+						new_args = defaultdict(str)
+
+						# Ignoring temp values for each argument
+						for arg_name, (_, _, arg_value) in args.items():
+							new_args[arg_name] = arg_value
+
+					best_args.append(new_args)
+					best_args_items.append(args.items())
 
 		nom_args.update({(nom, original_nom, nom_index): best_args})
 
