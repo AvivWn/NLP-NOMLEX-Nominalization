@@ -51,9 +51,6 @@ def patterns_in_groups(unique_patterns):
 					if splitted[0] not in links_with_specific_value:
 						links_with_specific_value.append(splitted[0])
 
-	print(links_with_specific_value)
-	print(initial_dep_links_dict)
-
 	# Then, Splitting the patterns into groups based on initial_dep_links_dict
 	for pattern in unique_patterns:
 		pattern_UD_list = pattern_to_UD(pattern)
@@ -362,13 +359,12 @@ def create_data(nomlex_file_loc, input_file_loc):
 		# Is the data already parsed?
 		if type(x) == tuple and len(x) == 2:
 			sentence, dep = x
-			1 / 0
 		else:
 			# Otherwise, we will parse each sentence separately
 			sentence = x
 			dep = get_dependency(x)
 
-		if len(sentence.split(" ")) < MAX_SENT_SIZE:
+		if len(sentence.split(" ")) <= MAX_SENT_SIZE:
 			# Creating all the suitable examples to the current sentence
 			create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
 
