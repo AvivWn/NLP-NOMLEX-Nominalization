@@ -5,15 +5,16 @@ import random
 from itertools import chain, combinations
 from collections import defaultdict
 
+import DictsAndTables
 from ExtractNomlexPatterns import extract_nom_patterns, aggregate_patterns
 from NominalPatterns import pattern_to_UD, extract_args_from_nominal, get_dependency
 from DictsAndTables import get_all_of_noms
 from NomlexExtractor import load_txt_file
-import DictsAndTables
 
 # Constants
 PART_OF_NOM_FOR_TRAIN = 0.8
 LEARNING_FILES_LOCATION = "learning/"
+MAX_SENT_SIZE = 150
 
 
 
@@ -311,7 +312,7 @@ def create_data(nomlex_file_loc, input_file_loc):
 	# Creating a limited patterns func- a function that will return a limited number of patterns according to the sentence, dependency tree and nominalization index
 	# Each pattern will include both the comlex and the ud dependency links version
 	patterns_groups_dict, initial_dep_links_dict, links_with_specific_value = patterns_in_groups(unique_patterns)
-	limited_patterns_func = lambda dep, nom_idx: get_limited_patterns(dep, nom_idx, patterns_groups_dict, initial_dep_links_dict, links_with_specific_value)
+	limited_patterns_func = lambda dep, nom_idx, nom: get_limited_patterns(dep, nom_idx, patterns_groups_dict, initial_dep_links_dict, links_with_specific_value)
 
 	if not os.path.isdir(LEARNING_FILES_LOCATION):
 		os.mkdir(LEARNING_FILES_LOCATION)
@@ -361,13 +362,16 @@ def create_data(nomlex_file_loc, input_file_loc):
 		# Is the data already parsed?
 		if type(x) == tuple and len(x) == 2:
 			sentence, dep = x
+			1 / 0
 		else:
 			# Otherwise, we will parse each sentence separately
 			sentence = x
 			dep = get_dependency(x)
 
-		# Creating all the suitable examples to thise sentence
-		create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
+		if len(sentence.split(" ")) < MAX_SENT_SIZE:
+			# Creating all the suitable examples to the current sentence
+			create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
+
 		print(i)
 		i += 1
 

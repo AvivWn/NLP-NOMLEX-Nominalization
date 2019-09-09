@@ -1,7 +1,7 @@
-from collections import defaultdict
 import spacy
 import inflect
 import copy
+from collections import defaultdict
 inflect_engine = inflect.engine()
 #spacy.prefer_gpu()
 nlp = spacy.load('en_core_web_sm')
@@ -258,7 +258,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 	# Trying to extract all the possible arguments for that nominalization
 	for pattern in patterns:
 		# a pattern can already iclude the ud_pattern
-		if type(pattern) == tuple:
+		if type(pattern) == tuple and len(pattern) == 2:
 			tmp_pattern = pattern[0].copy()
 		else:
 			tmp_pattern = pattern.copy()
@@ -267,7 +267,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 		if "subcat" not in tmp_pattern.keys() or tmp_pattern["subcat"] in comlex_subcats:
 
 			# a pattern can already iclude the ud_pattern
-			if type(pattern) == tuple:
+			if type(pattern) == tuple and len(pattern) == 2:
 				pattern_UD_list = [pattern[1]]
 			else:
 				# Translating the pattern into dependency links sequences (can be more than one possibel sequence)
@@ -411,14 +411,14 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None,
 	"""
 	Extracts the arguments of the nominalizations in the given sentence
 	The given sentence can be presented using a string, or a dependency tree
-	A sentence is preferable if both are given
+	A dependency tree is preferable if both are given
 	:param nomlex_entries: NOMLEX entries (a dictionary {nom: ...})
 	:param sent: a sentence (string), optional
 	:param dependency_tree: a dependency tree (list), optional
-	:param limited_patterns_func: a limited function that should return a limited list of patterns according to the dependency_tree and the nom_index
-	:param limited_indexes: a limited list indexes in which to search for nominalizations
-	:param keep_arguments_locations: define whether to return also the locations of the arguments or not
-	:param get_all_possibilities: define whether to return all the arguments possibilities or to choose the best ones
+	:param limited_patterns_func: a limited function that should return a limited list of patterns according to (dependency_tree, nom_index, nom), optional
+	:param limited_indexes: a limited list indexes in which to search for nominalizations, optional
+	:param keep_arguments_locations: define whether to return also the locations of the arguments or not, optional
+	:param get_all_possibilities: define whether to return all the arguments possibilities or to choose the best ones, optional
 	:return: a dictionary of lists of dictionaries
 			 dictionary of each founded nominalization (nom, original_nom, index) -> list of each suitable pattern -> dictionary of arguments
 	"""
@@ -476,7 +476,7 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None,
 		if not limited_patterns_func:
 			possible_args = get_arguments(dependency_tree, nom_entry, nom_index)
 		else:
-			limited_patterns = limited_patterns_func(dependency_tree, nom_index)
+			limited_patterns = limited_patterns_func(dependency_tree, nom_index, nom[0])
 			possible_args = get_arguments(dependency_tree, nom_entry, nom_index, patterns=limited_patterns)
 
 		best_args = possible_args

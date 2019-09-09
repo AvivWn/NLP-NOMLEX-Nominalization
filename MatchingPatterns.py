@@ -101,6 +101,8 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 				limited_noms_dict[nom] = (clean_nom, limited_noms_dict[nom][1] + patterns)
 				verb_arguments_for_noms[nom] += [(arguments, matching_names)]
 
+	limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, [])
+
 	# Use a random order of the nominal sentences (if needed)
 	random_indexes = np.arange(len(nominal_sentences))
 	if DictsAndTables.shuffle_data: np.random.shuffle(random_indexes)
@@ -122,12 +124,12 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 			nominal_sentence_str, nominal_sentence_dep = nominal_sentence
 
 			# Getting the arguments for all the nouns in the sentence (= processing the sentence) using the given dependency links
-			noms_arguments = extract_args_from_nominal(nomlex_entries, dependency_tree=nominal_sentence_dep, limited_noms_dict=limited_noms_dict)
+			noms_arguments = extract_args_from_nominal(nomlex_entries, sent=nominal_sentence_str, dependency_tree=nominal_sentence_dep, limited_patterns_func=limited_patterns_func)
 		else:  # Input is the sentence string
 			nominal_sentence_str = nominal_sentence
 
 			# Getting the arguments for all the nouns in the sentence (= processing the sentence)
-			noms_arguments = extract_args_from_nominal(nomlex_entries, sent=nominal_sentence_str, limited_noms_dict=limited_noms_dict)
+			noms_arguments = extract_args_from_nominal(nomlex_entries, sent=nominal_sentence_str, limited_patterns_func=limited_patterns_func)
 
 		curr_matching_noms = {}
 

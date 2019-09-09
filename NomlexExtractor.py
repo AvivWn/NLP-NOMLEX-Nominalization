@@ -23,7 +23,7 @@ def load_txt_file(txt_file_name):
 	"""
 	Loads the data from a txt file with the given name
 	:param txt_file_name: The name of the file that needed to be loaded
-	:return: The the file data (as list of lines)
+	:return: The data in the file (as list of pairs of sentence and dependency tree)
 	"""
 
 	with open(txt_file_name, "r") as inputfile:
@@ -97,19 +97,20 @@ def nom_moudle(nomlex_entries, inputs):
 	random_indexes = np.arange(len(inputs))
 	if DictsAndTables.shuffle_data: np.random.shuffle(random_indexes)
 
-	limited_noms_dict = None
+	limited_patterns_func = None
 
 	# In case of big amount of data, extract the patterns for each nominalization in the given lexicon before
 	if total_num_of_sentences > 1:
 		limited_noms_dict = extract_nom_patterns(nomlex_entries)
+		limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, [])
 
 	for i in random_indexes:
 		if type(inputs[i]) == tuple:  # Input is already parsed
 			sent, dep = inputs[i]
-			noms_arguments_list = extract_args_from_nominal(nomlex_entries, dependency_tree=dep, limited_noms_dict=limited_noms_dict)
+			noms_arguments_list = extract_args_from_nominal(nomlex_entries, sent=sent, dependency_tree=dep, limited_patterns_func=limited_patterns_func)
 		else:  # Input is the sentence string
 			sent = inputs[i]
-			noms_arguments_list = extract_args_from_nominal(nomlex_entries, sent=inputs[i], limited_noms_dict=limited_noms_dict)
+			noms_arguments_list = extract_args_from_nominal(nomlex_entries, sent=sent, limited_patterns_func=limited_patterns_func)
 
 		if DictsAndTables.should_print_as_dataset:
 			print_as_dataset(sent, noms_arguments_list)
