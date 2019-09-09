@@ -1,8 +1,10 @@
 import sys
-from nltk.corpus import wordnet as wn
+import copy
+import re
+import os.path
 import inflect
 from collections import defaultdict
-import copy
+from nltk.corpus import wordnet as wn
 inflect_engine = inflect.engine()
 
 # Constants
@@ -435,6 +437,53 @@ def get_special_preps_dict():
 
 	return special_preps_dict
 
+
+def build_catvar_dict(catvar_db_filename):
+	"""
+	Building the catvar dictionary using the catvar database file in the given location
+	:param catvar_db_filename: the location of the catvar database file
+	:return: the created catvar dictionary ({verb: nouns})
+	"""
+
+	catvar_db = {}
+	count = 0
+
+	# Moving over the catvar database file
+	# Finding the verb and nouns in the same line, meaning in the same words family
+	if os.path.exists(catvar_db_filename):
+		with open(catvar_db_filename, "r") as catvar_db_file:
+			for line in catvar_db_file.readlines():
+				line = line.replace("\n", "").replace("\r", "")
+				line = re.sub('\d', '', line)
+				family_words = line.split("#")
+				nouns = []
+				verbs = []
+
+				# Moving over the words in the current line
+				for word in family_words:
+					# Aggregating nouns of the family
+					if word.endswith("_N%"):
+						nouns.append(word.split("_")[0])
+
+					# Aggregating verbs of the family
+					elif word.endswith("_V%"):
+						verbs.append(word.split("_")[0])
+
+				# Ignoring poural nouns
+				for noun in nouns:
+					if noun + "es" in nouns:
+						del nouns[nouns.index(noun + "es")]
+
+					if noun + "s" in nouns:
+						del nouns[nouns.index(noun + "s")]
+
+				# Adding all the founded verbs with the founded nouns, in the current line
+				for verb in verbs:
+					count += len(nouns)
+					catvar_db.update({verb: nouns})
+
+	return catvar_db
+
 subentries_table = get_subentries_table()
 special_subcats_dict = get_special_subcats_dict()
 comlex_table = get_comlex_table()
@@ -449,6 +498,8 @@ comlex_subcats = []
 for curr_subcat in temp_comlex_subcats:
 	if curr_subcat not in redundant_subcast:
 		comlex_subcats.append(curr_subcat)
+
+catvar_dict = build_catvar_dict("catvar_Data/catvar21.signed")
 
 
 ################################################### Utilities ####################################################

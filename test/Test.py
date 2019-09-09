@@ -6,7 +6,7 @@ import MatchingPatterns
 import NomlexExtractor
 import re
 import DictsAndTables
-from DictsAndTables import get_all_of_noms
+from DictsAndTables import get_all_of_noms, build_catvar_dict
 
 def main(arguments):
 	json_file_name, test_file_name = arguments
@@ -24,6 +24,24 @@ def main(arguments):
 			data.append((splitted[0], splitted[1], splitted[2]))
 
 	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
+	DictsAndTables.catvar_dict = build_catvar_dict("../catvar_Data/catvar21.signed")
+
+	noms_not_in_catvar = []
+	for nom, nom_entry in nomlex_entries.items():
+		if 'VERB' in nom_entry.keys():
+			verb = nom_entry['VERB']
+			clean_nom = DictsAndTables.all_noms[nom]
+			if clean_nom not in DictsAndTables.catvar_dict.get(verb, []):
+				noms_not_in_catvar.append((verb, nom))
+
+	noms_not_in_nomlex = []
+	for verb, noms in DictsAndTables.catvar_dict.items():
+		for nom in noms:
+			if nom not in DictsAndTables.all_noms_backwards.keys():
+				noms_not_in_nomlex.append((verb, nom))
+
+	print("Not in catvar:", len(noms_not_in_catvar))
+	print("Not in NOMLEX:", len(noms_not_in_nomlex))
 
 	num_of_exact_matches = 0
 	total = len(data)
