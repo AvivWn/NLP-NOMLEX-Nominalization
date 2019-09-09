@@ -12,24 +12,38 @@ from NomlexExtractor import load_txt_file
 import DictsAndTables
 
 # Constants
-NOM_FOR_TRAIN_PART = 0.8
+PART_OF_NOM_FOR_TRAIN = 0.8
+LEARNING_FILES_LOCATION = "learning/"
+
+
 
 def patterns_in_groups(unique_patterns):
-	first_dep_links_dict = {}  # {'prep': 1, 'compound': 2, 'poss': 3, 'advmod': 4, 'acl': 5, 'amod': 6, 'advcl': 7}
+	"""
+	Spliting the given unique patterns into groups
+	:param unique_patterns: a list of patterns (list of dictionaries)
+	:return: a tuple of:
+			 	patterns_groups_dict: a dictionary of groups of patterns ({string, like 1-2-3: [pattern]})
+			 	initial_dep_links_dict: a dictionary of the initial dependency links in the arguments of the given patterns ({string: id (int)}
+			 	links_with_specific_value: a list of dependency links with specific values (like prep_of)
+	"""
+
+	initial_dep_links_dict = {}  # Something like {'prep': 1, 'compound': 2, 'poss': 3, 'advmod': 4, 'acl': 5, 'amod': 6, 'advcl': 7, ....}
 	patterns_groups_dict = defaultdict(list)
-	links_with_specific_value = []
+	links_with_specific_value = [] # This list is needed in order to know when the value is important and when it isn't
 
 	count = 0
 
+	# First, creating initial_dep_links_dict and links_with_specific_value
 	for pattern in unique_patterns:
 		pattern_UD_list = pattern_to_UD(pattern)
 
 		for pattern_UD in pattern_UD_list:
 			for subentry, value in pattern_UD.items():
-				if str(value[0]) not in first_dep_links_dict.keys():
+				if str(value[0]) not in initial_dep_links_dict.keys():
 					count += 1
-					first_dep_links_dict[str(value[0])] = count
+					initial_dep_links_dict[str(value[0])] = count
 
+				# The dep link has a specific value
 				if "_" in str(value[0]):
 					splitted = str(value[0]).split("_")
 
@@ -37,65 +51,96 @@ def patterns_in_groups(unique_patterns):
 						links_with_specific_value.append(splitted[0])
 
 	print(links_with_specific_value)
-	print(first_dep_links_dict)
+	print(initial_dep_links_dict)
 
+	# Then, Splitting the patterns into groups based on initial_dep_links_dict
 	for pattern in unique_patterns:
 		pattern_UD_list = pattern_to_UD(pattern)
 
 		for pattern_UD in pattern_UD_list:
-			first_values = []
+			inital_dep_links_values = []
+
+			# Getting the initial dependency links for the current ud pattern
 			for subentry, value in pattern_UD.items():
-				first_values.append(str(value[0]))
+				inital_dep_links_values.append(str(value[0]))
 
-			first_value_trans = []
-			for first_value in list(first_values):
-				first_value_trans.append(first_dep_links_dict[first_value])
+			# Translating those links to numbers
+			inital_dep_links_nums = []
+			for inital_dep_link in list(inital_dep_links_values):
+				inital_dep_links_nums.append(str(initial_dep_links_dict[inital_dep_link]))
 
-			first_value_trans = sorted(first_value_trans)
-			new_first_value_trans = []
-			for first_value in first_value_trans:
-				new_first_value_trans.append(str(first_value))
+			# Sorting the list (according to the float values of the strings which are actually numbers)
+			inital_dep_links_nums = sorted(inital_dep_links_nums, key=float)
 
-			patterns_groups_dict["-".join(new_first_value_trans)] += [(pattern, pattern_UD)]
+			# Remembering the pattern in the suitable group (based on the initial dependency links needed for the current ud pattern)
+			patterns_groups_dict["-".join(inital_dep_links_nums)] += [(pattern, pattern_UD)]
 
-	return patterns_groups_dict, first_dep_links_dict, links_with_specific_value
+	return patterns_groups_dict, initial_dep_links_dict, links_with_specific_value
 
 def powerset(iterable):
+	"""
+	Calculates the powerset of the given iterable
+	:param iterable: an iterable, like list
+	:return: a list of the powerset members
+	"""
+
 	"powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
 	s = list(iterable)
 	return chain.from_iterable(combinations(s, r) for r in range(1, len(s)+1))
 
-def get_limited_patterns(dep, nom_idx, patterns_groups_dict, first_dep_links_dict, links_with_specific_value):
-	first_dep_links_values = []
+def get_limited_patterns(dep, nom_idx, patterns_groups_dict, initial_dep_links_dict, links_with_specific_value):
+	"""
+	Returns a list of patterns that are suitable for extracting arguments of the nominalization in the given index in the given dependecy
+	:param dep: the dependency tree of the sentence (list of tuples)
+	:param nom_idx: the index of a nominalization in the sentence
+	:param patterns_groups_dict: a dictionary of groups of patterns ({string, like 1-2-3: [pattern]})
+	:param initial_dep_links_dict: a dictionary of the initial dependency links in the arguments of the given patterns ({string: id (int)}
+	:param links_with_specific_value: a list of dependency links with specific values (like prep_of)
+	:return: a small list of patterns ([(pattern, pattern_UD)]
+	"""
 
-	# Moving over the dependency tree and finding all the first dependency links that leads to the nom in the given index
+	inital_dep_links_values = []
+
+	# Moving over the dependency tree and finding all the initial dependency links that leads to the nom in the given index
 	for word in dep:
 		if word[5] == nom_idx + 1:
 			if word[6] in links_with_specific_value:
 				tmp = "_".join([word[6], word[2]])
 
-				if tmp in first_dep_links_dict.keys():
-					first_dep_links_values.append(tmp)
+				if tmp in initial_dep_links_dict.keys():
+					inital_dep_links_values.append(tmp)
 			else:
-				if word[6] in first_dep_links_dict.keys():
-					first_dep_links_values.append(word[6])
+				if word[6] in initial_dep_links_dict.keys():
+					inital_dep_links_values.append(word[6])
 
-	# Translating those links to number
-	first_value_nums = []
-	for first_value in first_dep_links_values:
-		first_value_nums.append(str(first_dep_links_dict[first_value]))
+	# Translating those links to numbers
+	inital_dep_links_nums = []
+	for inital_dep_link in inital_dep_links_values:
+		inital_dep_links_nums.append(str(initial_dep_links_dict[inital_dep_link]))
 
-	# Sort the list (according to the int values) and translate the values to
-	first_value_nums = sorted(first_value_nums, key=float)
+	# Sorting the list (according to the float values of the strings which are actually numbers)
+	inital_dep_links_nums = sorted(inital_dep_links_nums, key=float)
 
-	# Save the patterns of each sub-group as the limited patterns
+	# Saving the patterns of each sub-group as the limited patterns
 	limited_patterns = []
-	for subset in powerset(first_value_nums):
+	for subset in powerset(inital_dep_links_nums):
 		limited_patterns += patterns_groups_dict["-".join(subset)]
 
 	return limited_patterns
 
+
+
 def find_argument(sentence, argument, value, first_index, tags):
+	"""
+	Finds the given value of the argument in the sentence, and updates the tags list as a results
+	:param sentence: a sentence (string)
+	:param argument: the argument name (string)
+	:param value: the argument value, which appear in the sentence (string)
+	:param first_index: the first index of the argument value in the sentence (int)
+	:param tags: the tag of each word in the sentence (so far), to which argument each word belongs (list)
+	:return: None
+	"""
+
 	sent_index = first_index
 	arg_index = 0
 
@@ -115,6 +160,15 @@ def find_argument(sentence, argument, value, first_index, tags):
 		sent_index += 1
 
 def arguments_to_tags(sentence, splited_sentence, nom_index, arguments):
+	"""
+	Translates the arguments in the sentence into a list of tags
+	:param sentence: a sentence (string)
+	:param splited_sentence: the splitted sentence into words (list)
+	:param nom_index: an index of nominalization in the sentence (int)
+	:param arguments: the arguments of that nom ({argument: value})
+	:return: list of tags (for each word in the sentence), whether or not a useful argument was found
+	"""
+
 	tags = ["NONE"] * len(splited_sentence)
 	tags[nom_index] = "NOM"
 	found_not_none = False
@@ -129,19 +183,14 @@ def arguments_to_tags(sentence, splited_sentence, nom_index, arguments):
 
 	return tags, found_not_none
 
-def write_to_right_file(nom, train_noms, train_file, dev_file, text):
-	print(text)
-	return
-
-	if nom in train_noms:
-		train_file.write(text + "\n")
-		train_file.flush()
-	else:
-		dev_file.write(text + "\n")
-		dev_file.flush()
-
 def tags_to_text(tags):
-	tags += ["NONE"] # To make sure that also the last tag is used
+	"""
+	Translates a list of tags into a sentence
+	:param tags: a list of tags (list)
+	:return: a sentence
+	"""
+
+	tags += ["NONE"] # To make sure that also the last tag is also used
 	text_tuples = []
 	last_tag = ("NONE", -1)
 
@@ -159,7 +208,41 @@ def tags_to_text(tags):
 
 	return " ".join(text_tuples)
 
+def write_to_right_file(nom, train_noms, train_file, dev_file, text):
+	"""
+	Writes the given text to the right file
+	:param nom: a nominalization (string)
+	:param train_noms: the nominalizations that should appear in training (and not validation) examples (list)
+	:param train_file: the file for training examples (file)
+	:param dev_file: the file for validation examples (file)
+	:param text: the text to write to a file (string)
+	:return: None
+	"""
+
+	if nom in train_noms:
+		train_file.write(text + "\n")
+		train_file.flush()
+	else:
+		dev_file.write(text + "\n")
+		dev_file.flush()
+
+
+
 def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func):
+	"""
+	Creates the suitable examples for the given sentence
+	This function will extract the right and wrong arguments of all the nominalizations in the sentence
+	:param nomlex_entries: a dictionary of nominalizations, according to the NOMLEX lexicon
+	:param sentence: a sentence (string)
+	:param dep: the dependency tree of the sentence (list of tuples)
+	:param train_noms: the nominalizations that should appear in training (and not validation) examples (list)
+	:param train_file: the file for training examples (file)
+	:param dev_file: the file for validation examples (file)
+	:param limited_patterns_func: a function that can reduce the suitable patterns for each nominalization,
+								  based on the dependency tree and the nominalization location (lambda function)
+	:return: None
+	"""
+
 	splited_sentence = sentence.split(" ")
 
 	# Extracting all the arguments from all the nominalizations in the sentence, using the right patterns (for each nom)
@@ -206,11 +289,18 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 				else:
 					write_to_right_file(nom[0], train_noms, train_file, dev_file, "- " + tags_to_text(curr_tags))
 
-def create_data(nomlex_filename, input_filename):
+def create_data(nomlex_file_loc, input_file_loc):
+	"""
+	Creates the data examples (for training), according to the sentence in the given input file
+	:param nomlex_file_loc: a location of a json file with the entries of NOMLEX lexicon
+	:param input_file_loc: a location of a txt file with sentences (which can be already parsed)
+	:return: None
+	"""
+
 	DictsAndTables.should_clean = False
 
 	# Loading the nomlex lexicon
-	with open(nomlex_filename, "r") as nomlex_file:
+	with open(nomlex_file_loc, "r") as nomlex_file:
 		nomlex_entries = json.load(nomlex_file)
 
 	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
@@ -220,16 +310,33 @@ def create_data(nomlex_filename, input_filename):
 
 	# Creating a limited patterns func- a function that will return a limited number of patterns according to the sentence, dependency tree and nominalization index
 	# Each pattern will include both the comlex and the ud dependency links version
-	patterns_groups_dict, first_dep_links_dict, links_with_specific_value = patterns_in_groups(unique_patterns)
-	limited_patterns_func = lambda dep, nom_idx: get_limited_patterns(dep, nom_idx, patterns_groups_dict, first_dep_links_dict, links_with_specific_value)
+	patterns_groups_dict, initial_dep_links_dict, links_with_specific_value = patterns_in_groups(unique_patterns)
+	limited_patterns_func = lambda dep, nom_idx: get_limited_patterns(dep, nom_idx, patterns_groups_dict, initial_dep_links_dict, links_with_specific_value)
 
-	# Splitting the NOMLEX nominalizations into train and dev noms
-	noms = list(DictsAndTables.all_noms.keys())
-	random.shuffle(noms)
-	train_noms = noms[0: int(len(noms) * NOM_FOR_TRAIN_PART)]
+	if not os.path.isdir(LEARNING_FILES_LOCATION):
+		os.mkdir(LEARNING_FILES_LOCATION)
 
-	train_file = open("train4", "w+")
-	dev_file = open("valid4", "w+")
+	# Getting the train_noms
+	if not os.path.exists(LEARNING_FILES_LOCATION + "config"):
+		# Splitting the NOMLEX nominalizations into train and dev noms
+		noms = list(DictsAndTables.all_noms.keys())
+		random.shuffle(noms)
+
+		# Choosing the noms which will create the training examples
+		train_noms = noms[0: int(len(noms) * PART_OF_NOM_FOR_TRAIN)]
+
+		# Saving the train_noms in a config file
+		with open(LEARNING_FILES_LOCATION + "config", "w") as config_file:
+			config_file.write("\t".join(train_noms))
+	else:
+		# Loading the train_noms from the config file
+		with open(LEARNING_FILES_LOCATION + "config", "r") as config_file:
+			train_noms = config_file.readlines()[0].split("\t")
+
+	input_file_name = input_file_loc.split("/")[-1]
+
+	train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
+	dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
 
 	# Example
 	#sentence = "The appointment of Alice by Apple"
@@ -237,20 +344,29 @@ def create_data(nomlex_filename, input_filename):
 	#create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
 
 	# Loading the data
-	if not os.path.exists(input_filename + "_as_list"):
-		input_data = load_txt_file(input_filename)
+	if not os.path.exists(input_file_loc + "_as_list"):
+		input_data = load_txt_file(input_file_loc)
 
-		with open(input_filename + "_as_list", "wb") as patterns_file:
+		with open(input_file_loc + "_as_list", "wb") as patterns_file:
 			pickle.dump(input_data, patterns_file)
 	else:
 		# Used the last saved file
-		with open(input_filename + "_as_list", "rb") as patterns_file:
+		with open(input_file_loc + "_as_list", "rb") as patterns_file:
 			input_data = pickle.load(patterns_file)
 
 	i = 0
 
 	# Moving over the sentences
-	for sentence, dep in input_data:
+	for x in input_data:
+		# Is the data already parsed?
+		if type(x) == tuple and len(x) == 2:
+			sentence, dep = x
+		else:
+			# Otherwise, we will parse each sentence separately
+			sentence = x
+			dep = get_dependency(x)
+
+		# Creating all the suitable examples to thise sentence
 		create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
 		print(i)
 		i += 1
