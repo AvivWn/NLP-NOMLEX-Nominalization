@@ -3,10 +3,10 @@ import torch
 import torch.nn.functional as F
 from pytorch_transformers import *
 
-class my_model(nn.Module):
+class tagging_model(nn.Module):
 
 	def __init__(self, tagset_size):
-		super(my_model, self).__init__()
+		super(tagging_model, self).__init__()
 
 		self.bert = BertModel.from_pretrained('bert-base-uncased')
 
@@ -38,10 +38,10 @@ class my_model(nn.Module):
 
 
 
-class my_model2(nn.Module):
+class scoring_model(nn.Module):
 
 	def __init__(self, tagset_size):
-		super(my_model2, self).__init__()
+		super(scoring_model, self).__init__()
 
 		self.tag_embedding = nn.Embedding(tagset_size, tagset_size)
 
