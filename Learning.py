@@ -3,11 +3,13 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+from tqdm import tqdm
 from collections import defaultdict
 #from matplotlib import pyplot as plt
 
+import CreateData
 from DictsAndTables import get_subentries_table
-from Model import my_model, my_model2
+from Model import tagging_model, scoring_model
 
 # Constants
 tags_dict = dict([(tag.upper(), i + 4) for i, (tag, _, _) in enumerate(get_subentries_table())] + [("NONE", 0), ("NOM", 1), ("NOM_SUBJECT", 2), ("NOM_OBJECT", 3)])
@@ -22,7 +24,11 @@ learning_rate = 0.001
 momentum_factor = 0.75
 
 tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-cased', do_basic_tokenize=False)
-trained_model_filename = "trained_model"
+
+model_name = "tagging_model" if MODEL_NUM == 1 else "scoring_model"
+trained_model_filename = CreateData.LEARNING_FILES_LOCATION + "trained_" + model_name
+
+show_progress_bar = True
 
 
 
@@ -127,7 +133,7 @@ def forward(batch_examples, model, device):
 			else:
 				if type(other_best_score) != torch.Tensor or \
 						not torch.Tensor.equal(torch.Tensor.max(torch.Tensor([0]).to(device),
-																outputs[0] - other_best_score[0]),
+																outputs[ex_idx] - other_best_score[0]), # TODO
 											   torch.Tensor([0]).to(device)):
 					other_best_score = outputs[ex_idx]
 
@@ -182,7 +188,10 @@ def train(model, device, train_dataset, optimizer, epoch):
 	sent_count = 0
 	batch_examples = []
 
-	for sent_idx in random_indexes:
+	default_desc = 'Epoch ' + str(epoch) + ' [Training]'
+	iterable = tqdm(random_indexes, desc=default_desc, leave=False) if show_progress_bar else random_indexes
+
+	for sent_idx in iterable:
 		sent, splitted_tags_idxs = train_dataset[sent_idx]
 		sent_count += 1 # Counting the sentences (for progress printing)
 
@@ -201,13 +210,17 @@ def train(model, device, train_dataset, optimizer, epoch):
 				loss.backward()
 				optimizer.step()
 
-				print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-					epoch, sent_count, len(random_indexes),
-					100. * sent_count / len(random_indexes), loss.item()))
+				if show_progress_bar:
+					iterable.set_description(default_desc + ' - Loss = {:.6f}'.format(loss.item()))
+					iterable.refresh()
+				else:
+					print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+						epoch, sent_count, len(random_indexes),
+						100. * sent_count / len(random_indexes), loss.item()))
 
 			batch_examples = []
 
-def valid(model, device, test_dataset, dataset_name):
+def valid(model, device, test_dataset, dataset_name, epoch):
 	"""
 	Checks the prediction of the model over the validaiton data
 	:param model: the trained model
@@ -227,8 +240,11 @@ def valid(model, device, test_dataset, dataset_name):
 	batch_examples = []
 	num_of_batches = 0
 
+	default_desc = 'Epoch ' + str(epoch) + ' [' + dataset_name + ' test]'
+	iterable = tqdm(random_indexes, desc=default_desc, leave=False) if show_progress_bar else random_indexes
+
 	with torch.no_grad():
-		for sent_idx in random_indexes:
+		for sent_idx in iterable:
 			sent, tags_dict = test_dataset[sent_idx]
 			sent_count += 1  # Counting the sentences (for progress printing)
 
@@ -246,17 +262,21 @@ def valid(model, device, test_dataset, dataset_name):
 					loss = sum(batch_losses).to(device) / len(batch_losses)
 
 					# Sum up current loss
-					test_loss += loss.item()
+					current_loss = loss.item()
+					test_loss += current_loss
 
 					# Calculate the accuracy of the batch
-					test_acc += get_acc(batch_examples, outputs)
+					current_acc = get_acc(batch_examples, outputs)
+					test_acc += current_acc
+
+					if show_progress_bar:
+						iterable.set_description(default_desc + ' - loss = {:.6f}, ACC = {:.3f}'.format(loss.item(), current_acc))
+						iterable.refresh()
 
 				batch_examples = []
 
 	test_loss /= num_of_batches
 	test_acc /= num_of_batches
-
-	print(dataset_name + ' set: Average loss: {:.4f}, ACC: {:.3f}'.format(test_loss, test_acc))
 
 	return test_loss, test_acc
 
@@ -311,7 +331,7 @@ def load_examples_file(file_name):
 	sent = ""
 	splitted_tags_idxs = defaultdict(list)
 
-	for line in lines:
+	for line in tqdm(lines, desc="Processing " + file_name, leave=False):
 		line = line.replace("\n", "").replace("\r", "")
 
 		# Is it a sentence or a list of arguments?
@@ -339,9 +359,9 @@ def main(action, train_filename, valid_filename):
 	print(device)
 
 	if MODEL_NUM == 1:
-		model = my_model(len(tags_dict.keys()))
+		model = tagging_model(len(tags_dict.keys()))
 	else: #if MODEL_NUM == 2:
-		model = my_model2(len(tags_dict.keys()))
+		model = scoring_model(len(tags_dict.keys()))
 
 	net = torch.nn.DataParallel(model, device_ids=[0,1,2,3]).to(device)
 	# There are only two possible actions- train and test
@@ -363,26 +383,28 @@ def main(action, train_filename, valid_filename):
 		for epoch in range(1, num_of_epochs + 1):
 			# Training the model for an epoch
 			train(net, device, train_dataset, optimizer, epoch)
-			print("")
+			if not show_progress_bar: print("")
 
 			# Validation on train and development sets
-			train_loss, train_acc = valid(net, device, train_dataset, "Train")
+			train_loss, train_acc = valid(net, device, train_dataset, "Train", epoch)
 			train_losses.append(train_loss)
 			train_accs.append(train_acc)
 
-			valid_loss, valid_acc = valid(model, device, valid_dataset, "Validation")
+			valid_loss, valid_acc = valid(model, device, valid_dataset, "Validation", epoch)
 			valid_losses.append(valid_loss)
 			valid_accs.append(valid_acc)
-			print("")
+
+			print('Epoch ' + str(epoch) + ' - train loss = {:.4f}, train ACC = {:.3f}, valid loss = {:.4f}, valid ACC = {:.3f}'.format(train_loss, train_acc, valid_loss, valid_acc))
+			if not show_progress_bar: print("")
 
 			# Saving the trained models
 			torch.save(net.state_dict(), trained_model_filename)
 
 			# Saving the losses and the acc scores over training
-			np.savetxt("train_losses", np.array(train_losses))
-			np.savetxt("valid_losses", np.array(valid_losses))
-			np.savetxt("train_accs", np.array(train_accs))
-			np.savetxt("valid_accs", np.array(valid_accs))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses", np.array(train_losses))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses", np.array(valid_losses))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs", np.array(train_accs))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs", np.array(valid_accs))
 
 		# Getting test results of the trained model
 		#test(model, device, test_loader)
@@ -436,10 +458,10 @@ if __name__ == '__main__':
 		main(sys.argv[1], sys.argv[2], sys.argv[3])
 	elif sys.argv[1] == "-graph":
 		# Loading losses and accs files
-		train_losses = np.loadtxt("train_losses").tolist()
-		valid_losses = np.loadtxt("valid_losses").tolist()
-		train_accs = np.loadtxt("train_accs").tolist()
-		valid_accs = np.loadtxt("valid_accs").tolist()
+		train_losses = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses").tolist()
+		valid_losses = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses").tolist()
+		train_accs = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs").tolist()
+		valid_accs = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs").tolist()
 
 		# Showing the losses and accs graphs
 		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")

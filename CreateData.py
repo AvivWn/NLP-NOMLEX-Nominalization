@@ -4,6 +4,7 @@ import pickle
 import random
 from itertools import chain, combinations
 from collections import defaultdict
+from tqdm import tqdm
 
 import DictsAndTables
 from ExtractNomlexPatterns import extract_nom_patterns, aggregate_patterns
@@ -356,8 +357,8 @@ def create_data(nomlex_file_loc, input_file_loc):
 
 	input_file_name = input_file_loc.split("/")[-1]
 
-	train_file = open(LEARNING_FILES_LOCATION + "train2_" + input_file_name, "w+")
-	dev_file = open(LEARNING_FILES_LOCATION + "valid2_" + input_file_name, "w+")
+	train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
+	dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
 
 	# Example
 	#sentence = "The appointment of Alice by Apple"
@@ -375,10 +376,8 @@ def create_data(nomlex_file_loc, input_file_loc):
 		with open(input_file_loc + "_as_list", "rb") as patterns_file:
 			input_data = pickle.load(patterns_file)
 
-	i = 0
-
 	# Moving over the sentences
-	for x in input_data:
+	for x in tqdm(input_data, desc="Creating data files", leave=True):
 		# Is the data already parsed?
 		if type(x) == tuple and len(x) == 2:
 			sentence, dep = x
@@ -390,9 +389,6 @@ def create_data(nomlex_file_loc, input_file_loc):
 		if len(sentence.split(" ")) <= MAX_SENT_SIZE:
 			# Creating all the suitable examples to the current sentence
 			create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
-
-		print(i)
-		i += 1
 
 	train_file.close()
 	dev_file.close()
