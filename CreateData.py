@@ -256,12 +256,15 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 												  keep_arguments_locations=True, get_all_possibilities=True,
 												  limited_patterns_func=limited_patterns_func)
 
-	found_any_arguments = False
-
 	# Moving over all the nominalization that was found in both extraction
 	# Of course that what was found in "right" was found also in "all"
 	for nom, arguments_list in all_nom_arguments.items():
+		found_any_arguments = False
+		wrong_founded_arguments_list = []
+		right_founded_arguments_list = []
 		right_tags_list = []
+
+		arguments_list.sort(key=lambda x: len(x.keys()), reverse=True)
 
 		# Check for the right arguments that extracted for that nom
 		if nom in right_nom_arguments.keys():
@@ -271,21 +274,41 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 				if found_not_none:
 					right_tags_list.append(right_tags)
 
-		# Check for all the arguments that extracted for that nom (using all patterns)
-		for arguments in arguments_list:
-			curr_tags, found_not_none = arguments_to_tags(sentence, splited_sentence, nom[2], arguments)
+		# The tagging is useless without a right list of tags (from NOMLEX)
+		if right_tags_list != []:
+			# Check for all the arguments that extracted for that nom (using all patterns)
+			for arguments in arguments_list:
+				curr_tags, found_not_none = arguments_to_tags(sentence, splited_sentence, nom[2], arguments)
 
-			if found_not_none:
-				# Each argument list start with a sentence
-				if not found_any_arguments:
-					write_to_right_file(nom[0], train_noms, train_file, dev_file, "# " + sentence)
-					found_any_arguments = True
+				if found_not_none:
+					# Each list of arguments start with a sentence
+					if not found_any_arguments:
+						write_to_right_file(nom[0], train_noms, train_file, dev_file, "# " + sentence)
+						found_any_arguments = True
 
-				# Write that argument list to the right file
-				if curr_tags in right_tags_list:
-					write_to_right_file(nom[0], train_noms, train_file, dev_file, "+ " + tags_to_text(curr_tags))
-				else:
-					write_to_right_file(nom[0], train_noms, train_file, dev_file, "- " + tags_to_text(curr_tags))
+					is_subset = False
+
+					# Write that list of arguments to the right file
+					if curr_tags in right_tags_list:
+						# Checking if those arguments aren't a subset of any of the founded arguments (a bigger arguments list)
+						for founded_args_items in right_founded_arguments_list:
+							if all(item in founded_args_items for item in arguments.items()):
+								is_subset = True
+								break
+
+						if not is_subset:
+							write_to_right_file(nom[0], train_noms, train_file, dev_file, "+ " + tags_to_text(curr_tags))
+							right_founded_arguments_list.append(arguments.items())
+					else:
+						# Checking if those arguments aren't a subset of any of the founded arguments (a bigger arguments list)
+						for founded_args_items in wrong_founded_arguments_list:
+							if all(item in founded_args_items for item in arguments.items()):
+								is_subset = True
+								break
+
+						if not is_subset:
+							write_to_right_file(nom[0], train_noms, train_file, dev_file, "- " + tags_to_text(curr_tags))
+							wrong_founded_arguments_list.append(arguments.items())
 
 def create_data(nomlex_file_loc, input_file_loc):
 	"""
@@ -333,8 +356,8 @@ def create_data(nomlex_file_loc, input_file_loc):
 
 	input_file_name = input_file_loc.split("/")[-1]
 
-	train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
-	dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
+	train_file = open(LEARNING_FILES_LOCATION + "train2_" + input_file_name, "w+")
+	dev_file = open(LEARNING_FILES_LOCATION + "valid2_" + input_file_name, "w+")
 
 	# Example
 	#sentence = "The appointment of Alice by Apple"
