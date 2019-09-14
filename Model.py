@@ -8,15 +8,19 @@ class tagging_model(nn.Module):
 	def __init__(self, tagset_size):
 		super(tagging_model, self).__init__()
 
+		# BERT Model
 		self.bert = BertModel.from_pretrained('bert-base-uncased')
+		for p in self.bert.embeddings.parameters():
+			p.requires_grad = True
 
-		#self.fc = nn.Linear(768, 100, 100)
+		# LSTM
+		self.lstm = nn.LSTM(input_size=768, hidden_size=300 ,num_layers=2, batch_first=True, bidirectional=True, dropout=0.25)
 
-		self.lstm = nn.LSTM(input_size=768, hidden_size=50 ,num_layers=2, batch_first=True, bidirectional=True, dropout=0.25)
+		# Fully Connected Layers
+		self.fc1 = nn.Linear(600, 600, 600)
+		self.fc2 = nn.Linear(600, tagset_size, tagset_size)
 
-		self.fc1 = nn.Linear(100, 100, 100)
-		self.fc2 = nn.Linear(100, tagset_size, tagset_size)
-
+		# Initiating the weights
 		nn.init.xavier_normal_(self.fc1.weight)
 		nn.init.xavier_normal_(self.fc2.weight)
 
@@ -24,12 +28,13 @@ class tagging_model(nn.Module):
 		# Moving to bert embeddings
 		bert_output = self.bert(padded_batch_indexed_tokens)
 
-		# RNN
+		# LSTM
 		packed_out = torch.nn.utils.rnn.pack_padded_sequence(bert_output[0], sents_lengths, batch_first=True)
+		self.lstm.flatten_parameters()
 		lstm_out = self.lstm(packed_out)[0]
 		padded_out, _ = torch.nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True, total_length=padded_batch_indexed_tokens.shape[1])
 
-		# Fully Connected
+		# Fully Connected Layers
 		fc1_out = F.relu(self.fc1(padded_out))
 		fc2_out = self.fc2(fc1_out)
 
@@ -43,17 +48,23 @@ class scoring_model(nn.Module):
 	def __init__(self, tagset_size):
 		super(scoring_model, self).__init__()
 
+		# Tag Embedding
 		self.tag_embedding = nn.Embedding(tagset_size, tagset_size)
 
+		# BERT Model
 		#self.tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-uncased', do_basic_tokenize=False, do_lower_case=False)
 		self.bert = BertModel.from_pretrained('bert-base-uncased')
+		for p in self.bert.embeddings.parameters():
+			p.requires_grad = True
 
+		# LSTM
 		self.lstm = nn.LSTM(input_size=768 + tagset_size, hidden_size=150 ,num_layers=2, batch_first=True, bidirectional=True, dropout=0.25)
 
+		# Fully Connected Layers
 		self.fc1 = nn.Linear(300, 100, 100)
 		self.fc2 = nn.Linear(100, 1, 1)
 
-		#nn.init.xavier_normal_(self.lstm.all_weights)
+		# Initiating the weights
 		nn.init.xavier_normal_(self.fc1.weight)
 		nn.init.xavier_normal_(self.fc2.weight)
 
@@ -65,7 +76,7 @@ class scoring_model(nn.Module):
 		conditions = self.tag_embedding(padded_batch_tags)
 		conditioned_bert = torch.cat([conditions, bert_output[0]], dim=2)
 
-		# RNN
+		# LSTM
 		if self.lstm.bidirectional:
 			num_directions = 2
 		else:
@@ -79,7 +90,7 @@ class scoring_model(nn.Module):
 		lstm_out = lstm_out.view(self.lstm.num_layers, num_directions, lstm_out.shape[1], self.lstm.hidden_size)[-1]
 		lstm_out = torch.cat([lstm_out[0], lstm_out[1]], dim=1)
 
-		# Fully Connected
+		# Fully Connected Layers
 		fc1_out = F.relu(self.fc1(lstm_out))
 		fc2_out = self.fc2(fc1_out).squeeze(dim=0).squeeze(dim=1)
 

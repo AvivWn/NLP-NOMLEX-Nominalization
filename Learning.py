@@ -1,3 +1,4 @@
+import os
 import operator
 import torch
 import torch.nn.functional as F
@@ -10,25 +11,31 @@ from collections import defaultdict
 import CreateData
 from DictsAndTables import get_subentries_table
 from Model import tagging_model, scoring_model
+from NomlexExtractor import load_txt_file
+from CreateData import create_data
+from NominalPatterns import clean_argument
 
 # Constants
-tags_dict = dict([(tag.upper(), i + 4) for i, (tag, _, _) in enumerate(get_subentries_table())] + [("NONE", 0), ("NOM", 1), ("NOM_SUBJECT", 2), ("NOM_OBJECT", 3)])
-BATCH_SIZE = 64
+BATCH_SIZE = 50
 TRAIN_LIMIT_SIZE = 10000
 TEST_LIMIT_SIZE = 10000
-MODEL_NUM = 1
+MODEL_NUM = 2
 
 # Hyper Parameters
 num_of_epochs = 10
 learning_rate = 0.001
 momentum_factor = 0.75
 
-tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-cased', do_basic_tokenize=False)
+tags_dict = dict([(tag.upper(), i + 4) for i, (tag, _, _) in enumerate(get_subentries_table())] + [("NONE", 0), ("NOM", 1), ("NOM_SUBJECT", 2), ("NOM_OBJECT", 3)])
+backward_tags_dict = dict([(i + 4, tag.upper()) for i, (tag, _, _) in enumerate(get_subentries_table())] + [(0, "NONE"), (1, "NOM"), (2, "NOM_SUBJECT"), (3, "NOM_OBJECT")])
+
+tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-cased', do_basic_tokenize=False, do_lower_case=False)
 
 model_name = "tagging_model" if MODEL_NUM == 1 else "scoring_model"
 trained_model_filename = CreateData.LEARNING_FILES_LOCATION + "trained_" + model_name
 
 show_progress_bar = True
+ignore_none_preds = True
 
 
 
@@ -36,15 +43,31 @@ def encode_tags(tags):
 	"""
 	Encoding the tags
 	:param tags: a list of tags
-	:return: a list of number (the encoded tags, based on the tags_dict dictionary)
+	:return: a list of numbers (the encoded tags, based on the tags_dict dictionary)
 	"""
 
-	tags_idx = []
+	tags_idxs = []
 
 	for i in range(len(tags)):
-		tags_idx.append(tags_dict.get(tags[i], -1))
+		tags_idxs.append(tags_dict.get(tags[i], -1))
 
-	return tags_idx
+	return tags_idxs
+
+def decode_tags(tags_idxs):
+	"""
+	Decoding the encoding tags
+	:param tags_idxs: a list of encoded tags
+	:return: a list of strings (the tags names, based on the tags_dict dictionary)
+	"""
+
+	tags = []
+
+	for i in range(len(tags_idxs)):
+		tags.append(backward_tags_dict.get(tags_idxs, ""))
+
+	return tags
+
+
 
 def raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx):
 	"""
@@ -102,6 +125,7 @@ def forward(batch_examples, model, device):
 		padded_batch_tags.append(tags_idxs + [tags_dict.get("NONE", -1)] * padding_length)
 
 		sents_lengths.append(sent_length)
+
 		padded_batch_sent = splitted_sent + ["<PAD>"] * padding_length
 		padded_batch_indexed_tokens.append(tokenizer.convert_tokens_to_ids(padded_batch_sent))
 
@@ -120,8 +144,10 @@ def forward(batch_examples, model, device):
 		padded_batch_tags = torch.Tensor(padded_batch_tags).long().to(device)
 		batch_losses.append(torch.nn.functional.nll_loss(outputs, padded_batch_tags))
 	else: #if MODEL_NUM == 2:
+		padded_batch_tags = torch.tensor(padded_batch_tags).to(device)
+
 		# Calling the model to get the output
-		outputs = model(padded_batch_indexed_tokens, torch.tensor(padded_batch_tags).to(device), sents_lengths)
+		outputs = model(padded_batch_indexed_tokens, padded_batch_tags, sents_lengths)
 
 		right_score = None
 		other_best_score = None
@@ -185,12 +211,17 @@ def get_acc(batch_examples, outputs):
 		# Counts the right tagging for each example in the batch
 		for i in range(len(preds)):
 			count_right = 0
+			count_wrong = 0
 
 			for j in range(len(batch_examples[i][2])):
 				if preds[i][j] == batch_examples[i][2][j]:
-					count_right += 1
+					# Ignoring NONE predicitons, if needed
+					if preds[i][j] != 0 or not ignore_none_preds:
+						count_right += 1
+				else:
+					count_wrong += 1
 
-			batch_acc += count_right / len(batch_examples[i][2])
+			batch_acc += count_right / (count_right + count_wrong)
 
 		batch_acc /= len(batch_examples)
 	else: # if MODEL_NUM == 2:
@@ -220,8 +251,10 @@ def train(model, device, train_dataset, optimizer, epoch):
 
 	model.train()
 
-	random_indexes = np.arange(len(train_dataset))[:TRAIN_LIMIT_SIZE]
+	random_indexes = np.arange(len(train_dataset))
 	np.random.shuffle(random_indexes)
+	random_indexes = random_indexes[:TRAIN_LIMIT_SIZE]
+
 	sent_count = 0
 	batch_examples = []
 
@@ -283,11 +316,11 @@ def valid(model, device, test_dataset, dataset_name, epoch):
 
 	with torch.no_grad():
 		for sent_idx in iterable:
-			sent, tags_dict = test_dataset[sent_idx]
+			sent, splitted_tags_idxs = test_dataset[sent_idx]
 			sent_count += 1  # Counting the sentences (for progress printing)
 
 			# Aggregating the batch examples
-			batch_examples += raw_to_batch_examples(sent, tags_dict, sent_idx)
+			batch_examples += raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx)
 
 			if len(batch_examples) >= BATCH_SIZE:
 				num_of_batches += 1
@@ -323,24 +356,142 @@ def test(model, device, test_dataset):
 	Predicts over the test set, and returns the predictions
 	:param model: the trained model
 	:param device: the device where the computation will be on (cpu or cuda)
-	:param test_dataset: the test set
-	:return: a list of predictions
+	:param test_dataset: the test dataset
+	:return: a dictionary of predictions ({sentence: {(nom, index}: arguments}
 	"""
 
 	model.eval()
+	predictions = {}
 
-	predictions = []
+	random_indexes = np.arange(len(test_dataset))
+	np.random.shuffle(random_indexes)
+	random_indexes = random_indexes[:TEST_LIMIT_SIZE]
 
 	with torch.no_grad():
-		for sent in test_dataset:
-			output = model(sent, device)
+		iterable = tqdm(random_indexes, desc="Testing", leave=False) if show_progress_bar else random_indexes
+		for sent_idx in iterable:
+			if MODEL_NUM == 2:
+				sent, splitted_tags = test_dataset[sent_idx]
+			else: # if MODEL_NUM == 1:
+				if type(test_dataset[sent_idx]) == tuple:
+					sent, _ = test_dataset[sent_idx]
+				else:
+					sent = test_dataset[sent_idx]
 
-			pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-			predictions.append(pred)
+			splitted_sent = sent.split(" ")
+
+			indexed_tokens = tokenizer.convert_tokens_to_ids(splitted_sent)
+			sent_length = len(splitted_sent)
+
+			if MODEL_NUM == 1:
+				batch_indexed_tokens = torch.tensor([indexed_tokens]).to(device)
+				sents_lengths = torch.tensor([sent_length]).to(device)
+
+				# Calling the model to get the output
+				output = model(batch_indexed_tokens, sents_lengths).permute(0, 2, 1)
+
+				# Get the predicted tags for the sentence
+				encoded_pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+				pred_tags = decode_tags(encoded_pred)
+
+				if type(predictions.get(sent, -1)) != dict:
+					predictions[sent] = {}
+
+				# Find the nominalization in the founded tag list
+				nom_idx = -1
+				for i in range(len(pred_tags)):
+					if pred_tags[i] == "NOM":
+						nom_idx = i
+
+				if nom_idx != -1:
+					predictions[sent][(splitted_sent[nom_idx], nom_idx)] = tags_to_arguments(pred_tags, splitted_sent)
+
+			else: # if MODEL_NUM == 2:
+				batch_tags = []
+				sents_lengths = []
+				batch_indexed_tokens = []
+
+				for tags in splitted_tags['-']:
+					batch_tags.append(encode_tags(tags))
+					batch_indexed_tokens.append(indexed_tokens)
+					sents_lengths.append(sent_length)
+
+				batch_tags = torch.tensor(batch_tags).to(device)
+				sents_lengths = torch.tensor(sents_lengths).to(device)
+				batch_indexed_tokens = torch.tensor(batch_indexed_tokens).to(device)
+
+				# Calling the model to get the output
+				outputs = model(batch_indexed_tokens, batch_tags, sents_lengths)
+
+				# Get the predicted tags for the sentence
+				pred_idx = outputs.argmax(keepdim=True)
+				pred_tags = splitted_tags['-'][pred_idx]
+
+				if type(predictions.get(sent, -1)) != dict:
+					predictions[sent] = {}
+
+				# Find the nominalization in the founded tag list
+				nom_idx = -1
+				for i in range(len(pred_tags)):
+					if pred_tags[i] == "NOM":
+						nom_idx = i
+
+				if nom_idx != -1:
+					predictions[sent][(splitted_sent[nom_idx], nom_idx)] = tags_to_arguments(pred_tags, splitted_sent)
 
 	return predictions
 
+def show_graph(x_train_list, x_valid_list, x_label, y_label):
+	"""
+	Shows the graph of the given set (x, y)
+	:param x_train_list: list of data from train
+	:param x_valid_list: list of data from validation
+	:param x_label: the x axis name
+	:param y_label: the y axis name
+	:return: None
+	"""
+	"""
 
+	if type(x_train_list) != list:
+		x_train_list = [x_train_list]
+
+	if type(x_valid_list) != list:
+		x_valid_list = [x_valid_list]
+
+	plt.plot(range(len(x_train_list)), x_train_list, label="Train (" + str(round(x_train_list[-1], 3)) + ")")
+	plt.plot(range(len(x_valid_list)), x_valid_list, label="Validation (" + str(round(x_valid_list[-1], 3)) + ")")
+	plt.xlabel(x_label)
+	plt.ylabel(y_label)
+	plt.legend(loc='upper right')
+	plt.show()
+	"""
+
+
+
+def tags_to_arguments(tags, splitted_sent):
+	"""
+	Translates the given list of tags that is suitable for each word in the given sentence, into dictionary of arguments
+	:param tags: a list of tags
+	:param splitted_sent: a splitted sentence (list of words)
+	:return: a dictionary of arguments
+	"""
+
+	arguments = {}
+	last_tag = ("NONE", "")
+
+	for i in range(len(tags)):
+		if last_tag[0] == tags[i]:
+			if tags[i] != "NONE":
+				last_tag = (last_tag[0], last_tag[1] + " " + splitted_sent[i])
+		else:
+			if last_tag[0] != "NONE":
+				arguments[last_tag[0]] = clean_argument(last_tag[1])
+				if tags[i] != "NONE":
+					last_tag = (tags[i], splitted_sent[i])
+			else:
+				last_tag = (tags[i], splitted_sent[i])
+
+	return arguments
 
 def text_to_tags(sentence, arguments_as_text):
 	"""
@@ -406,47 +557,25 @@ def load_examples_file(file_name):
 
 
 
-def show_graph(x_train_list, x_valid_list, x_label, y_label):
-	"""
-	Shows the graph of the given set (x, y)
-	:param x_train_list: list of data from train
-	:param x_valid_list: list of data from validation
-	:param x_label: the x axis name
-	:param y_label: the y axis name
-	:return: None
-	"""
-	"""
-
-	if type(x_train_list) != list:
-		x_train_list = [x_train_list]
-
-	if type(x_valid_list) != list:
-		x_valid_list = [x_valid_list]
-
-	plt.plot(range(len(x_train_list)), x_train_list, label="Train (" + str(round(x_train_list[-1], 3)) + ")")
-	plt.plot(range(len(x_valid_list)), x_valid_list, label="Validation (" + str(round(x_valid_list[-1], 3)) + ")")
-	plt.xlabel(x_label)
-	plt.ylabel(y_label)
-	plt.legend(loc='upper right')
-	plt.show()
-	"""
-
-
-
-def main(action, train_filename, valid_filename):
+def main(action, name_of_files):
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda" if use_cuda else "cpu")
 	#print(device)
 
 	if MODEL_NUM == 1:
 		model = tagging_model(len(tags_dict.keys()))
+		print("MODEL: tagging model")
 	else: #if MODEL_NUM == 2:
 		model = scoring_model(len(tags_dict.keys()))
+		print("MODEL: scoring model")
 
 	net = torch.nn.DataParallel(model, device_ids=[0,1,2,3]).to(device)
 
 	# There are only two possible actions- train and test
 	if action == "-train":
+		train_filename = name_of_files[0]
+		valid_filename = name_of_files[1]
+
 		train_dataset = load_examples_file(train_filename)
 		valid_dataset = load_examples_file(valid_filename)
 
@@ -483,9 +612,8 @@ def main(action, train_filename, valid_filename):
 			else:
 				tqdm.write(epoch_results_str)
 
-
-			# Saving the trained models
-			torch.save(net.state_dict(), trained_model_filename)
+			# Saving the trained model
+			torch.save(model.state_dict(), trained_model_filename)
 
 			# Saving the losses and the acc scores over training
 			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses", np.array(train_losses))
@@ -493,27 +621,43 @@ def main(action, train_filename, valid_filename):
 			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs", np.array(train_accs))
 			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs", np.array(valid_accs))
 
-		# Getting test results of the trained model
-		#test(model, device, test_loader)
-
 		# Showing the losses and acc graphs, over the number of epochs
 		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")
 		show_graph(train_losses, valid_losses, "Epoch Number", "CTC Loss")
 	elif action == "-test":
+		nomlex_filename = name_of_files[0]
+		test_filename = name_of_files[1]
+
 		# Loading the trained model
 		model.load_state_dict(torch.load(trained_model_filename))
 
+		# Loading test data
+		if os.path.isfile(test_filename):
+			test_data = load_txt_file(test_filename)
+		else:
+			test_data = [test_filename]
+
+		if MODEL_NUM == 2:
+			test_dataset = create_data(nomlex_filename, test_data, write_to_files=False, ignore_right=True)
+		else: # if MODEL_NUM == 1:
+			test_dataset = test_data
+
 		# Getting test results according the trained model
-		#test(model, device, test_loader)
+		print(test(model, device, test_dataset))
 
 if __name__ == '__main__':
 	# command line arguments:
 	#	-train train_filename dev_filename
-	#	-test train_filename dev_filename
+	#	-test nomlex_filename sentence
+	#	-test nomlex_filename test_filename
+	#
+	# Examples:
+	# 	python Learning.py -train learning/train_x00.parsed learning/valid_x00.parsed
+	# 	python Learning.py -test NOMLEX_Data/NOMLEX-plus-only-nom.json "The appointment of Alice by Apple"
 	import sys
 
 	if len(sys.argv) == 4:
-		main(sys.argv[1], sys.argv[2], sys.argv[3])
+		main(sys.argv[1], [sys.argv[2], sys.argv[3]])
 	elif sys.argv[1] == "-graph":
 		# Loading losses and accs files
 		train_losses = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses").tolist()

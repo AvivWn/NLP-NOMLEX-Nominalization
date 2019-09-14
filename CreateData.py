@@ -189,7 +189,7 @@ def tags_to_text(tags):
 	:return: a sentence
 	"""
 
-	tags += ["NONE"] # To make sure that also the last tag is also used
+	tags = tags.copy() + ["NONE"] # To make sure that also the last tag is also used
 	text_tuples = []
 	last_tag = ("NONE", -1)
 
@@ -219,15 +219,17 @@ def write_to_right_file(nom, train_noms, train_file, dev_file, text):
 	"""
 
 	if nom in train_noms:
-		train_file.write(text + "\n")
-		train_file.flush()
+		if train_file:
+			train_file.write(text + "\n")
+			train_file.flush()
 	else:
-		dev_file.write(text + "\n")
-		dev_file.flush()
+		if dev_file:
+			dev_file.write(text + "\n")
+			dev_file.flush()
 
 
 
-def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func):
+def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func, ignore_right=False):
 	"""
 	Creates the suitable examples for the given sentence
 	This function will extract the right and wrong arguments of all the nominalizations in the sentence
@@ -239,23 +241,31 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 	:param dev_file: the file for validation examples (file)
 	:param limited_patterns_func: a function that can reduce the suitable patterns for each nominalization,
 								  based on the dependency tree and the nominalization location (lambda function)
-	:return: None
+	:param ignore_right: ignore the right patterns, only all the patterns are needed
+	:return: All the created examples from the given sentence, without seperation to train and dev ([(sent, [argument])])
 	"""
 
 	splited_sentence = sentence.split(" ")
 
-	# Extracting all the arguments from all the nominalizations in the sentence, using the right patterns (for each nom)
-	right_nom_arguments = extract_args_from_nominal(nomlex_entries, sent=sentence, dependency_tree=dep,
-													keep_arguments_locations=True)
+	right_nom_arguments = {}
 
-	# We must have right arguments in order to continue
-	if right_nom_arguments == {} or all([value == [] for nom, value in right_nom_arguments.items()]):
-		return
+	if not ignore_right:
+		# Extracting all the arguments from all the nominalizations in the sentence, using the right patterns (for each nom)
+		right_nom_arguments = extract_args_from_nominal(nomlex_entries, sent=sentence, dependency_tree=dep,
+														keep_arguments_locations=True)
+
+		# We must have right arguments in order to continue
+		if right_nom_arguments == {} or all([value == [] for nom, value in right_nom_arguments.items()]):
+			return
 
 	# Extracting all the arguments from all the nominalizations in the sentence, using all the possible patterns
 	all_nom_arguments = extract_args_from_nominal(nomlex_entries, sent=sentence, dependency_tree=dep,
 												  keep_arguments_locations=True, get_all_possibilities=True,
 												  limited_patterns_func=limited_patterns_func)
+
+	examples = []
+	right_tags_examples_list = []
+	wrong_tags_examples_list = []
 
 	# Moving over all the nominalization that was found in both extraction
 	# Of course that what was found in "right" was found also in "all"
@@ -276,7 +286,7 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 					right_tags_list.append(right_tags)
 
 		# The tagging is useless without a right list of tags (from NOMLEX)
-		if right_tags_list != []:
+		if right_tags_list != [] or ignore_right:
 			# Check for all the arguments that extracted for that nom (using all patterns)
 			for arguments in arguments_list:
 				curr_tags, found_not_none = arguments_to_tags(sentence, splited_sentence, nom[2], arguments)
@@ -285,6 +295,12 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 					# Each list of arguments start with a sentence
 					if not found_any_arguments:
 						write_to_right_file(nom[0], train_noms, train_file, dev_file, "# " + sentence)
+
+						if right_tags_examples_list != [] or wrong_tags_examples_list != []:
+							examples.append((sentence, {'+':right_tags_examples_list, '-':wrong_tags_examples_list}))
+
+						right_tags_examples_list = []
+						wrong_tags_examples_list = []
 						found_any_arguments = True
 
 					is_subset = False
@@ -299,6 +315,7 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 
 						if not is_subset:
 							write_to_right_file(nom[0], train_noms, train_file, dev_file, "+ " + tags_to_text(curr_tags))
+							right_tags_examples_list.append(curr_tags)
 							right_founded_arguments_list.append(arguments.items())
 					else:
 						# Checking if those arguments aren't a subset of any of the founded arguments (a bigger arguments list)
@@ -309,14 +326,22 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 
 						if not is_subset:
 							write_to_right_file(nom[0], train_noms, train_file, dev_file, "- " + tags_to_text(curr_tags))
+							wrong_tags_examples_list.append(curr_tags)
 							wrong_founded_arguments_list.append(arguments.items())
 
-def create_data(nomlex_file_loc, input_file_loc):
+		if right_tags_examples_list != [] or wrong_tags_examples_list != []:
+			examples.append((sentence, {'+': right_tags_examples_list, '-': wrong_tags_examples_list}))
+
+	return examples
+
+def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=False):
 	"""
 	Creates the data examples (for training), according to the sentence in the given input file
 	:param nomlex_file_loc: a location of a json file with the entries of NOMLEX lexicon
-	:param input_file_loc: a location of a txt file with sentences (which can be already parsed)
-	:return: None
+	:param input_data: a list of sentences, which can be already parsed ([sent] or [(sent, dep)])
+	:param write_to_files: determines if that function will the created examples into relevant file or not
+	:param ignore_right: ignore the right patterns, only all the patterns are needed
+	:return: All the created examples, without seperation to train and dev
 	"""
 
 	DictsAndTables.should_clean = False
@@ -355,15 +380,45 @@ def create_data(nomlex_file_loc, input_file_loc):
 		with open(LEARNING_FILES_LOCATION + "config", "r") as config_file:
 			train_noms = config_file.readlines()[0].split("\t")
 
-	input_file_name = input_file_loc.split("/")[-1]
+	if write_to_files:
+		input_file_name = input_file_loc.split("/")[-1]
 
-	train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
-	dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
+		train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
+		dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
+		description = "Creating data files"
+	else:
+		train_file = None
+		dev_file = None
+		description = "Parsing sentences"
 
-	# Example
-	#sentence = "The appointment of Alice by Apple"
-	#dep = get_dependency(sentence)
-	#create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
+	examples = []
+
+	# Moving over the sentences, and create all the possible examples
+	for x in tqdm(input_data, desc=description, leave=False):
+		# Is the data already parsed?
+		if type(x) == tuple and len(x) == 2:
+			sentence, dep = x
+		else:
+			# Otherwise, we will parse each sentence separately
+			sentence = x
+			dep = get_dependency(x)
+
+		if len(sentence.split(" ")) <= MAX_SENT_SIZE:
+			# Creating all the suitable examples to the current sentence
+			examples += create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func, ignore_right=ignore_right)
+
+	if write_to_files:
+		train_file.close()
+		dev_file.close()
+
+	return examples
+
+
+
+if __name__ == '__main__':
+	import sys
+
+	input_file_loc = sys.argv[2]
 
 	# Loading the data
 	if not os.path.exists(input_file_loc + "_as_list"):
@@ -376,25 +431,7 @@ def create_data(nomlex_file_loc, input_file_loc):
 		with open(input_file_loc + "_as_list", "rb") as patterns_file:
 			input_data = pickle.load(patterns_file)
 
-	# Moving over the sentences
-	for x in tqdm(input_data, desc="Creating data files", leave=True):
-		# Is the data already parsed?
-		if type(x) == tuple and len(x) == 2:
-			sentence, dep = x
-		else:
-			# Otherwise, we will parse each sentence separately
-			sentence = x
-			dep = get_dependency(x)
+	# Example
+	# input_data = ["The appointment of Alice by Apple"]
 
-		if len(sentence.split(" ")) <= MAX_SENT_SIZE:
-			# Creating all the suitable examples to the current sentence
-			create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func)
-
-	train_file.close()
-	dev_file.close()
-
-
-
-if __name__ == '__main__':
-	import sys
-	create_data(sys.argv[1], sys.argv[2])
+	create_data(sys.argv[1], input_data, write_to_files=True)
