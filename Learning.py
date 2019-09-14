@@ -16,7 +16,7 @@ tags_dict = dict([(tag.upper(), i + 4) for i, (tag, _, _) in enumerate(get_suben
 BATCH_SIZE = 64
 TRAIN_LIMIT_SIZE = 10000
 TEST_LIMIT_SIZE = 10000
-MODEL_NUM = 2
+MODEL_NUM = 1
 
 # Hyper Parameters
 num_of_epochs = 10
@@ -33,6 +33,12 @@ show_progress_bar = True
 
 
 def encode_tags(tags):
+	"""
+	Encoding the tags
+	:param tags: a list of tags
+	:return: a list of number (the encoded tags, based on the tags_dict dictionary)
+	"""
+
 	tags_idx = []
 
 	for i in range(len(tags)):
@@ -41,6 +47,14 @@ def encode_tags(tags):
 	return tags_idx
 
 def raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx):
+	"""
+	Translates the raw data into batch examples
+	:param sent: a sentence (str)
+	:param splitted_tags_idxs: a dictionary of list of tags, splitted to right (+) and wrong (-) tags, for the given sentence
+	:param sent_idx: the index of the sentence
+	:return: a list of examples that created from the given data
+	"""
+
 	batch_examples = []
 
 	right_tags_list = splitted_tags_idxs["+"]
@@ -56,17 +70,27 @@ def raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx):
 		batch_examples.append((sent_idx, splitted_sent, right_tags_idxs, len(splitted_sent), True))
 
 	else: #if MODEL_NUM == 2:
-		batch_examples.append((sent_idx, splitted_sent, right_tags_idxs, len(splitted_sent), True))
+		if len(wrong_tags_idxs_list) != 0:
+			batch_examples.append((sent_idx, splitted_sent, right_tags_idxs, len(splitted_sent), True))
 
-		for wrong_tags_idxs in wrong_tags_idxs_list:
-			batch_examples.append((sent_idx, splitted_sent, wrong_tags_idxs, len(splitted_sent), False))
+			for wrong_tags_idxs in wrong_tags_idxs_list:
+				batch_examples.append((sent_idx, splitted_sent, wrong_tags_idxs, len(splitted_sent), False))
 
 	return batch_examples
 
 def forward(batch_examples, model, device):
+	"""
+	The forward process of the model, including aggregating all the losses
+	:param batch_examples: a list of examples
+	:param model: the trained model
+	:param device: the device where the computation will be on (cpu or cuda)
+	:return: the outputs of the model on the examples, and a list of losses based on those examples
+	"""
+
+	# Getting the length of the longest sentence in the batch
 	max_length = max(batch_examples, key=operator.itemgetter(3))[3]
 
-	# Sorting by sentence length first and then by sentence index
+	# Sorting by sentence length first, then by sentence index and finally by right or wrong (right are first)
 	list.sort(batch_examples, key=operator.itemgetter(3, 0, 4), reverse=True)
 
 	# Adding padding to the sentences in the batch
@@ -114,6 +138,7 @@ def forward(batch_examples, model, device):
 
 			# Is it a new sentence, or the last one?
 			if sent_idx != last_sent_idx:
+				# Calculating the loss of the current example
 				if type(other_best_score) == torch.Tensor and type(right_score) == torch.Tensor:
 					loss = torch.Tensor.max(torch.Tensor([0]).to(device),
 											torch.Tensor([1]).to(device) - (right_score - other_best_score))
@@ -129,11 +154,13 @@ def forward(batch_examples, model, device):
 			curr_outputs_for_sent.append(outputs[ex_idx])
 
 			if is_right_tags:
+				# Saving the score of the right prediction
 				right_score = outputs[ex_idx]
 			else:
+				# Saving the score of the other prediction (not right prediction), with the best score
 				if type(other_best_score) != torch.Tensor or \
 						not torch.Tensor.equal(torch.Tensor.max(torch.Tensor([0]).to(device),
-																outputs[ex_idx] - other_best_score[0]), # TODO
+																outputs[ex_idx] - other_best_score),
 											   torch.Tensor([0]).to(device)):
 					other_best_score = outputs[ex_idx]
 
@@ -142,12 +169,20 @@ def forward(batch_examples, model, device):
 	return batch_losses, outputs
 
 def get_acc(batch_examples, outputs):
+	"""
+	Returns the accuracy of the given batch of examples, according to their model's outputs
+	:param batch_examples: a list of batched examples
+	:param outputs: the outputs of the model to those batch examples
+	:return: accuracy score for the given batch
+	"""
+
 	batch_acc = 0
 
 	if MODEL_NUM == 1:
 		preds = outputs.argmax(dim=1, keepdim=True).squeeze(dim=1)  # get the index of the max log-probability
 		preds = preds.cpu().numpy()
 
+		# Counts the right tagging for each example in the batch
 		for i in range(len(preds)):
 			count_right = 0
 
@@ -161,6 +196,7 @@ def get_acc(batch_examples, outputs):
 	else: # if MODEL_NUM == 2:
 		count_right = 0
 
+		# Counts the examples in the batch with the right predicted arguments
 		for (curr_outputs_for_sent, right_score) in outputs:
 			if max(curr_outputs_for_sent) == right_score:
 				count_right += 1
@@ -170,10 +206,11 @@ def get_acc(batch_examples, outputs):
 	return batch_acc
 
 
+
 def train(model, device, train_dataset, optimizer, epoch):
 	"""
 	Trains the model for a single epoch
-	:param model: the model
+	:param model: the trained model
 	:param device: the device where the computation will be on (cpu or cuda)
 	:param train_dataset: the training data
 	:param optimizer: the optimizer that will help training the model
@@ -227,6 +264,7 @@ def valid(model, device, test_dataset, dataset_name, epoch):
 	:param device: the device where the computation will be on (cpu or cuda)
 	:param test_dataset: the validation data
 	:param dataset_name: the name of the dataset (for printing)
+	:param epoch: the number of the current epoch
 	:return: loss, acc score
 	"""
 
@@ -282,11 +320,11 @@ def valid(model, device, test_dataset, dataset_name, epoch):
 
 def test(model, device, test_dataset):
 	"""
-	Predicts over the test set, and writing the results in a suitable file
+	Predicts over the test set, and returns the predictions
 	:param model: the trained model
 	:param device: the device where the computation will be on (cpu or cuda)
 	:param test_dataset: the test set
-	:return: None
+	:return: a list of predictions
 	"""
 
 	model.eval()
@@ -303,7 +341,15 @@ def test(model, device, test_dataset):
 	return predictions
 
 
+
 def text_to_tags(sentence, arguments_as_text):
+	"""
+	Translating the text of arguments from a specific pattern, into a list of tags (a tag for each word in the sentence)
+	:param sentence: the sentence (str)
+	:param arguments_as_text: a text of arguments from a specific pattern
+	:return: a list of tags
+	"""
+
 	splitted_sent = sentence.split(" ")
 	tags = ["NONE"] * len(splitted_sent)
 
@@ -323,6 +369,13 @@ def text_to_tags(sentence, arguments_as_text):
 	return tags
 
 def load_examples_file(file_name):
+	"""
+	Loads a file with examples.
+	The looks like- sentence (starts with #), patterns (starts with + or -) each per line, sentence again, and so on
+	:param file_name: the location of the file
+	:return: The examples loaded from the file
+	"""
+
 	examples = []
 
 	with open(file_name, "r") as file:
@@ -346,78 +399,10 @@ def load_examples_file(file_name):
 
 			splitted_tags_idxs[line[0]] += [encode_tags(tags)]
 
+	# Adding also the last examples
 	examples.append((sent, splitted_tags_idxs))
 
 	return examples
-
-
-
-def main(action, train_filename, valid_filename):
-	use_cuda = torch.cuda.is_available()
-	#print(use_cuda)
-	device = torch.device("cuda" if use_cuda else "cpu")
-	print(device)
-
-	if MODEL_NUM == 1:
-		model = tagging_model(len(tags_dict.keys()))
-	else: #if MODEL_NUM == 2:
-		model = scoring_model(len(tags_dict.keys()))
-
-	net = torch.nn.DataParallel(model, device_ids=[0,1,2,3]).to(device)
-	# There are only two possible actions- train and test
-	if action == "-train":
-		train_dataset = load_examples_file(train_filename)
-		valid_dataset = load_examples_file(valid_filename)
-
-		print("Train set size: ", len(train_dataset))
-		print("Validation set size: ", len(valid_dataset))
-
-		#optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_factor)
-		optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-		train_losses = []
-		train_accs = []
-		valid_losses = []
-		valid_accs = []
-
-		for epoch in range(1, num_of_epochs + 1):
-			# Training the model for an epoch
-			train(net, device, train_dataset, optimizer, epoch)
-			if not show_progress_bar: print("")
-
-			# Validation on train and development sets
-			train_loss, train_acc = valid(net, device, train_dataset, "Train", epoch)
-			train_losses.append(train_loss)
-			train_accs.append(train_acc)
-
-			valid_loss, valid_acc = valid(model, device, valid_dataset, "Validation", epoch)
-			valid_losses.append(valid_loss)
-			valid_accs.append(valid_acc)
-
-			print('Epoch ' + str(epoch) + ' - train loss = {:.4f}, train ACC = {:.3f}, valid loss = {:.4f}, valid ACC = {:.3f}'.format(train_loss, train_acc, valid_loss, valid_acc))
-			if not show_progress_bar: print("")
-
-			# Saving the trained models
-			torch.save(net.state_dict(), trained_model_filename)
-
-			# Saving the losses and the acc scores over training
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses", np.array(train_losses))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses", np.array(valid_losses))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs", np.array(train_accs))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs", np.array(valid_accs))
-
-		# Getting test results of the trained model
-		#test(model, device, test_loader)
-
-		# Showing the losses and acc graphs, over the number of epochs
-		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")
-		show_graph(train_losses, valid_losses, "Epoch Number", "CTC Loss")
-	elif action == "-test":
-		# Loading the trained model
-		model.load_state_dict(torch.load(trained_model_filename))
-
-		# Getting test results according the trained model
-		#test(model, device, test_loader)
 
 
 
@@ -446,13 +431,86 @@ def show_graph(x_train_list, x_valid_list, x_label, y_label):
 	plt.show()
 	"""
 
+
+
+def main(action, train_filename, valid_filename):
+	use_cuda = torch.cuda.is_available()
+	device = torch.device("cuda" if use_cuda else "cpu")
+	#print(device)
+
+	if MODEL_NUM == 1:
+		model = tagging_model(len(tags_dict.keys()))
+	else: #if MODEL_NUM == 2:
+		model = scoring_model(len(tags_dict.keys()))
+
+	net = torch.nn.DataParallel(model, device_ids=[0,1,2,3]).to(device)
+
+	# There are only two possible actions- train and test
+	if action == "-train":
+		train_dataset = load_examples_file(train_filename)
+		valid_dataset = load_examples_file(valid_filename)
+
+		print("Train set size: ", len(train_dataset))
+		print("Validation set size: ", len(valid_dataset))
+
+		#optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_factor)
+		optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+		train_losses = []
+		train_accs = []
+		valid_losses = []
+		valid_accs = []
+
+		for epoch in tqdm(range(1, num_of_epochs + 1), desc="Learning", leave=False):
+			# Training the model for an epoch
+			train(net, device, train_dataset, optimizer, epoch)
+			if not show_progress_bar: print("")
+
+			# Testing on train and validation sets
+			train_loss, train_acc = valid(net, device, train_dataset, "Train", epoch)
+			train_losses.append(train_loss)
+			train_accs.append(train_acc)
+
+			valid_loss, valid_acc = valid(model, device, valid_dataset, "Validation", epoch)
+			valid_losses.append(valid_loss)
+			valid_accs.append(valid_acc)
+
+			epoch_results_str = 'Epoch ' + str(epoch) + ' - train loss = {:.4f}, train ACC = {:.3f}, valid loss = {:.4f}, valid ACC = {:.3f}'.format(train_loss, train_acc, valid_loss, valid_acc)
+
+			if not show_progress_bar:
+				print(epoch_results_str)
+				print("")
+			else:
+				tqdm.write(epoch_results_str)
+
+
+			# Saving the trained models
+			torch.save(net.state_dict(), trained_model_filename)
+
+			# Saving the losses and the acc scores over training
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses", np.array(train_losses))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses", np.array(valid_losses))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs", np.array(train_accs))
+			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs", np.array(valid_accs))
+
+		# Getting test results of the trained model
+		#test(model, device, test_loader)
+
+		# Showing the losses and acc graphs, over the number of epochs
+		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")
+		show_graph(train_losses, valid_losses, "Epoch Number", "CTC Loss")
+	elif action == "-test":
+		# Loading the trained model
+		model.load_state_dict(torch.load(trained_model_filename))
+
+		# Getting test results according the trained model
+		#test(model, device, test_loader)
+
 if __name__ == '__main__':
 	# command line arguments:
 	#	-train train_filename dev_filename
 	#	-test train_filename dev_filename
 	import sys
-
-	print(tags_dict)
 
 	if len(sys.argv) == 4:
 		main(sys.argv[1], sys.argv[2], sys.argv[3])

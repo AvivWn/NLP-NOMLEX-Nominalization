@@ -12,7 +12,7 @@ class tagging_model(nn.Module):
 
 		#self.fc = nn.Linear(768, 100, 100)
 
-		self.lstm = nn.LSTM(input_size=768, hidden_size=50 ,num_layers=1, batch_first=True, bidirectional=True, dropout=0.25)
+		self.lstm = nn.LSTM(input_size=768, hidden_size=50 ,num_layers=2, batch_first=True, bidirectional=True, dropout=0.25)
 
 		self.fc1 = nn.Linear(100, 100, 100)
 		self.fc2 = nn.Linear(100, tagset_size, tagset_size)
@@ -45,10 +45,10 @@ class scoring_model(nn.Module):
 
 		self.tag_embedding = nn.Embedding(tagset_size, tagset_size)
 
-		self.tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-cased', do_basic_tokenize=False)
+		#self.tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-uncased', do_basic_tokenize=False, do_lower_case=False)
 		self.bert = BertModel.from_pretrained('bert-base-uncased')
 
-		self.lstm = nn.LSTM(input_size=768 + tagset_size, hidden_size=150 ,num_layers=1, batch_first=True, bidirectional=True, dropout=0.25)
+		self.lstm = nn.LSTM(input_size=768 + tagset_size, hidden_size=150 ,num_layers=2, batch_first=True, bidirectional=True, dropout=0.25)
 
 		self.fc1 = nn.Linear(300, 100, 100)
 		self.fc2 = nn.Linear(100, 1, 1)
@@ -72,6 +72,7 @@ class scoring_model(nn.Module):
 			num_directions = 1
 
 		packed_out = torch.nn.utils.rnn.pack_padded_sequence(conditioned_bert, sents_lengths, batch_first=True)
+		self.lstm.flatten_parameters()
 		lstm_out = self.lstm(packed_out)[1][0]
 
 		# Rearranging lstm output (we want only the last hidden state of the last layer)
