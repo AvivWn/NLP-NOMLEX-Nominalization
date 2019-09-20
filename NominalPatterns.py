@@ -283,10 +283,10 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 
 			# Is the nominalization itself has a role in the sentence, rather than replacing the verb (= action)
 			# Here we ignore cases that NOM-TYPE is SUBJECT + OBJECT or SUBJECT\OBJECT + VERB-NOM
-			if tmp_pattern["subject"] == "NOM"\
+			if ("subject" in tmp_pattern.keys() and tmp_pattern["subject"] == "NOM") \
 					or ("NOM-TYPE" in nom_entry.keys() and list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"]):
 				curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
-			elif tmp_pattern["object"] == "NOM"\
+			elif ("object" in tmp_pattern.keys() and tmp_pattern["subject"] == "NOM") \
 					or ("NOM-TYPE" in nom_entry.keys() and list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"]):
 				curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
 

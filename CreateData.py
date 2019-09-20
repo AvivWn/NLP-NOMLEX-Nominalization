@@ -427,11 +427,13 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 
 if __name__ == '__main__':
 	import sys
-	# command line arguments:
-	#	nomlex_filename input_filename
-	#
-	# Examples:
-	#	python CreateData.py NOMLEX_Data/NOMLEX-plus-only-nom.json ../data/x00.parsed
+	"""
+	command line arguments:
+		nomlex_filename input_filename
+	
+	Examples:
+		python CreateData.py NOMLEX_Data/NOMLEX-plus-only-nom.json ../data/x00.parsed
+	"""
 
 	input_file_loc = sys.argv[2]
 

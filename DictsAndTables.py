@@ -24,7 +24,7 @@ subcats_counts = {}
 all_noms = {}
 all_noms_backwards = {}
 
-redundant_subcast = ["NOM-INTRANS", "NOM-INTRANS-RECIP"]
+redundant_subcast = ["NOM-INTRANS", "NOM-INTRANS-RECIP"] # [] (for a perfect test run)
 
 
 
