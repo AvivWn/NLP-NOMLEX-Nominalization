@@ -75,7 +75,7 @@ def verb_module(nomlex_entries, inputs):
 
 	for i in random_indexes:
 		arranged_print(inputs[i])
-		seperate_line_print(verbal_to_nominal(nomlex_entries, inputs[i]))
+		separate_line_print(verbal_to_nominal(nomlex_entries, inputs[i]))
 		arranged_print("")
 
 		num_of_checked_sentences += 1
@@ -102,7 +102,7 @@ def nom_moudle(nomlex_entries, inputs):
 	# In case of big amount of data, extract the patterns for each nominalization in the given lexicon before
 	if total_num_of_sentences > 1:
 		limited_noms_dict = extract_nom_patterns(nomlex_entries)
-		limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, [])
+		limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, ([],[]))[1]
 
 	for i in random_indexes:
 		if type(inputs[i]) == tuple:  # Input is already parsed
@@ -116,7 +116,7 @@ def nom_moudle(nomlex_entries, inputs):
 			print_as_dataset(sent, noms_arguments_list)
 		else:
 			arranged_print(sent)
-			seperate_line_print(noms_arguments_list)
+			separate_line_print(noms_arguments_list)
 			arranged_print("")
 
 		num_of_checked_sentences += 1
@@ -241,6 +241,6 @@ if __name__ == '__main__':
 	import DictsAndTables
 	from collections import Counter
 	from DictsAndTables import comlex_table, \
-							   seperate_line_print, arranged_print, print_as_dataset, get_all_of_noms
+							   separate_line_print, arranged_print, print_as_dataset, get_all_of_noms
 
 	main(args)

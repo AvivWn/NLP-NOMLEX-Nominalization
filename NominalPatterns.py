@@ -183,9 +183,9 @@ def extract_argument(dep_tree, dep_links, dep_curr_index):
 		# The argument is the appropriate sentence to the subtree rooted at the current index in the tree
 		arg = dep_tree[dep_curr_index][9]
 
+		# Fixing the first index to the right one (based on the argument text)
 		first_index = dep_tree[dep_curr_index][0] - 1
-
-		while dep_tree[first_index][1] != arg.split(" ")[0]:
+		while first_index != 0 and dep_tree[first_index][1].lower() != arg.split(" ")[0].lower():
 			first_index -= 1
 
 		return [(first_index, arg)]
@@ -248,7 +248,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 	"""
 
 	# Getting the nominalization patterns using the nomlex lexicon
-	if not patterns:
+	if not patterns and patterns != []:
 		patterns = get_nom_patterns(nom_entry)
 
 	total_arguments = []
@@ -283,9 +283,11 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 
 			# Is the nominalization itself has a role in the sentence, rather than replacing the verb (= action)
 			# Here we ignore cases that NOM-TYPE is SUBJECT + OBJECT or SUBJECT\OBJECT + VERB-NOM
-			if list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"] and tmp_pattern["subject"] == "NOM":
+			if tmp_pattern["subject"] == "NOM"\
+					or ("NOM-TYPE" in nom_entry.keys() and list(nom_entry["NOM-TYPE"].keys()) == ["SUBJECT"]):
 				curr_arguments["subject"] = (-1, -1, dependency_tree[nom_index][1])
-			elif list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"] and tmp_pattern["object"] == "NOM":
+			elif tmp_pattern["object"] == "NOM"\
+					or ("NOM-TYPE" in nom_entry.keys() and list(nom_entry["NOM-TYPE"].keys()) == ["OBJECT"]):
 				curr_arguments["object"] = (-1, -1, dependency_tree[nom_index][1])
 
 			# Moving over each dependency links sequence that was found
@@ -476,7 +478,7 @@ def extract_args_from_nominal(nomlex_entries, sent="", dependency_tree=None,
 		if not limited_patterns_func:
 			possible_args = get_arguments(dependency_tree, nom_entry, nom_index)
 		else:
-			limited_patterns = limited_patterns_func(dependency_tree, nom_index, nom[0])
+			limited_patterns = limited_patterns_func(dependency_tree, nom_index, nom)
 			possible_args = get_arguments(dependency_tree, nom_entry, nom_index, patterns=limited_patterns)
 
 		best_args = possible_args

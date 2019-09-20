@@ -5,12 +5,15 @@ from allennlp.predictors.constituency_parser import ConstituencyParserPredictor
 from nltk.stem import WordNetLemmatizer
 from collections import defaultdict
 import inflect
+import logging
+
+logging.disable(logging.INFO)
 inflect_engine = inflect.engine()
 predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 import DictsAndTables
 from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det, redundant_subcast,\
-						   seperate_line_print, get_adj
+						   separate_line_print, get_adj
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import get_dependency, clean_argument
 
@@ -402,6 +405,9 @@ def process_sentence(sent):
 	if sent.endswith("]."):
 		sent = sent[:-1] + " ."
 
+	if sent.endswith("."):
+		sent = sent[:-1] + " ."
+
 	if sent == "":
 		return []
 
@@ -493,7 +499,7 @@ def process_sentence(sent):
 		new_possible_arguments.append(new_arguments)
 
 
-	seperate_line_print(new_possible_arguments)
+	separate_line_print(new_possible_arguments)
 	#seperate_line_print(possible_arguments)
 
 	return possible_arguments_pairs

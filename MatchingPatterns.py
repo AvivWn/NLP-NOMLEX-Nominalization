@@ -5,7 +5,7 @@ import DictsAndTables
 from collections import defaultdict
 
 from DictsAndTables import subentries_table, comlex_subcats, special_preps_dict, print_as_dataset,\
-						   seperate_line_print, arranged_print
+						   separate_line_print, arranged_print
 from VerbalPatterns import extract_args_from_verbal
 from NominalPatterns import extract_args_from_nominal
 
@@ -101,7 +101,7 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 				limited_noms_dict[nom] = (clean_nom, limited_noms_dict[nom][1] + patterns)
 				verb_arguments_for_noms[nom] += [(arguments, matching_names)]
 
-	limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, [])
+	limited_patterns_func = lambda dep_tree, nom_index, nom: limited_noms_dict.get(nom, ([],[]))[1]
 
 	# Use a random order of the nominal sentences (if needed)
 	random_indexes = np.arange(len(nominal_sentences))
@@ -135,7 +135,7 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 
 		# For each nominal sentence, moving each nominalization that was found
 		for nom, possible_nom_arguments in noms_arguments.items():
-			for verb_arguments, matching_names in verb_arguments_for_noms[nom[0]]:
+			for verb_arguments, matching_names in verb_arguments_for_noms.get(nom[0], []):
 				verb_arguments = clean_pattern(verb_arguments.copy())
 				current_matching_patterns = []
 
@@ -190,7 +190,7 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 			else:
 				# Printing results
 				arranged_print("'" + nominal_sentence_str + "'")
-				seperate_line_print(curr_matching_noms)
+				separate_line_print(curr_matching_noms)
 				if len(nominal_sentences) != 1:
 					arranged_print("")
 

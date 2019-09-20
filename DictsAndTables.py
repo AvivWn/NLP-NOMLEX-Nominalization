@@ -581,7 +581,7 @@ def arranged_print(input_to_print):
 		if output_loc != sys.stdout and should_print_to_screen:
 			print(input_to_print)
 
-def seperate_line_print(input_to_print, indent_level=0):
+def separate_line_print(input_to_print, indent_level=0):
 	if should_print:
 		indentation_str = ""
 		for _ in range(indent_level):
@@ -598,7 +598,7 @@ def seperate_line_print(input_to_print, indent_level=0):
 			for tag, x in input_to_print.items():
 				if x != []: # Print only if it is not an empty list (meaning only if it is worth printing)
 					arranged_print(str(indentation_str) + str(tag) + ": ")
-					seperate_line_print(x, indent_level + 1)
+					separate_line_print(x, indent_level + 1)
 
 def print_as_dataset(sentence, noms_arguments_list):
 	if should_print:

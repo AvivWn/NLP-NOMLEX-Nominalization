@@ -15,7 +15,7 @@ from NomlexExtractor import load_txt_file
 # Constants
 PART_OF_NOM_FOR_TRAIN = 0.8
 LEARNING_FILES_LOCATION = "learning/"
-MAX_SENT_SIZE = 150
+MAX_SENT_SIZE = 50
 
 
 
@@ -256,7 +256,7 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 
 		# We must have right arguments in order to continue
 		if right_nom_arguments == {} or all([value == [] for nom, value in right_nom_arguments.items()]):
-			return
+			return []
 
 	# Extracting all the arguments from all the nominalizations in the sentence, using all the possible patterns
 	all_nom_arguments = extract_args_from_nominal(nomlex_entries, sent=sentence, dependency_tree=dep,
@@ -334,14 +334,15 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 
 	return examples
 
-def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=False):
+def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=False, use_catvar=False):
 	"""
 	Creates the data examples (for training), according to the sentence in the given input file
 	:param nomlex_file_loc: a location of a json file with the entries of NOMLEX lexicon
 	:param input_data: a list of sentences, which can be already parsed ([sent] or [(sent, dep)])
 	:param write_to_files: determines if that function will the created examples into relevant file or not
-	:param ignore_right: ignore the right patterns, only all the patterns are needed
-	:return: All the created examples, without seperation to train and dev
+	:param ignore_right: determines whether the right patterns should be ignored. all the patterns are legitimate
+	:param use_catvar: determines whether to use the catvar lexicon or not (which means more nominalizations, good for test and bad for train)
+	:return: All the created examples, without seperation to train and dev (list)
 	"""
 
 	DictsAndTables.should_clean = False
@@ -351,6 +352,15 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 		nomlex_entries = json.load(nomlex_file)
 
 	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
+
+	# Updating nomlex entries with new pseudo-entries based on the catvar lexicon
+	if use_catvar:
+		for verb, noms in DictsAndTables.catvar_dict.items():
+			for nom in noms:
+				if nom not in DictsAndTables.all_noms_backwards.keys():
+					nomlex_entries[nom] = {"ORTH": nom, "VERB": verb}
+
+		DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
 
 	# Aggregating all the patterns in the lexicon
 	unique_patterns = aggregate_patterns(extract_nom_patterns(nomlex_entries))
@@ -381,10 +391,10 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 			train_noms = config_file.readlines()[0].split("\t")
 
 	if write_to_files:
-		input_file_name = input_file_loc.split("/")[-1]
+		input_file_name = input_file_loc.split("/")[-1].split(".")[0]
 
-		train_file = open(LEARNING_FILES_LOCATION + "train_" + input_file_name, "w+")
-		dev_file = open(LEARNING_FILES_LOCATION + "valid_" + input_file_name, "w+")
+		train_file = open(LEARNING_FILES_LOCATION + input_file_name + "_train", "w+")
+		dev_file = open(LEARNING_FILES_LOCATION + input_file_name + "_valid", "w+")
 		description = "Creating data files"
 	else:
 		train_file = None
@@ -417,6 +427,11 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 
 if __name__ == '__main__':
 	import sys
+	# command line arguments:
+	#	nomlex_filename input_filename
+	#
+	# Examples:
+	#	python CreateData.py NOMLEX_Data/NOMLEX-plus-only-nom.json ../data/x00.parsed
 
 	input_file_loc = sys.argv[2]
 
