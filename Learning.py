@@ -1,41 +1,38 @@
 import os
 import operator
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import pickle
+import random
 from tqdm import tqdm
 from collections import defaultdict
-#from matplotlib import pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
 
+import DictsAndTables
 import CreateData
-from DictsAndTables import get_subentries_table
 from Model import tagging_model, scoring_model
 from NomlexExtractor import load_txt_file
 from CreateData import create_data
 from NominalPatterns import clean_argument
-
-# Constants
-BATCH_SIZE = 50
-TRAIN_LIMIT_SIZE = 10000
-TEST_LIMIT_SIZE = 10000
-MODEL_NUM = 2
-
-# Hyper Parameters
-num_of_epochs = 10
-learning_rate = 0.001
-momentum_factor = 0.75
-
-tags_dict = dict([(tag.upper(), i + 4) for i, (tag, _, _) in enumerate(get_subentries_table())] + [("NONE", 0), ("NOM", 1), ("NOM_SUBJECT", 2), ("NOM_OBJECT", 3)])
-backward_tags_dict = dict([(i + 4, tag.upper()) for i, (tag, _, _) in enumerate(get_subentries_table())] + [(0, "NONE"), (1, "NOM"), (2, "NOM_SUBJECT"), (3, "NOM_OBJECT")])
+from Model import MODEL_NUM, hyper_params
 
 tokenizer = torch.hub.load('huggingface/pytorch-pretrained-BERT', 'bertTokenizer', 'bert-base-cased', do_basic_tokenize=False, do_lower_case=False)
 
-model_name = "tagging_model" if MODEL_NUM == 1 else "scoring_model"
-trained_model_filename = CreateData.LEARNING_FILES_LOCATION + "trained_" + model_name
+# Constants
+NUM_OF_EXAMPLES_TILL_TEST = 10000
 
-show_progress_bar = True
-ignore_none_preds = True
+comment = " ".join(sorted([param + "=" + str(value) for param, value in hyper_params.items()]))
+tb_writer = SummaryWriter(comment=comment)
+trained_model_filename = CreateData.LEARNING_FILES_LOCATION + "/trained_model " + comment
+tags_dict_filename = CreateData.LEARNING_FILES_LOCATION + "tags_dict " + comment
+print(comment)
+
+tags_dict = {}
+backward_tags_dict = {}
+testing_idx = 1
+model = None
+constant_testing_indexes = []
 
 
 
@@ -45,68 +42,40 @@ def encode_tags(tags):
 	:param tags: a list of tags
 	:return: a list of numbers (the encoded tags, based on the tags_dict dictionary)
 	"""
+	global tags_dict
 
 	tags_idxs = []
 
 	for i in range(len(tags)):
-		tags_idxs.append(tags_dict.get(tags[i], -1))
+		# Updating the tags dictionary while encoding
+		if tags[i] not in tags_dict.keys():
+			new_index = len(tags_dict.keys())
+			tags_dict[tags[i]] = new_index
+
+		tags_idxs.append(tags_dict[tags[i]])
 
 	return tags_idxs
 
 def decode_tags(tags_idxs):
 	"""
-	Decoding the encoding tags
+	Decoding the encoded tags
 	:param tags_idxs: a list of encoded tags
-	:return: a list of strings (the tags names, based on the tags_dict dictionary)
+	:return: a list of strings (the tags names, based on the inverted tags_dict dictionary)
 	"""
 
 	tags = []
 
 	for i in range(len(tags_idxs)):
-		tags.append(backward_tags_dict.get(tags_idxs, ""))
+		tags.append(backward_tags_dict[tags_idxs[i]])
 
 	return tags
 
 
 
-def raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx):
-	"""
-	Translates the raw data into batch examples
-	:param sent: a sentence (str)
-	:param splitted_tags_idxs: a dictionary of list of tags, splitted to right (+) and wrong (-) tags, for the given sentence
-	:param sent_idx: the index of the sentence
-	:return: a list of examples that created from the given data
-	"""
-
-	batch_examples = []
-
-	right_tags_list = splitted_tags_idxs["+"]
-
-	if len(right_tags_list) == 0:
-		return []
-
-	right_tags_idxs = splitted_tags_idxs["+"][0]
-	wrong_tags_idxs_list = splitted_tags_idxs["-"]
-	splitted_sent = sent.split(" ")
-
-	if MODEL_NUM == 1:
-		batch_examples.append((sent_idx, splitted_sent, right_tags_idxs, len(splitted_sent), True))
-
-	else: #if MODEL_NUM == 2:
-		if len(wrong_tags_idxs_list) != 0:
-			batch_examples.append((sent_idx, splitted_sent, right_tags_idxs, len(splitted_sent), True))
-
-			for wrong_tags_idxs in wrong_tags_idxs_list:
-				batch_examples.append((sent_idx, splitted_sent, wrong_tags_idxs, len(splitted_sent), False))
-
-	return batch_examples
-
-def forward(batch_examples, model, device):
+def padding_by_batch(batch_examples):
 	"""
 	The forward process of the model, including aggregating all the losses
 	:param batch_examples: a list of examples
-	:param model: the trained model
-	:param device: the device where the computation will be on (cpu or cuda)
 	:return: the outputs of the model on the examples, and a list of losses based on those examples
 	"""
 
@@ -130,189 +99,113 @@ def forward(batch_examples, model, device):
 		padded_batch_indexed_tokens.append(tokenizer.convert_tokens_to_ids(padded_batch_sent))
 
 	# Transform the inputs into tensors, before give it to the model
-	padded_batch_indexed_tokens = torch.tensor(padded_batch_indexed_tokens).to(device)
-	sents_lengths = torch.tensor(sents_lengths).to(device)
+	padded_batch_indexed_tokens = torch.tensor(padded_batch_indexed_tokens).to(hyper_params["device"])
+	padded_batch_tags = torch.tensor(padded_batch_tags).to(hyper_params["device"])
+	sents_lengths = torch.tensor(sents_lengths).to(hyper_params["device"])
 
-	batch_losses = []
+	return padded_batch_indexed_tokens, padded_batch_tags, sents_lengths
 
-	# Calculating loss differenty for each model
-	if MODEL_NUM == 1:
-		# Calling the model to get the output
-		outputs = model(padded_batch_indexed_tokens, sents_lengths).permute(0, 2, 1)
-
-		# Calculating the loss
-		padded_batch_tags = torch.Tensor(padded_batch_tags).long().to(device)
-		batch_losses.append(torch.nn.functional.nll_loss(outputs, padded_batch_tags))
-	else: #if MODEL_NUM == 2:
-		padded_batch_tags = torch.tensor(padded_batch_tags).to(device)
-
-		# Calling the model to get the output
-		outputs = model(padded_batch_indexed_tokens, padded_batch_tags, sents_lengths)
-
-		right_score = None
-		other_best_score = None
-		last_sent_idx = -1
-
-		output_by_sents = []
-		curr_outputs_for_sent = []
-
-		for ex_idx in range(len(batch_examples)):
-			sent_idx, splitted_sent, tags_idx, sent_length, is_right_tags = batch_examples[ex_idx]
-
-			if last_sent_idx == -1:
-				last_sent_idx = sent_idx
-
-			# Is it a new sentence, or the last one?
-			if sent_idx != last_sent_idx:
-				# Calculating the loss of the current example
-				if type(other_best_score) == torch.Tensor and type(right_score) == torch.Tensor:
-					loss = torch.Tensor.max(torch.Tensor([0]).to(device),
-											torch.Tensor([1]).to(device) - (right_score - other_best_score))
-					batch_losses.append(loss)
-
-				output_by_sents.append((curr_outputs_for_sent, right_score))
-
-				last_sent_idx = sent_idx
-				right_score = None
-				other_best_score = None
-				curr_outputs_for_sent = []
-
-			curr_outputs_for_sent.append(outputs[ex_idx])
-
-			if is_right_tags:
-				# Saving the score of the right prediction
-				right_score = outputs[ex_idx]
-			else:
-				# Saving the score of the other prediction (not right prediction), with the best score
-				if type(other_best_score) != torch.Tensor or \
-						not torch.Tensor.equal(torch.Tensor.max(torch.Tensor([0]).to(device),
-																outputs[ex_idx] - other_best_score),
-											   torch.Tensor([0]).to(device)):
-					other_best_score = outputs[ex_idx]
-
-		outputs = output_by_sents
-
-	return batch_losses, outputs
-
-def get_acc(batch_examples, outputs):
-	"""
-	Returns the accuracy of the given batch of examples, according to their model's outputs
-	:param batch_examples: a list of batched examples
-	:param outputs: the outputs of the model to those batch examples
-	:return: accuracy score for the given batch
-	"""
-
-	batch_acc = 0
-
-	if MODEL_NUM == 1:
-		preds = outputs.argmax(dim=1, keepdim=True).squeeze(dim=1)  # get the index of the max log-probability
-		preds = preds.cpu().numpy()
-
-		# Counts the right tagging for each example in the batch
-		for i in range(len(preds)):
-			count_right = 0
-			count_wrong = 0
-
-			for j in range(len(batch_examples[i][2])):
-				if preds[i][j] == batch_examples[i][2][j]:
-					# Ignoring NONE predicitons, if needed
-					if preds[i][j] != 0 or not ignore_none_preds:
-						count_right += 1
-				else:
-					count_wrong += 1
-
-			batch_acc += count_right / (count_right + count_wrong)
-
-		batch_acc /= len(batch_examples)
-	else: # if MODEL_NUM == 2:
-		count_right = 0
-
-		# Counts the examples in the batch with the right predicted arguments
-		for (curr_outputs_for_sent, right_score) in outputs:
-			if max(curr_outputs_for_sent) == right_score:
-				count_right += 1
-
-		batch_acc = count_right / len(outputs)
-
-	return batch_acc
-
-
-
-def train(model, device, train_dataset, optimizer, epoch):
+def train(net, train_dataset, valid_dataset, optimizer, epoch):
 	"""
 	Trains the model for a single epoch
-	:param model: the trained model
-	:param device: the device where the computation will be on (cpu or cuda)
+	:param net: the trained model as dataparallel
 	:param train_dataset: the training data
+	:param valid_dataset: the validation data
 	:param optimizer: the optimizer that will help training the model
 	:param epoch: the number of the current epoch
 	:return: None
 	"""
+	global testing_idx
 
-	model.train()
+	net.train()
+	model.reset_model()
 
 	random_indexes = np.arange(len(train_dataset))
 	np.random.shuffle(random_indexes)
-	random_indexes = random_indexes[:TRAIN_LIMIT_SIZE]
 
 	sent_count = 0
-	batch_examples = []
 
 	default_desc = 'Epoch ' + str(epoch) + ' [Training]'
-	iterable = tqdm(random_indexes, desc=default_desc, leave=False) if show_progress_bar else random_indexes
+	iterable = tqdm(random_indexes, desc=default_desc, leave=False)
 
 	for sent_idx in iterable:
 		sent, splitted_tags_idxs = train_dataset[sent_idx]
 		sent_count += 1 # Counting the sentences (for progress printing)
 
 		# Aggregating the batch examples
-		batch_examples += raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx)
+		is_full_batch = model.aggregate_batch(sent, splitted_tags_idxs, sent_idx)
 
-		if len(batch_examples) >= BATCH_SIZE:
+		# Forward and backward for each batch separately
+		if is_full_batch:
 			optimizer.zero_grad()
+			outputs = None
 
-			# Calculatin the losses of the examples in the batch
-			batch_losses, _ = forward(batch_examples, model, device)
+			# Forward
+			padded_batch_inputs = padding_by_batch(model.batch_examples)
+			try:
+				outputs = net(padded_batch_inputs)
+			except RuntimeError:
+				with open("errors", "a") as errors_file:
+					errors_file.write(str(padded_batch_inputs[0].shape) + "\n")
+					errors_file.write(str(padded_batch_inputs[1].shape) + "\n")
+					errors_file.write(str(padded_batch_inputs[2].shape) + "\n")
+					errors_file.write(str(padded_batch_inputs[3]) + "\n")
+					errors_file.write(str(padded_batch_inputs[4]) + "\n")
+					errors_file.write(str(padded_batch_inputs[5]) + "\n")
+					errors_file.write(str(model.batch_examples) + "\n")
+					errors_file.write(str(sent_count) + "\n")
+					errors_file.write(str(sent_idx) + "\n\n")
 
-			# If there was any positive loss, propogate it and update the model
-			if batch_losses != []:
-				loss = sum(batch_losses).to(device) / len(batch_losses)
+			if type(outputs) == torch.Tensor:
+				model.batch_outputs = outputs
+
+				# Backward
+				loss = model.get_loss(outputs, padded_batch_inputs)
 				loss.backward()
 				optimizer.step()
 
-				if show_progress_bar:
-					iterable.set_description(default_desc + ' - Loss = {:.6f}'.format(loss.item()))
-					iterable.refresh()
-				else:
-					print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-						epoch, sent_count, len(random_indexes),
-						100. * sent_count / len(random_indexes), loss.item()))
+				iterable.set_description(default_desc + ' - Loss = {:.6f}'.format(loss.item()))
+				iterable.refresh()
 
-			batch_examples = []
+			model.batch_examples = model.next_examples
 
-def valid(model, device, test_dataset, dataset_name, epoch):
+		if sent_count % NUM_OF_EXAMPLES_TILL_TEST == 0:
+			validate_model(net, train_dataset, valid_dataset, epoch=epoch)
+			testing_idx += 1
+			net.train()
+
+	model.reset_model()
+
+def valid(net, test_dataset, dataset_name, epoch, testing_count, test_on_random=False):
 	"""
 	Checks the prediction of the model over the validaiton data
-	:param model: the trained model
-	:param device: the device where the computation will be on (cpu or cuda)
+	:param net: the trained model as dataparallel
 	:param test_dataset: the validation data
 	:param dataset_name: the name of the dataset (for printing)
 	:param epoch: the number of the current epoch
+	:param testing_count: the number of the current testing (in train, for printing)
+	:param test_on_random: determine whether we will test on random indexes
 	:return: loss, acc score
 	"""
 
-	model.eval()
+	net.eval()
+	model.reset_model()
+
 	test_loss = 0
 	test_acc = 0
 
-	random_indexes = np.arange(len(test_dataset))[:TEST_LIMIT_SIZE]
-	np.random.shuffle(random_indexes)
+	if test_on_random:
+		random_indexes = np.arange(len(test_dataset))
+		np.random.shuffle(random_indexes)
+		indexes = random_indexes[:hyper_params["test_limit"]]
+	else:
+		indexes = constant_testing_indexes.copy()
+
 	sent_count = 0
-	batch_examples = []
 	num_of_batches = 0
 
-	default_desc = 'Epoch ' + str(epoch) + ' [' + dataset_name + ' test]'
-	iterable = tqdm(random_indexes, desc=default_desc, leave=False) if show_progress_bar else random_indexes
+	default_desc = 'Epoch ' + str(epoch) + ' [' + dataset_name + ' test ' + str(testing_count) + ']'
+	iterable = tqdm(indexes, desc=default_desc, leave=False)
 
 	with torch.no_grad():
 		for sent_idx in iterable:
@@ -320,55 +213,69 @@ def valid(model, device, test_dataset, dataset_name, epoch):
 			sent_count += 1  # Counting the sentences (for progress printing)
 
 			# Aggregating the batch examples
-			batch_examples += raw_to_batch_examples(sent, splitted_tags_idxs, sent_idx)
+			is_full_batch = model.aggregate_batch(sent, splitted_tags_idxs, sent_idx)
 
-			if len(batch_examples) >= BATCH_SIZE:
+			# Forward and backward for each batch separately
+			if is_full_batch:
 				num_of_batches += 1
+				outputs = None
 
-				# Calculatin the losses of the examples in the batch
-				batch_losses, outputs = forward(batch_examples, model, device)
+				# Forward
+				padded_batch_inputs = padding_by_batch(model.batch_examples)
+				try:
+					outputs = net(padded_batch_inputs)
+				except RuntimeError:
+					with open("errors", "a") as errors_file:
+						errors_file.write(str(padded_batch_inputs[0].shape) + "\n")
+						errors_file.write(str(padded_batch_inputs[1].shape) + "\n")
+						errors_file.write(str(padded_batch_inputs[2].shape) + "\n")
+						errors_file.write(str(padded_batch_inputs[3]) + "\n")
+						errors_file.write(str(padded_batch_inputs[4]) + "\n")
+						errors_file.write(str(padded_batch_inputs[5]) + "\n")
+						errors_file.write(str(model.batch_examples) + "\n")
+						errors_file.write(str(sent_count) + "\n")
+						errors_file.write(str(sent_idx) + "\n\n")
+						errors_file.write(str(model.batch_examples))
 
-				# If there was any positive loss, propogate it and update the model
-				if batch_losses != []:
-					loss = sum(batch_losses).to(device) / len(batch_losses)
+				if type(outputs) == torch.Tensor:
+					model.batch_outputs = outputs
 
-					# Sum up current loss
-					current_loss = loss.item()
-					test_loss += current_loss
+					# Calculate Loss
+					loss = model.get_loss(outputs, padded_batch_inputs)
+					test_loss += loss.item()
 
-					# Calculate the accuracy of the batch
-					current_acc = get_acc(batch_examples, outputs)
-					test_acc += current_acc
+					# Calculate ACC
+					acc = model.get_acc(model.batch_examples, model.batch_outputs)
+					test_acc += acc
 
-					if show_progress_bar:
-						iterable.set_description(default_desc + ' - loss = {:.6f}, ACC = {:.3f}'.format(loss.item(), current_acc))
-						iterable.refresh()
+					iterable.set_description(default_desc + ' - loss = {:.6f}, ACC = {:.3f}'.format(loss.item(), acc))
+					iterable.refresh()
 
-				batch_examples = []
+				model.batch_examples = model.next_examples
 
 	test_loss /= num_of_batches
 	test_acc /= num_of_batches
 
+	model.reset_model()
+
 	return test_loss, test_acc
 
-def test(model, device, test_dataset):
+def test(model, test_dataset):
 	"""
 	Predicts over the test set, and returns the predictions
 	:param model: the trained model
-	:param device: the device where the computation will be on (cpu or cuda)
 	:param test_dataset: the test dataset
-	:return: a dictionary of predictions ({sentence: {(nom, index}: arguments}
+	:return: a dictionary of predictions ({sentence: {(nom, index}: arguments})
 	"""
 
 	model.eval()
 	predictions = {}
+	model.reset_model()
 
-	random_indexes = np.arange(len(test_dataset))
-	np.random.shuffle(random_indexes)
-	random_indexes = random_indexes[:TEST_LIMIT_SIZE]
+	DictsAndTables.should_clean = True
 
 	with torch.no_grad():
-		iterable = tqdm(random_indexes, desc="Testing", leave=False) if show_progress_bar else random_indexes
+		iterable = tqdm(range(len(test_dataset)), desc="Testing", leave=False)
 		for sent_idx in iterable:
 			if MODEL_NUM == 2:
 				sent, splitted_tags = test_dataset[sent_idx]
@@ -384,8 +291,8 @@ def test(model, device, test_dataset):
 			sent_length = len(splitted_sent)
 
 			if MODEL_NUM == 1:
-				batch_indexed_tokens = torch.tensor([indexed_tokens]).to(device)
-				sents_lengths = torch.tensor([sent_length]).to(device)
+				batch_indexed_tokens = torch.tensor([indexed_tokens]).to(hyper_params["device"])
+				sents_lengths = torch.tensor([sent_length]).to(hyper_params["device"])
 
 				# Calling the model to get the output
 				output = model(batch_indexed_tokens, sents_lengths).permute(0, 2, 1)
@@ -416,9 +323,9 @@ def test(model, device, test_dataset):
 					batch_indexed_tokens.append(indexed_tokens)
 					sents_lengths.append(sent_length)
 
-				batch_tags = torch.tensor(batch_tags).to(device)
-				sents_lengths = torch.tensor(sents_lengths).to(device)
-				batch_indexed_tokens = torch.tensor(batch_indexed_tokens).to(device)
+				batch_tags = torch.tensor(batch_tags).to(hyper_params["device"])
+				sents_lengths = torch.tensor(sents_lengths).to(hyper_params["device"])
+				batch_indexed_tokens = torch.tensor(batch_indexed_tokens).to(hyper_params["device"])
 
 				# Calling the model to get the output
 				outputs = model(batch_indexed_tokens, batch_tags, sents_lengths)
@@ -433,38 +340,15 @@ def test(model, device, test_dataset):
 				# Find the nominalization in the founded tag list
 				nom_idx = -1
 				for i in range(len(pred_tags)):
-					if pred_tags[i] == "NOM":
+					if "NOM" in pred_tags[i]:
 						nom_idx = i
 
 				if nom_idx != -1:
 					predictions[sent][(splitted_sent[nom_idx], nom_idx)] = tags_to_arguments(pred_tags, splitted_sent)
 
+	model.reset_model()
+
 	return predictions
-
-def show_graph(x_train_list, x_valid_list, x_label, y_label):
-	"""
-	Shows the graph of the given set (x, y)
-	:param x_train_list: list of data from train
-	:param x_valid_list: list of data from validation
-	:param x_label: the x axis name
-	:param y_label: the y axis name
-	:return: None
-	"""
-	"""
-
-	if type(x_train_list) != list:
-		x_train_list = [x_train_list]
-
-	if type(x_valid_list) != list:
-		x_valid_list = [x_valid_list]
-
-	plt.plot(range(len(x_train_list)), x_train_list, label="Train (" + str(round(x_train_list[-1], 3)) + ")")
-	plt.plot(range(len(x_valid_list)), x_valid_list, label="Validation (" + str(round(x_valid_list[-1], 3)) + ")")
-	plt.xlabel(x_label)
-	plt.ylabel(y_label)
-	plt.legend(loc='upper right')
-	plt.show()
-	"""
 
 
 
@@ -490,6 +374,9 @@ def tags_to_arguments(tags, splitted_sent):
 					last_tag = (tags[i], splitted_sent[i])
 			else:
 				last_tag = (tags[i], splitted_sent[i])
+
+	if last_tag[0] != "NONE":
+		arguments[last_tag[0]] = clean_argument(last_tag[1])
 
 	return arguments
 
@@ -534,120 +421,203 @@ def load_examples_file(file_name):
 
 	sent = ""
 	splitted_tags_idxs = defaultdict(list)
+	legitimate_sent = False
 
 	for line in tqdm(lines, desc="Processing " + file_name, leave=False):
 		line = line.replace("\n", "").replace("\r", "")
 
 		# Is it a sentence or a list of arguments?
 		if line.startswith("#"):
-			if sent != "":
+			if sent != "" and legitimate_sent:
 				examples.append((sent, splitted_tags_idxs))
 
 			sent = line[2:]
 			splitted_tags_idxs = defaultdict(list)
-		elif line.startswith("+") or line.startswith("-"):
-			tags = text_to_tags(sent, line[2:])
+			legitimate_sent = len(sent.split(" ")) <= hyper_params["max_sent_size"]
 
+		elif legitimate_sent and (line.startswith("+") or line.startswith("-")):
+			tags = text_to_tags(sent, line[2:])
 			splitted_tags_idxs[line[0]] += [encode_tags(tags)]
 
 	# Adding also the last examples
-	examples.append((sent, splitted_tags_idxs))
+	if legitimate_sent:
+		examples.append((sent, splitted_tags_idxs))
 
 	return examples
 
+def load_train_and_dev(train_filename, dev_filename):
+	"""
+	Loads the training and development datasets from the files with the given name
+	:param train_filename: the name of the training set's file
+	:param dev_filename: the name of the development set's file
+	:return: train dataset and development dataset
+	"""
+	global constant_testing_indexes
 
+	train_dataset = load_examples_file(train_filename)
+	valid_dataset = load_examples_file(dev_filename)
+	print("Train set size: ", len(train_dataset))
+	print("Validation set size: ", len(valid_dataset))
 
-def main(action, name_of_files):
-	use_cuda = torch.cuda.is_available()
-	device = torch.device("cuda" if use_cuda else "cpu")
-	#print(device)
+	random.seed(a=hyper_params["seed"])
+	constant_testing_indexes = random.sample(range(len(valid_dataset)), min(hyper_params["test_limit"], len(valid_dataset)))
+	random.seed(a=None)
 
+	return train_dataset, valid_dataset
+
+def load_trained_model(model_filename, tags_dict_filename, should_retrain=True):
+	"""
+	Loads a trained model according to the current hyper parameters
+	:param model_filename: the name of the model's file
+	:param tags_dict_filename: the name of the tags dicitonary's file
+	:param should_retrain: determines whether the loaded model should retrain, or train from the begining
+	:return: the trained model, and its network version as data parrallel (for multi-GPU training)
+	"""
+
+	global tags_dict, backward_tags_dict, model
+
+	# Loading the dictionary of tags
+	if os.path.isfile(tags_dict_filename):
+		with open(tags_dict_filename, "rb") as tags_dict_file:
+			tags_dict = pickle.load(tags_dict_file)
+	else:
+		# Saving the dictionary of tags
+		with open(tags_dict_filename, "wb") as tags_dict_file:
+			pickle.dump(tags_dict, tags_dict_file)
+
+	backward_tags_dict = dict([(v, k) for k, v in tags_dict.items()])
+
+	# Creating the model
 	if MODEL_NUM == 1:
-		model = tagging_model(len(tags_dict.keys()))
+		model = tagging_model(len(tags_dict.keys())).to(hyper_params["device"])
 		print("MODEL: tagging model")
-	else: #if MODEL_NUM == 2:
-		model = scoring_model(len(tags_dict.keys()))
+	else:  # if MODEL_NUM == 2:
+		model = scoring_model(len(tags_dict.keys())).to(hyper_params["device"])
 		print("MODEL: scoring model")
 
-	net = torch.nn.DataParallel(model, device_ids=[0,1,2,3]).to(device)
-
-	# There are only two possible actions- train and test
-	if action == "-train":
-		train_filename = name_of_files[0]
-		valid_filename = name_of_files[1]
-
-		train_dataset = load_examples_file(train_filename)
-		valid_dataset = load_examples_file(valid_filename)
-
-		print("Train set size: ", len(train_dataset))
-		print("Validation set size: ", len(valid_dataset))
-
-		#optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_factor)
-		optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-		train_losses = []
-		train_accs = []
-		valid_losses = []
-		valid_accs = []
-
-		for epoch in tqdm(range(1, num_of_epochs + 1), desc="Learning", leave=False):
-			# Training the model for an epoch
-			train(net, device, train_dataset, optimizer, epoch)
-			if not show_progress_bar: print("")
-
-			# Testing on train and validation sets
-			train_loss, train_acc = valid(net, device, train_dataset, "Train", epoch)
-			train_losses.append(train_loss)
-			train_accs.append(train_acc)
-
-			valid_loss, valid_acc = valid(model, device, valid_dataset, "Validation", epoch)
-			valid_losses.append(valid_loss)
-			valid_accs.append(valid_acc)
-
-			epoch_results_str = 'Epoch ' + str(epoch) + ' - train loss = {:.4f}, train ACC = {:.3f}, valid loss = {:.4f}, valid ACC = {:.3f}'.format(train_loss, train_acc, valid_loss, valid_acc)
-
-			if not show_progress_bar:
-				print(epoch_results_str)
-				print("")
-			else:
-				tqdm.write(epoch_results_str)
-
-			# Saving the trained model
-			torch.save(model.state_dict(), trained_model_filename)
-
-			# Saving the losses and the acc scores over training
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses", np.array(train_losses))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses", np.array(valid_losses))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs", np.array(train_accs))
-			np.savetxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs", np.array(valid_accs))
-
-		# Showing the losses and acc graphs, over the number of epochs
-		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")
-		show_graph(train_losses, valid_losses, "Epoch Number", "CTC Loss")
-	elif action == "-test":
-		nomlex_filename = name_of_files[0]
-		test_filename = name_of_files[1]
-
-		# Loading the trained model
-		model.load_state_dict(torch.load(trained_model_filename))
-
-		# Loading test data
-		if os.path.isfile(test_filename):
-			test_data = load_txt_file(test_filename)
+	# Loading the trained model, if it exists and if it is needed
+	if os.path.isfile(model_filename):
+		if should_retrain:
+			model.load_state_dict(torch.load(model_filename))
 		else:
-			test_data = [test_filename]
+			if input("A trained model with the given hyper parameters was found. Do you sure you want to replace it? (y/n): ") != 'y':
+				exit()
 
-		if MODEL_NUM == 2:
-			test_dataset = create_data(nomlex_filename, test_data, write_to_files=False, ignore_right=True)
-		else: # if MODEL_NUM == 1:
-			test_dataset = test_data
+	else:
+		if should_retrain:
+			print("A trained model with the given hyper parameters wasn't found!")
+			exit()
 
-		# Getting test results according the trained model
-		print(test(model, device, test_dataset))
+	net = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3]).to(hyper_params["device"])
+
+	return model, net
+
+
+
+def train_model(net, train_dataset, valid_dataset):
+	"""
+	Trains the given model over the train and development datasets
+	:param net: the trained model as dataparallel
+	:param train_dataset: the train dataset
+	:param valid_dataset: the development dataset
+	:return: None
+	"""
+	global model, tags_dict, backward_tags_dict, testing_idx
+
+	# optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_factor)
+	if hyper_params["optimizer"] == "adam":
+		optimizer = optim.Adam(model.parameters(), lr=hyper_params["learning_rate"])
+	else: #if hyper_params["optimizer"] == "SGD":
+		optimizer = optim.SGD(model.parameters(), lr=hyper_params["learning_rate"], momentum=hyper_params["momentum_factor"])
+
+	for epoch in tqdm(range(1, hyper_params["num_of_epochs"] + 1), desc="Learning", leave=False):
+		# Training the model for an epoch
+		train(net, train_dataset, valid_dataset, optimizer, epoch)
+
+		# Validating the model on the training an validation sets
+		validate_model(net, train_dataset, valid_dataset, epoch=epoch)
+
+		testing_idx = 1
+
+def validate_model(net, train_dataset, valid_dataset, epoch=None):
+	"""
+	Validates the given model over the train and development datasets
+	:param net: the trained model as dataparallel
+	:param train_dataset: the train dataset
+	:param valid_dataset: the development dataset
+	:param epoch: the epoch number, optional (useful for validation during training)
+	:return: None
+	"""
+	global testing_idx
+
+	# Testing on train set
+	rand_train_loss, rand_train_acc = valid(net, train_dataset, "Random train", epoch, testing_idx, test_on_random=True)
+	tb_writer.add_scalar('Loss/rand_train', rand_train_loss, testing_idx)
+	tb_writer.add_scalar('Accuracy/rand_train', rand_train_acc, testing_idx)
+	train_loss, train_acc = valid(net, train_dataset, "Train", epoch, testing_idx, test_on_random=False)
+	tb_writer.add_scalar('Loss/train', train_loss, testing_idx)
+	tb_writer.add_scalar('Accuracy/train', train_acc, testing_idx)
+
+	# Testing on validation set
+	rand_valid_loss, rand_valid_acc = valid(net, valid_dataset, "Random validation", epoch, testing_idx, test_on_random=True)
+	tb_writer.add_scalar('Loss/rand_valid', rand_valid_loss, testing_idx)
+	tb_writer.add_scalar('Accuracy/rand_valid', rand_valid_acc, testing_idx)
+	valid_loss, valid_acc = valid(net, valid_dataset, "Validation", epoch, testing_idx, test_on_random=False)
+	tb_writer.add_scalar('Loss/valid', valid_loss, testing_idx)
+	tb_writer.add_scalar('Accuracy/valid', valid_acc, testing_idx)
+
+	curr_results_str = ''
+
+	if not epoch:
+		curr_results_str += 'Epoch ' + str(epoch) + ' Testing ' + str(testing_idx) + ' - '
+
+	curr_results_str = 'train loss = {:.4f} vs rand {:.4f}, train ACC = {:.3f} vs rand {:.3f}, valid loss = {:.4f} vs rand {:.4f}, valid ACC = {:.3f} vs rand {:.3f}'.format(
+						train_loss, rand_train_loss, train_acc, rand_train_acc, valid_loss, rand_train_acc, valid_acc, rand_valid_acc)
+	tqdm.write(curr_results_str)
+
+	# Saving the trained model
+	torch.save(model.state_dict(), trained_model_filename)
+
+	for name, weight in net.named_parameters():
+		tb_writer.add_histogram(name, weight, testing_idx)
+		tb_writer.add_histogram(f'{name}.grad', weight.grad, testing_idx)
+
+	testing_idx += 1
+
+def test_model(model, nomlex_filename, test_data):
+	"""
+	Tests the given model over the given testing data
+	:param model: the trained model
+	:param nomlex_filename: a location of a json file with the entries of NOMLEX lexicon
+	:param test_data: the testing data, a list of sentences
+	:return: The model's predictions ({sent: {nom: arguments}}
+	"""
+
+	if MODEL_NUM == 2:
+		test_dataset = create_data(nomlex_filename, test_data, write_to_files=False, ignore_right=True, use_catvar=True)
+	else:  # if MODEL_NUM == 1:
+		test_dataset = test_data
+
+	# Getting test results according the trained model
+	results = test(model, test_dataset)
+
+	for sent in results.keys():
+		print(sent)
+
+		for nom, arguments in results[sent].items():
+			print("--" + str(nom) + ": " + str(arguments))
+
+		print("")
+
+	return results
+
+
 
 if __name__ == '__main__':
 	# command line arguments:
 	#	-train train_filename dev_filename
+	#	-retrain train_filename dev_filename
+	#	-valid train_filename dev_filename
 	#	-test nomlex_filename sentence
 	#	-test nomlex_filename test_filename
 	#
@@ -657,14 +627,32 @@ if __name__ == '__main__':
 	import sys
 
 	if len(sys.argv) == 4:
-		main(sys.argv[1], [sys.argv[2], sys.argv[3]])
-	elif sys.argv[1] == "-graph":
-		# Loading losses and accs files
-		train_losses = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_losses").tolist()
-		valid_losses = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_losses").tolist()
-		train_accs = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_train_accs").tolist()
-		valid_accs = np.loadtxt(CreateData.LEARNING_FILES_LOCATION + model_name + "_valid_accs").tolist()
+		action = sys.argv[1]
 
-		# Showing the losses and accs graphs
-		show_graph(train_accs, valid_accs, "Epoch Number", "AVG ACC")
-		show_graph(train_losses, valid_losses, "Epoch Number", "CTC Loss")
+		if action == "-train":
+			train_dataset, valid_dataset = load_train_and_dev(sys.argv[2], sys.argv[3])
+			model, net = load_trained_model(trained_model_filename, tags_dict_filename, should_retrain=False)
+			train_model(net, train_dataset, valid_dataset)
+
+		elif action == "-retrain":
+			train_dataset, valid_dataset = load_train_and_dev(sys.argv[2], sys.argv[3])
+			model, net = load_trained_model(trained_model_filename, tags_dict_filename, should_retrain=True)
+			train_model(net, train_dataset, valid_dataset)
+
+		elif action == "-valid":
+			train_dataset, valid_dataset = load_train_and_dev(sys.argv[2], sys.argv[3])
+			model, net = load_trained_model(trained_model_filename, tags_dict_filename, should_retrain=True)
+			validate_model(net, train_dataset, valid_dataset)
+
+		elif action == "-test":
+			nomlex_filename = sys.argv[2]
+			model, net = load_trained_model(trained_model_filename, tags_dict_filename, should_retrain=True)
+
+			# Loading test data
+			if os.path.isfile(sys.argv[3]):
+				test_data = load_txt_file(sys.argv[3])
+			else:
+				test_data = [sys.argv[3]]  # This is actually a single example sentence
+			test_model(model, sys.argv[2], test_data)
+
+	tb_writer.close()
