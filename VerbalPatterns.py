@@ -12,7 +12,7 @@ inflect_engine = inflect.engine()
 predictor = ConstituencyParserPredictor.from_path("https://s3-us-west-2.amazonaws.com/allennlp/models/elmo-constituency-parser-2018.03.14.tar.gz")
 
 import DictsAndTables
-from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det, redundant_subcast,\
+from DictsAndTables import comlex_table, pronoun_dict, special_preps_dict, det,\
 						   separate_line_print, get_adj
 from ExtractNomlexPatterns import extract_nom_patterns
 from NominalPatterns import get_dependency, clean_argument
@@ -295,7 +295,7 @@ def detect_comlex_subcat(sent):
 		for subcat_info in comlex_table:
 			subcat, tags_phrases, suitable_arguments = subcat_info
 
-			if subcat not in redundant_subcast:
+			if subcat not in DictsAndTables.redundant_subcast:
 				# Even if the suitable subcat was found, a general case may also work
 				_, founded_arguments = get_sub_phrases(vp_phrase_tree["VP"][1:], copy.deepcopy(tags_phrases), copy.deepcopy(suitable_arguments))
 
@@ -318,12 +318,12 @@ def detect_comlex_subcat(sent):
 					else:
 						possible_arguments.append(curr_arguments)
 
-		if "NOM-INTRANS" not in redundant_subcast:
+		if "NOM-INTRANS" not in DictsAndTables.redundant_subcast:
 			# NOM-INTRANS- always suitable subcat
 			default_arguments["subcat"] = "NOM-INTRANS"
 			possible_arguments.append(default_arguments.copy())
 
-		if "NOM-INTRANS-RECIP" not in redundant_subcast:
+		if "NOM-INTRANS-RECIP" not in DictsAndTables.redundant_subcast:
 			# NOM-INTRANS-RECIP- always suitable subcat in case of plural subject NP
 			if inflect_engine.singular_noun(get_phrase(np_phrase_tree)[0]):
 				default_arguments["subcat"] = "NOM-INTRANS-RECIP"

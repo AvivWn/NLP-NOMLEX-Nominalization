@@ -23,6 +23,8 @@ def main(arguments):
 			splitted = re.split(r'\t+', line.rstrip('\t'))
 			data.append((splitted[0], splitted[1], splitted[2]))
 
+	DictsAndTables.redundant_subcast = []
+	DictsAndTables.comlex_subcats = list(set([i[0] for i in DictsAndTables.comlex_table])) + ["NOM-INTRANS", "NOM-INTRANS-RECIP"]
 	DictsAndTables.all_noms, DictsAndTables.all_noms_backwards = get_all_of_noms(nomlex_entries)
 	DictsAndTables.catvar_dict = build_catvar_dict("../catvar_Data/catvar21.signed")
 
@@ -60,6 +62,9 @@ if __name__ == '__main__':
 	"""
 	Command line arguments-
 		json_file_name test_file_name
+		
+	Example-
+		python Test.py ../NOMLEX_Data/NOMLEX-plus.1.0.json Test_Data
 	"""
 	import sys
 

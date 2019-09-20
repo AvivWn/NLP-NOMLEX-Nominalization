@@ -4,7 +4,7 @@ import numpy as np
 import DictsAndTables
 from collections import defaultdict
 
-from DictsAndTables import subentries_table, comlex_subcats, special_preps_dict, print_as_dataset,\
+from DictsAndTables import subentries_table, special_preps_dict, print_as_dataset,\
 						   separate_line_print, arranged_print
 from VerbalPatterns import extract_args_from_verbal
 from NominalPatterns import extract_args_from_nominal
@@ -199,7 +199,7 @@ def match_patterns(nomlex_entries, verbal_sentences, nominal_sentences, exact_ma
 			# Updating counts (for debuging)
 			if DictsAndTables.output_loc != sys.stdout:
 				# Updating the suitable subcat
-				for subcat in comlex_subcats:
+				for subcat in DictsAndTables.comlex_subcats:
 					if "'" + subcat + "'" in str(curr_matching_noms):
 						DictsAndTables.subcats_counts[subcat] += 1
 		else:

@@ -537,8 +537,6 @@ def train_model(net, train_dataset, valid_dataset):
 		# Validating the model on the training an validation sets
 		validate_model(net, train_dataset, valid_dataset, epoch=epoch)
 
-		testing_idx = 1
-
 def validate_model(net, train_dataset, valid_dataset, epoch=None):
 	"""
 	Validates the given model over the train and development datasets
@@ -571,7 +569,7 @@ def validate_model(net, train_dataset, valid_dataset, epoch=None):
 	if not epoch:
 		curr_results_str += 'Epoch ' + str(epoch) + ' Testing ' + str(testing_idx) + ' - '
 
-	curr_results_str = 'train loss = {:.4f} vs rand {:.4f}, train ACC = {:.3f} vs rand {:.3f}, valid loss = {:.4f} vs rand {:.4f}, valid ACC = {:.3f} vs rand {:.3f}'.format(
+	curr_results_str += 'train loss = {:.4f} vs rand {:.4f}, train ACC = {:.3f} vs rand {:.3f}, valid loss = {:.4f} vs rand {:.4f}, valid ACC = {:.3f} vs rand {:.3f}'.format(
 						train_loss, rand_train_loss, train_acc, rand_train_acc, valid_loss, rand_train_acc, valid_acc, rand_valid_acc)
 	tqdm.write(curr_results_str)
 
@@ -581,8 +579,6 @@ def validate_model(net, train_dataset, valid_dataset, epoch=None):
 	for name, weight in net.named_parameters():
 		tb_writer.add_histogram(name, weight, testing_idx)
 		tb_writer.add_histogram(f'{name}.grad', weight.grad, testing_idx)
-
-	testing_idx += 1
 
 def test_model(model, nomlex_filename, test_data):
 	"""
@@ -614,16 +610,18 @@ def test_model(model, nomlex_filename, test_data):
 
 
 if __name__ == '__main__':
-	# command line arguments:
-	#	-train train_filename dev_filename
-	#	-retrain train_filename dev_filename
-	#	-valid train_filename dev_filename
-	#	-test nomlex_filename sentence
-	#	-test nomlex_filename test_filename
-	#
-	# Examples:
-	# 	python Learning.py -train learning/train_x00.parsed learning/valid_x00.parsed
-	# 	python Learning.py -test NOMLEX_Data/NOMLEX-plus-only-nom.json "The appointment of Alice by Apple"
+	"""
+	command line arguments:
+		-train train_filename dev_filename
+		-retrain train_filename dev_filename
+		-valid train_filename dev_filename
+		-test nomlex_filename sentence
+		-test nomlex_filename test_filename
+	
+	Examples:
+		python Learning.py -train learning/train_x00.parsed learning/valid_x00.parsed
+		python Learning.py -test NOMLEX_Data/NOMLEX-plus-only-nom.json "The appointment of Alice by Apple"
+	"""
 	import sys
 
 	if len(sys.argv) == 4:

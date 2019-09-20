@@ -12,11 +12,11 @@ hyper_params = {
 	"optimizer":"adam",
 	"learning_rate":0.001,
 	"momentum_factor":0.75,
-	"batch_size_limit":512,
+	"batch_size_limit":256,
 	"model_name":"tagging_model" if MODEL_NUM == 1 else "scoring_model",
 	"loss_type":"hinge-one-better", # hidge-all-better # nll
 	"ignore_none_preds":True,
-	"test_limit":5000,
+	"test_limit":50,
 	"device":torch.device("cuda" if use_cuda else "cpu"),
 	"seed":5,
 	"max_sent_size":35

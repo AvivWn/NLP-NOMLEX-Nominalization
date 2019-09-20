@@ -7,7 +7,7 @@ inflect_engine = inflect.engine()
 nlp = spacy.load('en_core_web_sm')
 
 import DictsAndTables
-from DictsAndTables import subentries_table, pronoun_dict, special_preps_dict, comlex_subcats,\
+from DictsAndTables import subentries_table, pronoun_dict, special_preps_dict,\
 						   get_adv, replace_empty_list
 from ExtractNomlexPatterns import get_nom_patterns
 
@@ -264,7 +264,7 @@ def get_arguments(dependency_tree, nom_entry, nom_index, patterns=None):
 			tmp_pattern = pattern.copy()
 
 		# Ignoring subcats that don't appear in our comlex table
-		if "subcat" not in tmp_pattern.keys() or tmp_pattern["subcat"] in comlex_subcats:
+		if "subcat" not in tmp_pattern.keys() or tmp_pattern["subcat"] in DictsAndTables.comlex_subcats:
 
 			# a pattern can already iclude the ud_pattern
 			if type(pattern) == tuple and len(pattern) == 2:
