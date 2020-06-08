@@ -1,4 +1,5 @@
-import json
+from FixLexicon import *
+from Utils import *
 
 # Constants
 
@@ -16,7 +17,7 @@ def parse_lines(lisp_file_name):
 	lines = []
 
 	# Moving over each line in the input file
-	for line in file_lines:
+	for line in tqdm(file_lines, "Parsing Lisp Lexicon", leave=False):
 		if line != "\n":
 			# Spacing up all the opening\closing brackets
 			line = line.replace("(", " ( ").replace(")", " ) ").replace(") \n", ")\n") #.replace("\"", "").split(' ')
@@ -39,9 +40,9 @@ def parse_lines(lisp_file_name):
 						if is_between_brackets:
 							char = '_'
 
-					new_line += char
+				new_line += char
 
-			temp_splitted_line = new_line.replace("\"", "").split(' ')
+			temp_splitted_line = new_line.split(' ') #.replace("\"", "").split(' ')
 
 			splitted_line = []
 
@@ -54,6 +55,17 @@ def parse_lines(lisp_file_name):
 	return lines
 
 
+def remove_quotes_around(string):
+	# Remove the qoutes symbols from the start of the string
+	if string.startswith('\"'):
+		string = string[1:]
+
+	# Remove the qoutes symbols from the end of the string
+	if string.endswith('\"'):
+		# print(1)
+		string = string[:-1]
+
+	return string
 
 def get_list(lines, index, in_line_index):
 	"""
@@ -81,16 +93,13 @@ def get_list(lines, index, in_line_index):
 
 		# There is a string
 		else:
-			curr_list.append(lines[index][in_line_index])
+			curr_list.append(remove_quotes_around(lines[index][in_line_index]))
 
 		in_line_index += 1
 
 		if in_line_index == len(lines[index]):
 			index += 1
 			in_line_index = 0
-
-	if curr_list[0] == "NONE":
-		curr_list = curr_list[0]
 
 	return index, in_line_index, curr_list
 
@@ -146,7 +155,13 @@ def get_tag_info(lines, index, in_line_index):
 			index += 1
 			in_line_index = 0
 
-	return index, in_line_index, " ".join(curr_str)
+	# Info as string
+	tag_info = remove_quotes_around(" ".join(curr_str))
+
+	if tag_info == "":
+		raise Exception("Founded an empty value in the original lexicon.")
+
+	return index, in_line_index, tag_info
 
 def translate_entry(lines, index, in_line_index):
 	"""
@@ -187,71 +202,109 @@ def translate(lines):
 	count = 0
 
 	# Moving over all the given line
+	pbar = tqdm(desc="Lisp To Json", total=len(lines), leave=False)
 	while index < len(lines):
 		entry_type = lines[index][in_line_index + 1]
 
 		# Each time, translating a specific nominalization entry of NOMLEX
-		index, in_line_index, entry = translate_entry(lines, index, in_line_index + 2)
+		new_index, in_line_index, entry = translate_entry(lines, index, in_line_index + 2)
 
 		# Only entries that starts with "NOM"
-		if entry_type == "NOM": #entry_type.startswith("NOM"):
-			if "ORTH" not in entry.keys():
-				entries.append(entry)
-			else:
+		if entry_type == "NOM": # or entry_type.startswith("NOM"):
+			if ENT_ORTH in entry.keys():
+				# Getting the orth of the word without the numbering
+				not_numbered_orth = ''.join([i for i in entry[ENT_ORTH] if not i.isdigit()])
+				entry[ENT_ORTH] = not_numbered_orth
+
 				# Dealing with entries that appear with the same "ORTH" more than once
-				# (each time with differnt entry type, like NOM, NOM-LIKE and more)
-				if entry["ORTH"] in count_founded_entries.keys():
-					count_founded_entries[entry["ORTH"]] += 1
+				# (each time with same or differnt entry type, like NOM, NOM-LIKE and more)
+				entry["numbered_orth"] = not_numbered_orth
+				if not_numbered_orth in count_founded_entries.keys():
+					count_founded_entries[not_numbered_orth] += 1
 				else:
-					count_founded_entries[entry["ORTH"]] = 1
+					count_founded_entries[not_numbered_orth] = 1
 
-				if count_founded_entries[entry["ORTH"]] != 1:
-					entry["ORTH"] = entry["ORTH"] + "#" + str(count_founded_entries[entry["ORTH"]])
+				if count_founded_entries[not_numbered_orth] != 1:
+					entry["numbered_orth"] = not_numbered_orth + "#" + str(count_founded_entries[not_numbered_orth])
 
 				entries.append(entry)
 
-		index += 1
+		pbar.update(new_index - index + 1)
+		index = new_index + 1
 		count += 1
 		in_line_index = 0
 
+	pbar.close()
 	print("Total entries in nomlex:", count)
 
 	return entries
 
 
 
-def lisp_to_json(lisp_file_name, json_file_name):
+def lisp_to_json(lisp_file_name):
 	"""
 	Translates a lisp format file into a json format file
-	:param lisp_file_name:
-	:param json_file_name:
+	:param lisp_file_name: the name of the lisp file of the lexicon
 	:return:
 	"""
 
-	# Parsing the input file and getting the lines in it
-	lines = parse_lines(lisp_file_name)
+	json_file_name = JSON_DIR + lisp_file_name.replace(".txt", "").split("/")[-1]
 
-	# Translating the lines into entries as json format
-	entries = translate(lines)
+	# Load the initial loaded lexicon if possible
+	if LOAD_LEXICON and os.path.exists(json_file_name + ".json"):
+		with open(json_file_name + ".json", "r") as loaded_file:
+			lexicon_data = json.load(loaded_file)
 
-	data = {}
+		print("Total loaded json entries:", len(lexicon_data.keys()))
 
-	for entry in entries:
-		data.update({entry['ORTH']: entry})
+	# Otherwise, create the json lexicon
+	else:
+		# Parsing the input file and getting the lines in it
+		lines = parse_lines(lisp_file_name)
 
-	print("Total translated entries to json:", len(data.keys()))
+		# Translating the lines into entries as json format
+		entries = translate(lines)
 
-	# Writing the data into a output file as a json format
-	with open(json_file_name, 'w') as outfile:
-		json.dump(data, outfile)
+		lexicon_data = {}
+
+		for entry in entries:
+			numbered_orth = entry["numbered_orth"]
+			del entry["numbered_orth"]
+			lexicon_data.update({numbered_orth: entry})
+
+		print("Total translated entries to json:", len(lexicon_data.keys()))
+
+		# Writing the lexicon into an output file as a json format
+		with open(json_file_name + ".json", 'w') as outfile:
+			json.dump(lexicon_data, outfile)
+
+
+	# Rearranging the lexicon and spliting verbs and nominalizations into different lexicons
+	try:
+		verbs_lexicon, noms_lexicon = rearange_lexicon(lexicon_data)
+	except:
+		print(f"There is a bug for the specifications- {get_current_specs()}")
+		raise
+
+	# Writing the verbs lexicon into an output file as a json format
+	with open(json_file_name + "-verb.json", 'w') as outfile:
+		json.dump(verbs_lexicon, outfile)
+
+	# Writing the nominalizations lexicon into an output file as a json format
+	with open(json_file_name + "-nom.json", 'w') as outfile:
+		json.dump(noms_lexicon, outfile)
+
 
 if __name__ == '__main__':
 	"""
 	Command line arguments- 
-		lisp_file_name json_file_name
+		lisp_file_name
 	"""
 	import sys
 
-	lisp_to_json(sys.argv[1], sys.argv[2])
+	if not os.path.exists(JSON_DIR):
+		os.makedirs(JSON_DIR)
+
+	lisp_to_json(sys.argv[1])
 
 	#print(list(set(phrases)))
