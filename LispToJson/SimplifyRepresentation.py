@@ -1,32 +1,8 @@
 from .LexiconModifications import *
-from Utils import *
+from .Utils import *
 
 # For debug
 missing_required = []
-unknown_values_dict = defaultdict(set)
-known_values_dict = defaultdict(set)
-
-# For exceptions and errors
-curr_specs = {"word": None, "subcat": None, "comp": None, "is_verb": None}
-
-def is_known(value, types, type_for_unknown):
-	for constant_name, constant_value in globals().items():
-		if constant_value == value and any([constant_name.startswith(type_of_constant) for type_of_constant in types]):
-			known_values_dict[type_for_unknown].add(value)
-			return True
-
-	unknown_values_dict[type_for_unknown].add(value)
-
-	return False
-
-def get_current_specs():
-	curr_specs_list = []
-
-	for position_key, position_value in curr_specs.items():
-		if position_value is not None:
-			curr_specs_list.append(f"{position_key}: {position_value}")
-
-	return ", ".join(curr_specs_list)
 
 
 

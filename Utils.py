@@ -1,51 +1,12 @@
-from copy import deepcopy
-from collections import defaultdict
-from itertools import product
-from tqdm import tqdm
-import numpy as np
-import pickle
-import json
-import time
-import os
-import re
-import inflect
-engine = inflect.engine()
-
+from LexiconConstans import *
 from UDTranslator import *
-
-LISP_DIR = "LispLexicons/"
-JSON_DIR = "JsonLexicons/"
-PKL_DIR = "PklLexicons/"
-LOAD_LEXICON = True
-DEBUG = False
+from config import *
 
 def difference_list(first, second):
 	return list(set(first) - set(second))
 
 def reverse_dict(dictionary):
 	return {value:key for key, value in dictionary.items()}
-
-def without_part(a_type):
-	a_type = a_type.replace("VERB-PART", "VERB-NOM").replace("-PART-", "-")
-
-	if a_type.startswith("NOM"):
-		return a_type.replace("-PART", "-INTRANS")
-
-	return a_type.replace("-PART", "")
-
-def get_right_value(table, subcat_type, default=None, is_verb=False):
-	if subcat_type not in table.keys():
-		new_subcat_type = without_part(subcat_type)
-
-		if new_subcat_type != subcat_type:
-			return get_right_value(table, new_subcat_type, default=default, is_verb=is_verb)
-
-		return default
-
-	if is_verb:
-		return deepcopy(table[subcat_type][0])
-
-	return deepcopy(table[subcat_type][1])
 
 def timeit(method):
 	def timed(*args, **kw):
@@ -69,7 +30,6 @@ def list_to_regex(list_of_options, delimiter, start_constraint="", end_constrain
 	regex_pattern = delimiter.join(list_of_options)
 
 	return regex_pattern
-
 
 def get_dependency_tree(sent):
 	"""
