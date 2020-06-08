@@ -1,4 +1,4 @@
-from FixLexicon import *
+from SimplifyLexicon import *
 from Utils import *
 
 # Constants
@@ -281,7 +281,7 @@ def lisp_to_json(lisp_file_name):
 
 	# Rearranging the lexicon and spliting verbs and nominalizations into different lexicons
 	try:
-		verbs_lexicon, noms_lexicon = rearange_lexicon(lexicon_data)
+		verbs_lexicon, noms_lexicon = simplify_lexicon(lexicon_data)
 	except:
 		print(f"There is a bug for the specifications- {get_current_specs()}")
 		raise
