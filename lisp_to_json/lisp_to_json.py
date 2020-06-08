@@ -1,5 +1,5 @@
-from .SimplifyLexicon import *
-from Utils import *
+from .simplify_lexicon import *
+from utils import *
 
 # For debug
 phrases = []
@@ -244,10 +244,11 @@ def translate(lines):
 def lisp_to_json(lisp_file_name):
 	"""
 	Translates a lisp format file into a json format file
-	:param lisp_file_name: the name of the lisp file of the lexicon
+	:param lisp_file_name: the name of the lisp file of the lexicon (only the file name, without its all path)
 	:return:
 	"""
 
+	lisp_file_name = LISP_DIR + lisp_file_name
 	json_file_name = JSON_DIR + lisp_file_name.replace(".txt", "").split("/")[-1]
 
 	# Load the initial loaded lexicon if possible

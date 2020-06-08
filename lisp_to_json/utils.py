@@ -1,4 +1,4 @@
-from Utils import *
+from utils import *
 
 # For debug
 unknown_values_dict = defaultdict(set)

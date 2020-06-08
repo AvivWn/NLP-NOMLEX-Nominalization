@@ -1,4 +1,4 @@
-from LexiconConstans import *
+from lexicon_constants import *
 from UDTranslator import *
 from config import *
 

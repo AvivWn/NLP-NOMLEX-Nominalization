@@ -1,5 +1,5 @@
-from .LexiconModifications import *
-from .Utils import *
+from .lexicon_modifications import *
+from .utils import *
 
 # For debug
 missing_required = []

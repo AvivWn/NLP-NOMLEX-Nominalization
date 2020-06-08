@@ -1,4 +1,4 @@
-from .SimplifyRepresentation import *
+from .simplify_representation import *
 
 def duplicate_entry(lexicon, entry, new_orth=None):
 	"""

@@ -11,8 +11,11 @@ import re
 import inflect
 engine = inflect.engine()
 
-LISP_DIR = "LispLexicons/"
-JSON_DIR = "JsonLexicons/"
-PKL_DIR = "PklLexicons/"
+# The lexicons are assumed to be in the next relative paths
+LISP_DIR = "lexicons/lisp_lexicons/"
+JSON_DIR = "lexicons/json_lexicons/"
+PKL_DIR = "lexicons/pkl_lexicons/"
+
+# More configuration constants
 LOAD_LEXICON = True
 DEBUG = False

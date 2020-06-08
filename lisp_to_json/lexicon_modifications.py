@@ -1,4 +1,4 @@
-from LexiconConstans import *
+from lexicon_constants import *
 
 # This file includes several "tables" (dictionary) for needed modifications for the lexicon, based on the manual
 
