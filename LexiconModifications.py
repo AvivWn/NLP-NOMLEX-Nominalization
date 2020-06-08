@@ -1,6 +1,6 @@
 from LexiconConstans import *
 
-# This file includes a table of all the needed changed for the lexicox, based on the manual
+# This file includes a table of all the needed changed for the lexicon, based on the manual
 
 
 
