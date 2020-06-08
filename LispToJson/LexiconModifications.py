@@ -1,12 +1,13 @@
 from LexiconConstans import *
 
-# This file includes a table of all the needed changed for the lexicon, based on the manual
+# This file includes several "tables" (dictionary) for needed modifications for the lexicon, based on the manual
 
 
 
-
-#SUBCAT: (VERB_REQUIRED, VERB_DEFAULTS, VERB_TRANSLATION, VERB_SPECIAL_VALUES,
-# 		  NOM_REQUIRED, NOM_OPTIONAL, NOM_TRANSLATIONS, NOM_SPECIAL_VALUES)
+# Dictionary that includes fixes for specific subcats, based on the manual
+# The subcats in this dictionary are assumed to be "the known subcats"
+# {SUBCAT: ((VERB_REQUIRED, VERB_DEFAULTS, VERB_TRANSLATION, VERB_SPECIAL_VALUES),
+# 		    (NOM_REQUIRED, NOM_OPTIONAL, NOM_TRANSLATIONS, NOM_SPECIAL_VALUES))}
 lexicon_fixes_dict = {
 	"NOM-INTRANS": 				(([], 												{},																{},																	{}),
 								 ([], 												{},																{},																	{})),
@@ -163,6 +164,8 @@ lexicon_fixes_dict = {
 
 }
 
+# Dicationary that includes a more complex argument positions structure, similarly to the default column in the above dictionary
+# {SUBCAT: (VERB_CONSTRAINTS, NOM_CONSTRAINTS)}
 complex_argument_positions = {
 	"NOM-NP-ING":				({COMP_NP: [{COMP_ING_NPC: [POS_NSUBJ, POS_POSS]}], COMP_ING_NPC: [POS_ING]},
 								 {COMP_ING_NPC: [POS_ING]}), # Maybe COMP_NP need more positions for nom
@@ -187,6 +190,8 @@ complex_argument_positions = {
 								 {COMP_POSS_ING_VC: [{COMP_P_ING_POSSC: [POS_NSUBJ, POS_POSS]}]})
 }
 
+# Dicationary that includes a list of constraints for specific subcats
+# {SUBCAT: (VERB_CONSTRAINTS, NOM_CONSTRAINTS)}
 subcat_constraints = {
 	"NOM-ADVP":					([],
 								 [SUBCAT_CONSTRAINT_ADVP_OR_ADJP]),
@@ -196,6 +201,8 @@ subcat_constraints = {
 								 [SUBCAT_CONSTRAINT_ADVP_OR_ADJP])
 }
 
+# Dicationary that includes a list of constraints for arguments of specific subcats
+# {SUBCAT: (VERB_CONSTRAINTS, NOM_CONSTRAINTS)}
 argument_constraints = {
 	# PLURAL and INCLUDING
 	"NOM-INTRANS-RECIP": 		({COMP_SUBJ: {ARG_PLURAL: True}},
@@ -294,12 +301,14 @@ argument_constraints = {
 
 
 # Dictionary that includes some subcategorization typo mistakes that appear in the lexicon
-# (original_mistaken_subcat:right_subcat)
+# {original_mistaken_subcat: right_subcat}
 subcat_typos_dict = {
 	"NOM-INSTRANS": "NOM-INTRANS",
 	"INTRANS": "NOM-INTRANS"
 }
 
+# Dictionary that includes the possible "translations" for each nom-type into complement
+# {NOM_TYPE: [COMP1, COMP2]}
 nom_types_to_args_dict = {
 	NOM_TYPE_VERB_NOM: [],
 	NOM_TYPE_IND_OBJ: [COMP_IND_OBJ, COMP_PP1, COMP_PP2, COMP_PP],

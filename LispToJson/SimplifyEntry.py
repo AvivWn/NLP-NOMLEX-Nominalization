@@ -1,4 +1,4 @@
-from SimplifySubcat import *
+from .SimplifySubcat import *
 
 # For debug
 alt_subcats = {FEATURE_SUBJ_OBJ_ALT: [], FEATURE_SUBJ_IND_OBJ_ALT: []}

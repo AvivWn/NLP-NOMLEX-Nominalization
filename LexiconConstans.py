@@ -138,16 +138,6 @@ OPT_POS = "OPTIONAL-POSITION" # = The position of a complement is optional
 
 
 
-# # Other required tags that may appear on the required list
-# TOTAL_SUBJECT_IS_PLURAL = "TOTAL-SUBJECT-IS-PLURAL"
-# IND_BEFORE_OBJ = "IND-BEFORE-OBJ"
-# ADVP_OR_ADJP = "ADVP-OR-ADJP"
-# NP_ADJACENT_ING = "NP-ADJACENT-ING"
-# NP_ADJACENT_INF = "NP-ADJACENT-INF"
-# NOT_INF_AFTER_HOW = "NOT-INF-AFTER-HOW"  # means that there isn't infinitive after "how"
-
-
-
 ########################################################################################################################
 # Constants list of values
 
@@ -203,8 +193,6 @@ ARG_CONSTRAINTS = "CONSTRAINTS"
 ARG_CONSTRAINT_POSSESSIVE = "POSSESSIVE"
 ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ = "N-N-MOD-NO-OTHER-OBJ"
 ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ = "DET-POSS-NO-OTHER-OBJ"
-
-# ARG_POSSIBLE_CONSTRAINTS = [CONSTRAINT_POSSESSIVE, CONSTRAINT_DET_POSS_NO_OTHER_OBJ, CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
 
 # Argument properties that depends on other arguments
 ARG_PLURAL = "PLURAL"

@@ -1,3 +1,4 @@
+from .LexiconModifications import *
 from Utils import *
 
 # For debug

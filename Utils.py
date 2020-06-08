@@ -11,7 +11,6 @@ import re
 import inflect
 engine = inflect.engine()
 
-from LexiconModifications import *
 from UDTranslator import *
 
 LISP_DIR = "LispLexicons/"

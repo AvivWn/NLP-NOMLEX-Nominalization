@@ -70,6 +70,41 @@ def get_subentries_table():
 
 	return subentries_table
 
+def a():
+	# (subentry, ud_links_list, [(how_to_find, limited_subcats, exception_subcats)])
+	# ud_links_list is a list of lists\dicts of universal dependencies links (suitable for a subetry)
+	# limited_subcats = [] means not limited
+	# exception_subcats = [] means with no exceptions
+
+	subentries_table = [
+		("subject",			[["nsubj"]], []),
+		("object",			[["dobj"]], []),
+		("ind-object",		[["dative"]], []),
+		("adverb",			[["advmod"]], []),
+		("pval",			[["prep"]], []),			# IF THERE ARE TWO PVALS THEN A SPLIT IS NEEDED TO PVAL1, PVAL2
+		("pval-ing", 		[["prep", "pcomp__ing"]], []), # P-ING
+		("pval-poss-ing", 	[["prep", "pcomp__ing", ["poss"]], ["pobj", "pcomp__ing", ["poss"]]], []), # P-ING
+		("pval-comp-ing", 	[["prep", "pcomp__ing", ["nsubj"]]], []),  # P-ING
+		("pval-to-inf", 	[["advcl", ["aux_to"], ["mark_for"]]], []),
+		("pval-wh", 		[["prep", "pcomp", ["mark_whether"]], ["prep", "pcomp", ["dobj_what"]]], []), # P-ING
+		("adjective",		[["prep_as", "amod"]], []),
+		("sbar",			[["ccomp"]], []),
+		("comp-ing",		[["ccomp__ing"]], []), # NP-ING
+		("ing",				[["xcomp__ing"]], []), # just ING
+		("poss-ing",		[["ccomp__ing", ["nsubj"]], ["ccomp__ing", ["poss"]]], []),
+		("to-inf",			[["xcomp", ["aux_to"]]], []),
+		("wh",				[["ccomp", ["mark_if"]], ["ccomp", ["mark_whether"]], ["ccomp", ["dobj_what"]], ["ccomp", ["advmod_how"]],
+							 ["xcomp", ["mark_if"]], ["xcomp", ["mark_whether"]], ["xcomp", ["dobj_what"]], ["xcomp", ["advmod_how"]]], []),
+		("how-to-inf",		[["xcomp", ["aux_to"], ["advmod_how"]]], []),
+		("where-when",		[["ccomp", ["advmod_where"]], ["xcomp", ["advmod_where"]],
+							 ["advcl", ["advmod_when"]], ["ccomp", ["advmod_when"]], ["xcomp", ["advmod_when"]],
+							 ["ccomp", ["dobj", "amod_much", "advmod_how"]], ["ccomp", ["nsubj", "amod_much", "advmod_how"]], ["ccomp", ["dobj_much", "advmod_how"]],
+							 ["ccomp", ["dobj", "amod_many", "advmod_how"]], ["ccomp", ["nsubj", "amod_many", "advmod_how"]], ["ccomp", ["dobj_many", "advmod_how"]]], [])
+	]
+
+	return subentries_table
+
+
 def get_special_subcats_dict():
 	# subcat: (required_list, list of (subentry, default_value) pairs)
 	# About the required_list- should contain SUBJECT, OBJECT and order.
@@ -277,13 +312,13 @@ def get_comlex_table():
 		("NOM-P-POSSING",				[["IN", ["NP__s '", ["VBG"]]]],					["pval-poss-ing"]),
 		("NOM-POSSING",					[[["VBG"]]],									["poss-ing"]),
 		("NOM-POSSING",					[[["PRP$"], ["VBG"]]],							["poss-ing"]),
-		("NOM-POSSING",					[[[["PRP$"], ["VBG"]]]],							["poss-ing"]),
+		("NOM-POSSING",					[[[["PRP$"], ["VBG"]]]],						["poss-ing"]),
 		("NOM-POSSING",					[["PRP$", ["VBG"]]],							["poss-ing"]),
 		("NOM-POSSING",					[[["PRP$", ["VBG"]]]],							["poss-ing"]),
 		("NOM-POSSING",					[["NP__'s", ["VBG"]]],							["poss-ing"]),
-		("NOM-POSSING",					[[["NP__'s", ["VBG"]]]],							["poss-ing"]),
+		("NOM-POSSING",					[[["NP__'s", ["VBG"]]]],						["poss-ing"]),
 		("NOM-POSSING",					[["NP__s '", ["VBG"]]],							["poss-ing"]),
-		("NOM-POSSING",					[[["NP__s '", ["VBG"]]]],							["poss-ing"]),
+		("NOM-POSSING",					[[["NP__s '", ["VBG"]]]],						["poss-ing"]),
 
 		# ING- gerunds
 		("NOM-NP-P-NP-ING",				["NP", ["IN", ["NP", ["VBG"]]]],				["object", "pval-comp-ing"]),

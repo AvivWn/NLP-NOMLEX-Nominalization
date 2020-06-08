@@ -1,4 +1,4 @@
-from SimplifyRepresentation import *
+from .SimplifyRepresentation import *
 
 # For debug
 nom_roles_for_pval = set()

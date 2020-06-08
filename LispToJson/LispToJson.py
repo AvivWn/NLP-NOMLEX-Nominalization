@@ -1,8 +1,7 @@
-from SimplifyLexicon import *
+from .SimplifyLexicon import *
 from Utils import *
 
-# Constants
-
+# For debug
 phrases = []
 
 def parse_lines(lisp_file_name):
@@ -53,6 +52,7 @@ def parse_lines(lisp_file_name):
 			lines.append(splitted_line)
 
 	return lines
+
 
 
 def remove_quotes_around(string):
@@ -293,7 +293,6 @@ def lisp_to_json(lisp_file_name):
 	# Writing the nominalizations lexicon into an output file as a json format
 	with open(json_file_name + "-nom.json", 'w') as outfile:
 		json.dump(noms_lexicon, outfile)
-
 
 if __name__ == '__main__':
 	"""

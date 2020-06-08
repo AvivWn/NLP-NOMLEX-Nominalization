@@ -1,5 +1,5 @@
-from SimplifyLexiconKeys import *
-from SimplifyEntry import *
+from .SimplifyLexiconKeys import *
+from .SimplifyEntry import *
 
 # For debug
 added_noms = []
