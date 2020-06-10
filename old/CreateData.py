@@ -11,6 +11,7 @@ from ExtractNomlexPatterns import extract_nom_patterns, aggregate_patterns
 from NominalPatterns import pattern_to_UD, extract_args_from_nominal, get_dependency
 from DictsAndTables import get_all_of_noms
 from NomlexExtractor import load_txt_file
+from VerbalPatterns import process_sentence
 
 # Constants
 PART_OF_NOM_FOR_TRAIN = 0.8
@@ -336,7 +337,7 @@ def create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_fi
 
 def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=False, use_catvar=False):
 	"""
-	Creates the data examples (for training), according to the sentence in the given input file
+	Creates the data examples, according to the sentence in the given input file
 	:param nomlex_file_loc: a location of a json file with the entries of NOMLEX lexicon
 	:param input_data: a list of sentences, which can be already parsed ([sent] or [(sent, dep)])
 	:param write_to_files: determines if that function will the created examples into relevant file or not
@@ -393,15 +394,20 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 	if write_to_files:
 		input_file_name = input_file_loc.split("/")[-1].split(".")[0]
 
-		train_file = open(LEARNING_FILES_LOCATION + input_file_name + "_train", "w+")
-		dev_file = open(LEARNING_FILES_LOCATION + input_file_name + "_valid", "w+")
+		#train_file = open(LEARNING_FILES_LOCATION + input_file_name + "_train", "w+")
+		#dev_file = open(LEARNING_FILES_LOCATION + input_file_name + "_valid", "w+")
+		train_file = None
+		dev_file = None
+		verbs_file = open(LEARNING_FILES_LOCATION + input_file_name + "_verbs", "w+")
 		description = "Creating data files"
 	else:
 		train_file = None
 		dev_file = None
+		verbs_file = None
 		description = "Parsing sentences"
 
-	examples = []
+	nom_examples = []
+	verb_examples = []
 
 	# Moving over the sentences, and create all the possible examples
 	for x in tqdm(input_data, desc=description, leave=False):
@@ -413,15 +419,21 @@ def create_data(nomlex_file_loc, input_data, write_to_files=True, ignore_right=F
 			sentence = x
 			dep = get_dependency(x)
 
-		if len(sentence.split(" ")) <= MAX_SENT_SIZE:
+		if len(sentence.split(" ")) <= MAX_SENT_SIZE and sentence.find('(') == -1 and sentence.find(')') == -1:
 			# Creating all the suitable examples to the current sentence
-			examples += create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func, ignore_right=ignore_right)
+			#nom_examples += create_example(nomlex_entries, sentence, dep, train_noms, train_file, dev_file, limited_patterns_func, ignore_right=ignore_right)
+
+			verbal_arguments = process_sentence(sentence)
+
+			if verbal_arguments != []:
+				verbs_file.write(sentence + "\n")
+				verbs_file.write(str(verbal_arguments) + "\n")
 
 	if write_to_files:
 		train_file.close()
 		dev_file.close()
 
-	return examples
+	return nom_examples, verb_examples
 
 
 

@@ -1,5 +1,5 @@
 from lexicon_constants import *
-from UDTranslator import *
+from ud_constants import *
 from config import *
 
 def difference_list(first, second):
@@ -46,7 +46,7 @@ def get_dependency_tree(sent):
 		head_id = str(word_info.head.i)  # we want ids to be 1 based
 		if word_info == word_info.head:  # and the ROOT to be 0.
 			assert (word_info.dep_ == "ROOT"), word_info.dep_
-			head_id = "0"  # root
+			head_id = "-1"  # root
 
 		str_sub_tree = " ".join([node.text for node in word_info.subtree])
 
@@ -54,7 +54,7 @@ def get_dependency_tree(sent):
 					WORD_TEXT: str(word_info.text),
 					WORD_LEMMA: str(word_info.lemma_),
 					WORD_POS_TAG: str(word_info.tag_),
-					WORD_COARSE_POS_TAG: str(word_info.pos_),
+					WORD_UPOS_TAG: str(word_info.pos_),
 					WORD_HEAD_ID: int(head_id),
 					WORD_DEP_LINK: str(word_info.dep_),
 					WORD_ENT_IOB_TAG: str(word_info.ent_iob_),

@@ -3,7 +3,7 @@ from .utils import *
 
 # For debug
 missing_required = []
-
+args_without_pos = []
 
 
 def simplify_complement_positions(subcat, complement_type):
@@ -82,7 +82,16 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 
 		if complement_type in subcat.keys():
 			# Update more manual constraints for that compelement/argument
-			subcat[complement_type].update(more_argument_constraints.get(complement_type, []))
+			subcat[complement_type].update(more_argument_constraints.get(complement_type, {}))
+
+			# Update
+			if ARG_HEAD_UPOSTAGS not in subcat[complement_type].keys():
+				if complement_type == COMP_PART:
+					subcat[complement_type][ARG_HEAD_UPOSTAGS] = [UPOS_PART]
+				elif complement_type in [COMP_IND_OBJ, COMP_FOR_NP, COMP_P_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_OBJ, COMP_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
+					subcat[complement_type][ARG_HEAD_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
+				else:
+					args_without_pos.append(complement_type)
 
 			# Add the DET_POSS_NO_OTHER_OBJ\N_N_MOD_NO_OTHER_OBJ constriants for the nominalization (if it is relevant)
 			if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]:

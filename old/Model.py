@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+import numpy as np
 from pytorch_transformers import *
 from operator import itemgetter
 
@@ -17,7 +18,7 @@ hyper_params = {
 	"lr":0.001,
 	"batch_limit":256,
 	"model":"tagging_model" if MODEL_NUM == 1 else "scoring_model",
-	"loss":"hinge-all-better", # "hinge-one-better", # "hinge-all-better" # "nll"
+	"loss":"hinge-one-better", # "hinge-one-better", # "hinge-all-better" # "nll"
 	"device":torch.device("cuda" if use_cuda else "cpu"),
 	"max_sent":35,
 	#"seed": 5,
@@ -66,7 +67,7 @@ class tagging_model(nn.Module):
 		:return: the model's output
 		"""
 
-		padded_batch_indexed_tokens, padded_batch_tags, sents_lengths = padded_batch_inputs
+		padded_batch_indexed_tokens, padded_batch_tags, sents_lengths, nom_indexes = padded_batch_inputs
 
 		# Moving to bert embeddings
 		bert_output = self.bert(padded_batch_indexed_tokens)
@@ -213,7 +214,7 @@ class scoring_model(nn.Module):
 		:return: the model's output
 		"""
 
-		padded_batch_indexed_tokens, padded_batch_tags, sents_lengths = padded_batch_inputs
+		padded_batch_indexed_tokens, padded_batch_tags, sents_lengths, nom_indexes = padded_batch_inputs
 
 		# Moving to bert embeddings
 		bert_output = self.bert(padded_batch_indexed_tokens)
@@ -230,14 +231,25 @@ class scoring_model(nn.Module):
 
 		packed_out = torch.nn.utils.rnn.pack_padded_sequence(conditioned_bert, sents_lengths, batch_first=True)
 		self.lstm.flatten_parameters()
-		lstm_out = self.lstm(packed_out)[1][0]
+		lstm_out = self.lstm(packed_out)[0]
+		#lstm_out = self.lstm(packed_out)[1][0]
+		padded_out, _ = torch.nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True, total_length=padded_batch_indexed_tokens.shape[1])
+
+		tmp_list = []
+
+		# Looping over the batch size, and getting for each batch the lstm result in nom_idx
+		for i in range(padded_out.shape[0]):
+			tmp_list.append(padded_out[i][nom_indexes[i]]) # The lstm result in nom_idx
+
+		nom_lstm_out = torch.stack(tmp_list)
 
 		# Rearranging lstm output (we want only the last hidden state of the last layer)
-		lstm_out = lstm_out.view(self.lstm.num_layers, num_directions, lstm_out.shape[1], self.lstm.hidden_size)[-1]
-		lstm_out = torch.cat([lstm_out[0], lstm_out[1]], dim=1)
+		# lstm_out = lstm_out.view(self.lstm.num_layers, num_directions, lstm_out.shape[1], self.lstm.hidden_size)[-1]
+		# print(lstm_out.shape)
+		#lstm_out = torch.cat([lstm_out[0], lstm_out[1]], dim=1)
 
 		# Fully Connected Layers
-		fc1_out = F.relu(self.fc1(lstm_out))
+		fc1_out = F.relu(self.fc1(nom_lstm_out))
 		fc2_out = self.fc2(fc1_out).squeeze(dim=0)
 
 		return fc2_out
@@ -371,6 +383,7 @@ class scoring_model(nn.Module):
 		# Counts the examples in the batch with the right predicted arguments
 		for (splitted_sent, all_scores, right_scores) in outputs:
 			prediction = max(all_scores, key=itemgetter(1))
+			#print(prediction)
 			if prediction in right_scores:
 				count_right += 1
 			else:

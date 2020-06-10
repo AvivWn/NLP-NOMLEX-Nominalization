@@ -116,6 +116,7 @@ def get_summary():
 	print(f"Possible nom roles for PVAL: {nom_roles_for_pval}")
 	print(f"Required arguments that are sometimes missing: {list(zip(*np.unique(missing_required, return_counts=True)))}")
 	print(f"Words with missing DET-POSS/N-N-MOD (based on NO-OTHER-OBJ feature): {noms_with_missing_positions}")
+	print(f"Complements that don't specify specific postag: {args_without_pos}")
 
 	for constant_type in list(set(list(unknown_values_dict.keys()) + list(known_values_dict.keys()))):
 		print(f"\n{constant_type}:")

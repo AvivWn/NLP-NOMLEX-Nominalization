@@ -14,6 +14,8 @@ import CreateData
 from NomlexExtractor import load_txt_file
 from CreateData import create_data
 from NominalPatterns import clean_argument
+from bashplotlib.scatterplot import plot_scatter
+from bashplotlib.histogram import plot_hist
 
 # Constants
 NUM_OF_EXAMPLES_TILL_TEST = 50000
@@ -84,11 +86,16 @@ def padding_by_batch(batch_examples):
 	padded_batch_tags = []
 	padded_batch_indexed_tokens = []
 	sents_lengths = []
+	nom_indexes = []
 	for _, splitted_sent, tags_idxs, sent_length, _ in batch_examples:
 		padding_length = max_length - sent_length
-		padded_batch_tags.append(tags_idxs + [tags_dict.get("NONE", -1)] * padding_length)
+		padded_batch_tags.append(tags_idxs + [tags_dict.get("NONE", 1)] * padding_length)
 
 		sents_lengths.append(sent_length)
+		for i in range(len(tags_idxs)):
+			if "NOM" in backward_tags_dict.get(tags_idxs[i]):
+				nom_indexes.append(i)
+				break
 
 		padded_batch_sent = splitted_sent + ["<PAD>"] * padding_length
 		padded_batch_indexed_tokens.append(tokenizer.convert_tokens_to_ids(padded_batch_sent))
@@ -97,8 +104,9 @@ def padding_by_batch(batch_examples):
 	padded_batch_indexed_tokens = torch.tensor(padded_batch_indexed_tokens).to(hyper_params["device"])
 	padded_batch_tags = torch.tensor(padded_batch_tags).to(hyper_params["device"])
 	sents_lengths = torch.tensor(sents_lengths).to(hyper_params["device"])
+	nom_indexes = torch.tensor(nom_indexes).to(hyper_params["device"])
 
-	return padded_batch_indexed_tokens, padded_batch_tags, sents_lengths
+	return padded_batch_indexed_tokens, padded_batch_tags, sents_lengths, nom_indexes
 
 def train(net, train_dataset, valid_dataset, optimizer, epoch):
 	"""
@@ -442,6 +450,24 @@ def load_train_and_dev(train_filename, dev_filename):
 	print("Train set size: ", len(train_dataset))
 	print("Validation set size: ", len(valid_dataset))
 
+	count_of_tags_patterns = []
+	count_of_right_tags_patterns = []
+
+	for sent, splitted_tags_idxs in (train_dataset + valid_dataset):
+		right_num_of_tags = len(splitted_tags_idxs.get("+", []))
+		wrong_num_of_tags = len(splitted_tags_idxs.get("-", []))
+
+		if right_num_of_tags != 0 and wrong_num_of_tags != 0:
+			count_of_tags_patterns.append(right_num_of_tags + wrong_num_of_tags)
+
+		if right_num_of_tags > 1:
+			count_of_right_tags_patterns.append(right_num_of_tags)
+
+	print("About the number of tagging patterns- AVG={:.3f}, MAX={:d}, MIN={:d}".format(
+		np.average(np.array(count_of_tags_patterns)), max(count_of_tags_patterns), min(count_of_tags_patterns)))
+	plot_hist(count_of_tags_patterns, bincount=max(count_of_tags_patterns), showSummary=True)
+	plot_hist(count_of_right_tags_patterns, bincount=max(count_of_right_tags_patterns), showSummary=True)
+
 	if "test_limit" in hyper_params:
 		random.seed(a=hyper_params["seed"])
 		constant_testing_indexes = random.sample(range(len(valid_dataset)), min(hyper_params["test_limit"], len(valid_dataset)))
@@ -652,15 +678,17 @@ if __name__ == '__main__':
 	print(comment)
 	print("MODEL: " + hyper_params["model"])
 
-	if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION): os.mkdir(CreateData.LEARNING_FILES_LOCATION)
-	if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION + "runs"): os.mkdir(CreateData.LEARNING_FILES_LOCATION + "runs")
-	if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION + "runs/" + hyper_params["model"]): os.mkdir(CreateData.LEARNING_FILES_LOCATION + "runs/" + hyper_params["model"])
-	if not os.path.isdir(model_dir): os.mkdir(model_dir)
-
 	if len(sys.argv) == 4:
 		mode = sys.argv[1][1:]
 
 		if mode == "train":
+			if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION): os.mkdir(CreateData.LEARNING_FILES_LOCATION)
+			if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION + "runs"): os.mkdir(
+				CreateData.LEARNING_FILES_LOCATION + "runs")
+			if not os.path.isdir(CreateData.LEARNING_FILES_LOCATION + "runs/" + hyper_params["model"]): os.mkdir(
+				CreateData.LEARNING_FILES_LOCATION + "runs/" + hyper_params["model"])
+			if not os.path.isdir(model_dir): os.mkdir(model_dir)
+
 			train_dataset, valid_dataset = load_train_and_dev(sys.argv[2], sys.argv[3])
 			model, net = load_trained_model(trained_model_filename, tags_dict_filename, log_filename, mode)
 			train_model(net, train_dataset, valid_dataset)

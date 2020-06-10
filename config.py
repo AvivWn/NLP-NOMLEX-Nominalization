@@ -8,8 +8,11 @@ import json
 import time
 import os
 import re
+
 import inflect
 engine = inflect.engine()
+import spacy_udpipe
+nlp = spacy_udpipe.load("en")
 
 # The lexicons are assumed to be in the next relative paths
 LISP_DIR = "lexicons/lisp_lexicons/"
@@ -17,5 +20,5 @@ JSON_DIR = "lexicons/json_lexicons/"
 PKL_DIR = "lexicons/pkl_lexicons/"
 
 # More configuration constants
-LOAD_LEXICON = True
+LOAD_LEXICON = False
 DEBUG = False
