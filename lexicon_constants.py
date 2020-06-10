@@ -172,30 +172,28 @@ ARG_LINKED = "LINKED"
 
 # Basic argument properties
 ARG_ILLEGAL_PREFIXES = "ILLEGAL-PREFIXES"
-ARG_SUBJUNCT = "SUBJUNCT"
 
-# Required patterns for the head of the argument
-ARG_HEAD_PATTERNS = "HEAD-PATTERNS"
+
+# Root constraints
+
+# Required patterns for the root of the argument
+ARG_ROOT_PATTERNS = "ROOT-PATTERNS"
 PATTERN_ING = "ing$"
 
-# Required postags for the the head of the argument
-ARG_HEAD_POSTAGS = "HEAD-POSTAGS"
-POSTAG_VB = "VB"
-POSTAG_VBG = "VBG"
+# Required u-postags and dependency u-relations for the the root of the argument (u=universal)
+ARG_ROOT_UPOSTAGS = "ROOT-UPOSTAGS"
+ARG_ROOT_RELATIONS = "ROOT-RELATIONS"
 
-# Requied dependency links from the head of the argument
-ARG_HEAD_LINKS = "HEAD-LINKS"
-LINKS_TO = ["mark_to"]	# For "to" preceeded to inf
-LINKS_THAT = ["mark_that"]	# For "to" preceeded to inf
 
-# Argument constraints
+# Argument boolean constraints
 ARG_CONSTRAINTS = "CONSTRAINTS"
 ARG_CONSTRAINT_POSSESSIVE = "POSSESSIVE"
 ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ = "N-N-MOD-NO-OTHER-OBJ"
 ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ = "DET-POSS-NO-OTHER-OBJ"
+ARG_PLURAL = "PLURAL"
+ARG_SUBJUNCT = "SUBJUNCT"
 
 # Argument properties that depends on other arguments
-ARG_PLURAL = "PLURAL"
 ARG_INCLUDING = "INCLUDING" # Relevant for plural when subject should be plural
 ARG_CONTIGUOUS_TO = "CONTIGUOUS" # the arguemnt that is right before that argument (the two arguments must be adjacent)
 ARG_CONTROLLED = "CONTROLLED"
