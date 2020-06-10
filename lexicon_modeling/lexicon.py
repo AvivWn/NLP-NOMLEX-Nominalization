@@ -9,7 +9,7 @@ class Lexicon:
 		print(json_filename)
 
 		if LOAD_LEXICON and os.path.exists(PKL_DIR + lexicon_name + '.pkl'):
-			with open(PKL_DIR + lexicon_name + '.pkl', 'rb') as input_file:
+			with open(PKL_DIR + lexicon_name.replace(".json",'.pkl'), 'rb') as input_file:
 				loaded_lexicon = pickle.load(input_file)
 				self.use_loaded_lexicon(loaded_lexicon)
 		else:
@@ -28,7 +28,7 @@ class Lexicon:
 			for entry_word in self.entries.keys():
 				self.entries[entry_word].set_next(self)
 
-			with open(PKL_DIR + lexicon_name + '.pkl', 'wb') as output_file:
+			with open(PKL_DIR + lexicon_name.replace(".json",'.pkl'), 'wb') as output_file:
 				pickle.dump(self, output_file)
 
 	def get_entry(self, entry_word):
