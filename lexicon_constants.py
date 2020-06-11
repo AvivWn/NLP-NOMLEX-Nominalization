@@ -156,6 +156,7 @@ WH_NOM_OPTIONS = ["whether", "what"]
 WHERE_WHEN_OPTIONS = ["where", "when", "how many", "how much"]
 HOW_OPTIONS = ["how"]
 HOW_TO_OPTIONS = ["how to"]
+POSSESIVE_OPTIONS = ["my", "your", "his", "our", "her", "their"]
 
 NONE_VALUES = ["NONE", "*NONE*", "none"] # Means that there is no possible value for that entry
 
@@ -190,13 +191,17 @@ ARG_CONSTRAINTS = "CONSTRAINTS"
 ARG_CONSTRAINT_POSSESSIVE = "POSSESSIVE"
 ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ = "N-N-MOD-NO-OTHER-OBJ"
 ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ = "DET-POSS-NO-OTHER-OBJ"
-ARG_PLURAL = "PLURAL"
-ARG_SUBJUNCT = "SUBJUNCT"
+ARG_CONSTRAINT_PLURAL = "PLURAL"
+ARG_CONSTRAINT_SUBJUNCT = "SUBJUNCT"
 
 # Argument properties that depends on other arguments
 ARG_INCLUDING = "INCLUDING" # Relevant for plural when subject should be plural
 ARG_CONTIGUOUS_TO = "CONTIGUOUS" # the arguemnt that is right before that argument (the two arguments must be adjacent)
 ARG_CONTROLLED = "CONTROLLED"
+
+# The argument can be linked to the nom, the verb or other possible argument
+LINKED_NOM = "NOM"
+LINKED_VERB = "VERB"
 
 
 

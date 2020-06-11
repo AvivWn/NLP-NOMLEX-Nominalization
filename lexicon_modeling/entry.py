@@ -2,7 +2,6 @@ from .subcat import *
 
 class Entry:
 	orth: str
-	features: dict
 	subcats = defaultdict(Subcat)
 	next = None
 	plural = None
@@ -15,7 +14,6 @@ class Entry:
 
 	def __init__(self, entry: dict, is_verb):
 		self.orth = entry[ENT_ORTH]
-		self.features = entry.get(ENT_FEATURES, {})
 		self.nom_type = entry.get(ENT_NOM_TYPE, {})
 
 		self.subcats = defaultdict(Subcat)
@@ -32,26 +30,34 @@ class Entry:
 	def set_next(self, lexicon):
 		self.next = lexicon.get_entry(self.next)
 
-	def extract_arguments(self, dependency_tree: list, argument_candidates: list):
-		extractions = []
+	def match_arguments(self, dependency_tree: list, argument_candidates: list, referenced_word_index: int):
+		"""
+		Matches the given argument candidates to the possible arguments of all the entries with the same orth (this, next and so on)
+		:param dependency_tree: the appropriate dependency tree for a sentence
+		:param argument_candidates: the candidates for the arguments of this entry (as list of root indexes)
+		:return: a list of all the founded argument matching for this entry ([{ARG: root_index}])
+		"""
 
-		# Extract the arguments based on each subcat for this word entry
+		matchings = []
+
+		# Match the arguments based on each subcat for this word entry
 		for subcat_type in self.subcats.keys():
-			print(subcat_type)
-			extractions += self.subcats[subcat_type].extract_arguments(dependency_tree, argument_candidates)
+			matchings += self.subcats[subcat_type].match_arguments(dependency_tree, argument_candidates, referenced_word_index)
 
-		# Extract arguments also based on the "next" entry in the lexicon
-		# Meaning by the same word with another sense
+		# Match arguments also based on the "next" entry in the lexicon
+		# Meaning, the aruguments properties of the same word with another sense
 		if self.next is not None:
-			extractions += self.next.extract_arguments(dependency_tree, argument_candidates)
+			matchings += self.next.match_arguments(dependency_tree, argument_candidates, referenced_word_index)
 
-		extractions = sorted(extractions, key=lambda k: len(k.keys()), reverse=True)
+		# Sort the matchings based on the number of arguments
+		matchings = sorted(matchings, key=lambda k: len(k.keys()), reverse=True)
 
-		final_extractions = []
-		for extraction in deepcopy(extractions):
-			is_sub_extraction = any([extraction.items() <= other_extraction.items() for other_extraction in final_extractions])
+		# Find only the unique matchings, which aren't sub-matchings
+		unique_matchings = []
+		for matching in deepcopy(matchings):
+			is_sub_matching = any([matching.items() <= other_matching.items() for other_matching in unique_matchings])
 
-			if not is_sub_extraction:
-				final_extractions.append(extraction)
+			if not is_sub_matching:
+				unique_matchings.append(matching)
 
-		return final_extractions
+		return unique_matchings

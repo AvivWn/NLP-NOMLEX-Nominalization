@@ -5,8 +5,22 @@ from .utils import *
 missing_required = []
 args_without_pos = []
 
+def split_positions(subcat, complement_type, argument_positions, referenced_arg):
+	subcat[complement_type].update({referenced_arg: {ARG_CONSTANTS: [], ARG_PREFIXES: [], ARG_CONSTRAINTS: []}})
 
-def simplify_complement_positions(subcat, complement_type):
+	# Split the possible positions into 3 different positions
+	for argument_position in argument_positions:
+		if type(argument_position) == dict:
+			for new_referenced_arg, positions in argument_position.items():
+				split_positions(subcat, complement_type, positions, new_referenced_arg)
+		elif argument_position.islower():
+			subcat[complement_type][referenced_arg][ARG_PREFIXES] += [argument_position]
+		elif is_known(argument_position, ["POS"], "POS"):
+			subcat[complement_type][referenced_arg][ARG_CONSTANTS] += [argument_position]
+		else:
+			raise Exception(f"Unknown complement positon ({get_current_specs()}).")
+
+def simplify_complement_positions(subcat, complement_type, is_verb=False):
 	"""
 	Simplifies the representation of the given complement type in the given subcat
 	:param subcat: a dictionary of the subcategorization info
@@ -32,18 +46,11 @@ def simplify_complement_positions(subcat, complement_type):
 		return
 
 	# Otherwise, dictionary
-	subcat[complement_type] = {ARG_LINKED: {}, ARG_CONSTANTS: [], ARG_PREFIXES: [], ARG_CONSTRAINTS: []}
+	subcat[complement_type] = {}
 
 	# Split the possible positions into 3 different positions
-	for argument_position in tmp_subcat.get(complement_type, []):
-		if type(argument_position) == dict:
-			subcat[complement_type][ARG_LINKED].update(argument_position)
-		elif argument_position.islower():
-			subcat[complement_type][ARG_PREFIXES] += [argument_position]
-		elif is_known(argument_position, ["POS"], "POS"):
-			subcat[complement_type][ARG_CONSTANTS] += [argument_position]
-		else:
-			raise Exception(f"Unknown complement positon ({get_current_specs()}).")
+	standard_referenced = get_linked_arg(is_verb)
+	split_positions(subcat, complement_type, tmp_subcat.get(complement_type, []), standard_referenced)
 
 def simplify_representation(subcat, subcat_type, is_verb=False):
 	"""
@@ -78,27 +85,29 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 	for complement_type in all_complements:
 		curr_specs["comp"] = complement_type
 
-		simplify_complement_positions(subcat, complement_type)
+		simplify_complement_positions(subcat, complement_type, is_verb)
 
 		if complement_type in subcat.keys():
-			# Update more manual constraints for that compelement/argument
-			subcat[complement_type].update(more_argument_constraints.get(complement_type, {}))
+			for complement_by_referenced in subcat[complement_type].values():
 
-			# Update
-			if ARG_HEAD_UPOSTAGS not in subcat[complement_type].keys():
-				if complement_type == COMP_PART:
-					subcat[complement_type][ARG_HEAD_UPOSTAGS] = [UPOS_PART]
-				elif complement_type in [COMP_IND_OBJ, COMP_FOR_NP, COMP_P_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_OBJ, COMP_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
-					subcat[complement_type][ARG_HEAD_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
-				else:
-					args_without_pos.append(complement_type)
+				# Update more manual constraints for that compelement/argument
+				complement_by_referenced.update(more_argument_constraints.get(complement_type, {}))
 
-			# Add the DET_POSS_NO_OTHER_OBJ\N_N_MOD_NO_OTHER_OBJ constriants for the nominalization (if it is relevant)
-			if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]:
-				subcat[complement_type][ARG_CONSTRAINTS] += [ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]
+				# Update the possible root postags for specific complements
+				if ARG_ROOT_UPOSTAGS not in complement_by_referenced.keys():
+					if complement_type == COMP_PART:
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART]
+					elif complement_type in [COMP_IND_OBJ, COMP_FOR_NP, COMP_P_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_OBJ, COMP_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
+					else:
+						args_without_pos.append(complement_type)
 
-			if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
-				subcat[complement_type][ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
+				# Add the DET_POSS_NO_OTHER_OBJ\N_N_MOD_NO_OTHER_OBJ constriants for the nominalization (if it is relevant)
+				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]:
+					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]
+
+				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
+					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
 
 	curr_specs["comp"] = None
 

@@ -95,7 +95,7 @@ class Lexicon:
 			print(f"Candidates for {word[WORD_TEXT]}:", [(dependency_tree[candidate_idx][WORD_SUB_TREE]) for candidate_idx in argument_candidates])
 
 			# Get all the possible extractions of this word
-			extractions = self.entries[lexical_word].extract_arguments(dependency_tree, argument_candidates)
+			extractions = self.entries[lexical_word].match_arguments(dependency_tree, argument_candidates, word[WORD_INDEX])
 			extractions_per_word[(word[WORD_TEXT], word[WORD_INDEX])] += extractions
 
 		return extractions_per_word

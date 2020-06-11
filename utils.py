@@ -56,11 +56,18 @@ def get_dependency_tree(sent):
 					WORD_POS_TAG: str(word_info.tag_),
 					WORD_UPOS_TAG: str(word_info.pos_),
 					WORD_HEAD_ID: int(head_id),
-					WORD_DEP_LINK: str(word_info.dep_),
+					WORD_DEP_RELATION: str(word_info.dep_),
 					WORD_ENT_IOB_TAG: str(word_info.ent_iob_),
 					WORD_ENT_TYPE: str(word_info.ent_type_),
 					WORD_SUB_TREE: str_sub_tree})
 	return dep
+
+def get_linked_arg(is_verb):
+	if is_verb:
+		return LINKED_VERB
+
+	return LINKED_NOM
+
 
 def arranged_print(input_to_print):
 	if DEBUG:
