@@ -120,15 +120,18 @@ def feedback():
 	text_to_send = request.json["text-to-send"]
 	port = 465  # For SSL
 	smtp_server = "smtp.gmail.com"
-	sender_email = "aviv.wn@gmail.com"
-	receiver_email = "aviv.wn@gmail.com"
+	sender_email = email_address
+	receiver_email = email_address
 	message = 'Subject: {}\n\n{}'.format("Argument Extraction Feedback", text_to_send)
 	context = ssl.create_default_context()
 
+	# Try to send the feedback e-mail
 	try:
 		with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
 			server.login(sender_email, password)
 			server.sendmail(sender_email, receiver_email, message)
+
+	# If the smtp servers fails, the feedback is written instead in a dedicated file
 	except smtplib.SMTPException:
 		exc_type, exc_value, exc_traceback = sys.exc_info()
 		traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
@@ -172,6 +175,7 @@ def annotate():
 
 
 # Ask for password for the email respones
+email_address = input("Enter your e-mail address: ")
 password = getpass("Password for sending emails: ")
 
 # Create the UD parser, that resulted in odin formated representation
