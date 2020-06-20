@@ -1,0 +1,11 @@
+*
+!/**/
+!*.py
+.*
+!README*
+!demo/index.html
+!.gitignore
+!.gitattributes
+!demo/css/*
+!demo/img/*
+!demo/scripts/*

@@ -1,0 +1,350 @@
+html, body {
+    height: 100%;
+    border: none;
+    background-color: #202020;
+}
+
+
+
+/*Body properties*/
+body {
+    display: flex;
+    flex-direction: column;
+    border: none;
+    flex: 1 0 auto;
+    margin: 0;
+    padding: 0;
+}
+
+/*Body colors for light mode*/
+body {
+	/*background-color: #fafafa;*/
+    color: black;
+}
+
+/*Body colors for dark mode*/
+body.dark {
+    /*background-color: #121212;*/
+    color: #acacac;
+}
+
+
+
+/*For hiding the page before loading*/
+.hide-all {
+    display: none !important;
+}
+
+
+
+/*Header and footer properties*/
+.my-header, .my-footer {
+    margin: 0;
+    text-align: left;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    border: 0 none;
+}
+
+/*Header and footer colors for light mode*/
+.my-header, .my-footer {
+    background-color: #ececec !important;
+    color: black;
+}
+
+/*Header and footer colors for dark mode*/
+.my-header.dark, .my-footer.dark {
+    background-color: #353535 !important;
+    color: lightgray;
+}
+
+
+.main-title {
+    padding-left:5px !important;
+    height:60px !important;
+    line-height:60px !important;
+    text-align:center !important;
+    font-size:30px;
+    font-size:calc(13px + 1vw) !important;
+    margin: 0 !important;
+}
+
+
+
+/*Header buttons properties*/
+.header-btn {
+    margin-left: 5px;
+}
+
+/*Header buttons colors for light mode*/
+.header-btn {
+    background-color: lightgray !important;
+    color: #353535 !important;
+}
+
+.no-touchevents .header-btn:hover {
+    background-color: #4b4b4b !important;
+    color: white !important;
+}
+
+/*Header buttons colors for dark mode*/
+.header-btn.dark {
+    background-color: #6e6e6e !important;
+    color: lightgray !important;
+}
+
+.no-touchevents .header-btn.dark:hover {
+    background-color: lightgray !important;
+    color: #353535 !important;
+}
+
+
+
+.center-items {
+    height: 100%;
+    align-items:center;
+    display:flex;
+}
+
+
+
+/*Icon properties*/
+.icon {
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+}
+
+
+/*The properties of the main content of the page*/
+.main-content {
+    flex: 1 0 auto;
+    border: none;
+    width: 100%;
+}
+
+/*The colors of the main content of the page for light mode*/
+.main-content {
+    background-color: white;
+}
+
+/*The colors of the main content of the page for dark mode*/
+.main-content.dark {
+    background-color: #202020;
+}
+
+
+
+/*The properties for an options container*/
+.options-container {
+    display: block;
+    position: relative;
+    vertical-align: center;
+    padding-left: 10px;
+    margin-right: 10px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    border: 1px solid #2196F3;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    border-radius: 8px;
+    margin-top: 2px;
+}
+
+.options-container .btn-container {
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+/*The properties for a button container, inside a options container*/
+.btn-container {
+    display: block;
+    position: relative;
+    padding-left: 25px;
+    padding-top: 2px;
+    cursor: pointer;
+    font-size: 22px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/*Hide the browser's default checkbox*/
+.btn-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/*Create a custom checkbox*/
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: lightgray;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+}
+
+/*On mouse-over, add a grey background color*/
+.btn-container:hover input ~ .checkmark {
+    background-color: #a1a1a1;
+}
+
+/*When the checkbox is checked, add a blue background*/
+.btn-container input:checked ~ .checkmark {
+    background-color: #2196F3;
+}
+
+/*Create the checkmark/indicator (hidden when not checked)*/
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+/*Show the checkmark when checked*/
+.btn-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+/*Style the checkmark/indicator*/
+.btn-container .checkmark:after {
+    left: 8px;
+    top: 4px;
+    width: 3px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+
+
+/*The properties for a text input line*/
+.input-line {
+    border: none !important;
+    height: 30px !important;
+    width: 80% !important;
+    min-width: 50px !important;
+    -webkit-border-radius: 8px !important;
+    -moz-border-radius: 8px !important;
+    border-radius: 8px !important;
+    outline: none !important;
+    margin-right: 21px !important;
+    padding-left: 15px !important;
+}
+
+.input-line:focus {
+    box-shadow: none !important;
+}
+
+
+/*The colors of a text input line for light mode*/
+.input-line {
+    background-color: #ececec !important;
+    color: black !important;
+}
+
+/*The colors of a text input line for dark mode*/
+.input-line.dark {
+    background-color: #353535 !important;
+    color: lightgray !important;
+}
+
+
+
+/*The properties for the submit button*/
+.submit-btn {
+    height: 38px;
+    width: 85px;
+    margin-right: 10px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    border-radius: 8px;
+    border: none;
+    outline-style: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    margin-bottom: 10px;
+}
+
+/*The colors of the submit button for dark mode*/
+.submit-btn {
+    background-color: #ececec;
+    color: #353535;
+}
+
+.no-touchevents .submit-btn:hover {
+    background-color: #4b4b4b;
+    color: white;
+}
+
+/*The colors of the submit button for dark mode*/
+.submit-btn.dark {
+    background-color: #353535;
+    color: lightgray;
+}
+
+.no-touchevents .submit-btn.dark:hover {
+    background-color: lightgray !important;
+    color: #353535;
+}
+
+
+/*The properties for the extractions container*/
+.extractions-contrainer {
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    border-radius: 8px;
+    border: solid 1px transparent;
+    overflow: hidden;
+    /*margin: 0 20px 0 0;*/
+}
+
+/*The colors of extractions container for light mode*/
+.extractions-contrainer {
+    background-color: #ececec;
+}
+
+/*The colors of extractions container for dark mode*/
+.extractions-contrainer.dark {
+    background-color: #353535;
+}
+
+
+
+/*Dimention properties for a container*/
+.my-container {
+    /*padding: 20px 20px 20px 20px;*/
+    overflow: hidden;
+    width: 92%;
+    max-width: 1700px;
+}
+
+
+
+/*The properties for a link*/
+.my-link {
+    color: #2196F3;
+}
+
+
+.feedback {
+    background-color: black;
+}
