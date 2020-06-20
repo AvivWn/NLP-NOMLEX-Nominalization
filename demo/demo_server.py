@@ -9,6 +9,7 @@ import pybart.conllu_wrapper as cw
 from getpass import getpass
 import ssl
 import smtplib
+import socks
 
 #@TODO- change import of module when it will become a web package
 sys.path.append("../")
@@ -116,23 +117,22 @@ def server_static(file_path="index.html"):
 
 @route('/nomlexDemo/feedback/', method='POST')
 def feedback():
-	text_to_send = request.json["text_to_send"]
+	text_to_send = request.json["text-to-send"]
 	port = 465  # For SSL
 	smtp_server = "smtp.gmail.com"
 	sender_email = "aviv.wn@gmail.com"
 	receiver_email = "aviv.wn@gmail.com"
 	message = 'Subject: {}\n\n{}'.format("Argument Extraction Feedback", text_to_send)
 	context = ssl.create_default_context()
+
 	try:
 		with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-			print(1)
 			server.login(sender_email, password)
-			print(2)
 			server.sendmail(sender_email, receiver_email, message)
 	except smtplib.SMTPException:
 		exc_type, exc_value, exc_traceback = sys.exc_info()
 		traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
-		with open("feedback.log", "a") as f:
+		with open("feedback-log.text", "a") as f:
 			f.write(text_to_send + "\n")
 
 @route('/nomlexDemo/annotate/', method='POST')
@@ -141,32 +141,24 @@ def annotate():
 	include_verbs = request.json["include_verbs"]
 	include_noms = request.json["include_noms"]
 
-	#sentence = "Paris's destruction"
-
-	#doc = nlp(sentence)
-	# doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-	# tagger(doc)
-	# parser(doc)
-	# basic_con(doc)
-	# basic_con = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
-	# nlp.add_pipe(basic_con, name="BART")
-	# doc = nlp(sentence)
-
+	# Parse the sentence using UD as odin formated representation
 	ud_doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-
-	converter = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
 	tagger(ud_doc)
 	parser(ud_doc)
 	converter(ud_doc)
-
 	odin_formated_doc = cw.conllu_to_odin(converter.get_parsed_doc(), is_basic=True, push_new_to_end=False)
+
+	# doc = nlp(sentence)
+	# odin_formated_doc = cw.conllu_to_odin(doc, is_basic=True, push_new_to_end=False)
+
 	document_id = ""
 	sentence_id = 0
 	event_id = 0
 	argument_id = 0
 	odin_formated_doc["mentions"] = []
 
-	# Add the mentions
+	# Add the mentions to the odin representation
+	# The mentions will be the founded extractions in the sentences
 	for sentence in odin_formated_doc["documents"][""]["sentences"]:
 		sentence_tokens = sentence["words"]
 		sentence_text = " ".join(sentence_tokens)
@@ -178,43 +170,16 @@ def annotate():
 
 	return odin_formated_doc
 
-	# basic_con = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
-	# doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-	# tagger(doc)
-	# parser(doc)
-	# basic_con(doc)
-	# odin_basic_out = cw.conllu_to_odin(basic_con.get_parsed_doc(), is_basic=True, push_new_to_end=False)
-	#displacy.parse_deps(doc)
-	# print(odin_basic_out)
-	#
-	# return odin_basic_out
 
-	#basic_doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-	#extra_doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-
-	# basic_con = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
-	# extra_con = Converter(eud, eud_pp, eud_bart, int(conv_iterations) if conv_iterations != "inf" else math.inf,
-	#                       remove_eud_info,
-	#                       not include_bart_info, remove_node_adding_convs, False, False, ConvsCanceler())
-	#
-	# for doc, con in [(basic_doc, basic_con), (extra_doc, extra_con)]:
-	#     _ = tagger(doc)
-	#     _ = parser(doc)
-	#     _ = con(doc)
-	#
-	# odin_basic_out = cw.conllu_to_odin(basic_con.get_parsed_doc(), is_basic=True, push_new_to_end=False)
-	# odin_plus_out = cw.conllu_to_odin(extra_con.get_parsed_doc(), push_new_to_end=False)
-	#
-	# return json.dumps({
-	#     "basic": odin_basic_out,
-	#     "plus": odin_plus_out,
-	#     "conv_done": extra_con.get_max_convs(),
-	# })
-
-
-# password = input("password for sending emails: ")
+# Ask for password for the email respones
 password = getpass("Password for sending emails: ")
+
+# Create the UD parser, that resulted in odin formated representation
 nlp = spacy.load("en_ud_model_lg")
+converter = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
+# nlp.add_pipe(converter, name="BART")
 tagger = nlp.get_pipe('tagger')
 parser = nlp.get_pipe('parser')
+
+# Start the server
 run(host='0.0.0.0', reloader=False, port=5001)

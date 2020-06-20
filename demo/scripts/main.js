@@ -191,13 +191,13 @@ define([
             const feed = prompt("Please enter your feedback here:", "");
             if (feed != null)
             {
-                var textToSend = "";
-                if ((feed != "") && (feed != "You can simply press OK, we will receive the attested sentence."))
+                var text_to_send = "";
+                if ((feed !== ""))
                 {
-                    textToSend = "User wrote: " + feed + "\n"
+                    text_to_send = "User wrote:\n" + feed + "\n\n";
                 }
-                textToSend += "Last sentence input:\n" + $sentence_input[0].value;
-                await axios.post('https://nlp.biu.ac.il/~avivwn/nomlexDemo/feedback/', {text_to_send: textToSend});
+                text_to_send += "Last sentence input:\n" + $sentence_input[0].value;
+                await axios.post('https://nlp.biu.ac.il/~avivwn/nomlexDemo/feedback/', {"text-to-send": text_to_send});
             }
         });
 
