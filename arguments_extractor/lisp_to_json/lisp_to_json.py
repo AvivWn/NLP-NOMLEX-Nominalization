@@ -1,5 +1,5 @@
 from .simplify_lexicon import *
-from utils import *
+from .utils import *
 
 # For debug
 phrases = []
@@ -62,7 +62,6 @@ def remove_quotes_around(string):
 
 	# Remove the qoutes symbols from the end of the string
 	if string.endswith('\"'):
-		# print(1)
 		string = string[:-1]
 
 	return string
@@ -248,12 +247,15 @@ def lisp_to_json(lisp_file_name):
 	:return:
 	"""
 
-	lisp_file_name = LISP_DIR + lisp_file_name
-	json_file_name = JSON_DIR + lisp_file_name.replace(".txt", "").split("/")[-1]
+	curr_dir = os.path.dirname(__file__)
+	lisp_file_path = get_lexicon_path(lisp_file_name, "lisp", working_directory=curr_dir)
+	json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir)
+	verb_json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir, is_verb=True)
+	nom_json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir, is_nom=True)
 
 	# Load the initial loaded lexicon if possible
-	if LOAD_LEXICON and os.path.exists(json_file_name + ".json"):
-		with open(json_file_name + ".json", "r") as loaded_file:
+	if LOAD_LEXICON and os.path.exists(json_file_path):
+		with open(json_file_path, "r") as loaded_file:
 			lexicon_data = json.load(loaded_file)
 
 		print("Total loaded json entries:", len(lexicon_data.keys()))
@@ -261,7 +263,7 @@ def lisp_to_json(lisp_file_name):
 	# Otherwise, create the json lexicon
 	else:
 		# Parsing the input file and getting the lines in it
-		lines = parse_lines(lisp_file_name)
+		lines = parse_lines(lisp_file_path)
 
 		# Translating the lines into entries as json format
 		entries = translate(lines)
@@ -276,7 +278,7 @@ def lisp_to_json(lisp_file_name):
 		print("Total translated entries to json:", len(lexicon_data.keys()))
 
 		# Writing the lexicon into an output file as a json format
-		with open(json_file_name + ".json", 'w') as outfile:
+		with open(json_file_path, 'w') as outfile:
 			json.dump(lexicon_data, outfile)
 
 
@@ -288,9 +290,9 @@ def lisp_to_json(lisp_file_name):
 		raise
 
 	# Writing the verbs lexicon into an output file as a json format
-	with open(json_file_name + "-verb.json", 'w') as outfile:
+	with open(verb_json_file_path, 'w') as outfile:
 		json.dump(verbs_lexicon, outfile)
 
 	# Writing the nominalizations lexicon into an output file as a json format
-	with open(json_file_name + "-nom.json", 'w') as outfile:
+	with open(nom_json_file_path, 'w') as outfile:
 		json.dump(noms_lexicon, outfile)

@@ -117,8 +117,8 @@ ENT_PLURAL_FREQ = "PLURAL-FREQ"
 ########################################################################################################################
 # Type of possible positions for arugments
 
-POS_COMPOUND = "N-N-MOD"
-POS_POSS = "DET-POSS"
+POS_N_N_MOD = "N-N-MOD"
+POS_DET_POSS = "DET-POSS"
 POS_NSUBJ = "NSUBJ"
 POS_DOBJ = "DOBJ"
 POS_IOBJ = "IOBJ"

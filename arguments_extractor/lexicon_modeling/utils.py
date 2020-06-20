@@ -1,4 +1,4 @@
-from utils import *
+# from arguments_extractor.utils import *
 from .ud_translator import *
 
 def get_right_value(table, subcat_type, default=None, is_verb=False):
@@ -14,6 +14,7 @@ def get_argument_candidates(dependency_tree, reference_word_index):
 	argument_candidates = []
 
 	for word in dependency_tree:
+		print(word[WORD_TEXT], word[WORD_HEAD_ID], word[WORD_DEP_RELATION], reference_word_index)
 		if word[WORD_DEP_RELATION] in LINK_TO_POS.keys() and word[WORD_HEAD_ID] == reference_word_index:
 			argument_candidates.append(word[WORD_INDEX])
 

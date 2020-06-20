@@ -36,7 +36,7 @@ class Subcat:
 			return True
 
 		# The next positions can appear at least once
-		for position in [POS_POSS, "of"]:
+		for position in [POS_DET_POSS, "of"]:
 			if list(positions).count(position) > 1:
 				return False
 
@@ -128,11 +128,11 @@ class Subcat:
 
 		# Check if there isn't any other argument that should get that position when it is the only object
 		for other_argument_type in difference_list(self.arguments.keys(), [argument_type]):
-			if position == POS_POSS:
+			if position == POS_DET_POSS:
 				if self.arguments[other_argument_type].is_det_poss_only(get_linked_arg(self.is_verb)):
 					return False
 
-			elif position == POS_COMPOUND:
+			elif position == POS_N_N_MOD:
 				if self.arguments[other_argument_type].is_n_n_mod_only(get_linked_arg(self.is_verb)):
 					return False
 
@@ -179,6 +179,7 @@ class Subcat:
 			for candidate_index in argument_candidates:
 				is_matched, matched_position = argument.check_matching(dependency_tree, candidate_index, get_linked_arg(self.is_verb))
 
+				print(complement_type, candidate_index, is_matched)
 				if is_matched:
 					args_per_candidate[candidate_index].append((complement_type, matched_position))
 
@@ -191,6 +192,7 @@ class Subcat:
 		:return: None
 		"""
 
+		print(args_that_linked_to_args)
 		for complement_type in difference_list(args_that_linked_to_args, matching.keys()):
 			arg_that_linked_to_args = self.arguments[complement_type]
 
@@ -241,6 +243,7 @@ class Subcat:
 		for matching in matchings:
 			matching = reverse_dict(matching)
 			self.match_linked_arguments(dependency_tree, args_that_linked_to_args, matching)
+			print(matching)
 
 			# Did we find an extraction that includes that matching?
 			is_sub_matching = any([matching.items() <= other_matching.items() for other_matching in correct_matchings])
@@ -271,10 +274,13 @@ class Subcat:
 		self.check_arguments_compatibility(args_per_candidate, dependency_tree, self.requires, argument_candidates)
 		if len(args_per_candidate.keys()) < len(difference_list(self.requires, args_that_linked_to_args)):
 			return []
+		print(args_per_candidate)
 
 		# Then, check for the optional arguments
 		self.check_arguments_compatibility(args_per_candidate, dependency_tree, self.optionals, argument_candidates)
+		print(args_per_candidate)
 
 		matchings = self.get_matchings(args_per_candidate, dependency_tree, args_that_linked_to_args, referenced_word_index)
+		print(matchings)
 
 		return matchings

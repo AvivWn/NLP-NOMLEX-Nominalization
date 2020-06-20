@@ -61,6 +61,8 @@ class Argument:
 		if self.root_upostags[linked_arg] != [] and root_info[WORD_UPOS_TAG] not in self.root_upostags[linked_arg]:
 			return False
 
+		print(4)
+
 		if self.root_pattern[linked_arg] != "" and not re.search(self.root_pattern[linked_arg], root_info[WORD_TEXT].lower(), re.M):
 			return False
 
@@ -77,6 +79,7 @@ class Argument:
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: True if the candidate doesn't contradict the constraints, and False otherwise
 		"""
+		print(2)
 
 		# Checks the constraints on the root
 		if not self.check_root(dependency_tree, candidate_info, linked_arg):
@@ -85,9 +88,13 @@ class Argument:
 		####################################
 		# Check the boolean constraints
 
+		print(3)
+
 		# Check the possessive constraint
 		if ARG_CONSTRAINT_POSSESSIVE in self.constraints[linked_arg]:
-			if not candidate_info[WORD_SUB_TREE].lower().endswith("'s") and not candidate_info[WORD_TEXT].lower() in POSSESIVE_OPTIONS:
+			if not candidate_info[WORD_SUB_TREE_TEXT].lower().endswith("'s") and \
+					not candidate_info[WORD_SUB_TREE_TEXT].lower().endswith("s'") and \
+					not candidate_info[WORD_TEXT].lower() in POSSESIVE_OPTIONS:
 				return False
 
 		return True
@@ -113,12 +120,12 @@ class Argument:
 				return False, None
 
 			# Check whether the candidate is compatible with the prefix pattern
-			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE],re.M)
+			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE_TEXT],re.M)
 			if matched_position is None:
 				return False, None
 
 			# Check wether the candidate isn't compatible with the *illegal* prefix pattern
-			if self.illegal_prefix_pattern[linked_arg] != "" and re.search(self.illegal_prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE],re.M) is not None:
+			if self.illegal_prefix_pattern[linked_arg] != "" and re.search(self.illegal_prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE_TEXT],re.M) is not None:
 				return False, None
 
 			matched_position = matched_position.group()
@@ -127,8 +134,9 @@ class Argument:
 		elif position not in self.constant_positions[linked_arg]:
 			return False, None
 
+		print(1)
 		# Check the compatibility between the candidate and this argument
-		return True, matched_position#self.check_constraints(dependency_tree, candidate_info, linked_arg), matched_position
+		return self.check_constraints(dependency_tree, candidate_info, linked_arg), matched_position
 
 	def check_matching(self, dependency_tree: list, candidate_index: int, linked_arg: str):
 		"""

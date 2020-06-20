@@ -1,6 +1,6 @@
-from lexicon_constants import *
-from ud_constants import *
-from config import *
+from .lexicon_constants import *
+from .ud_constants import *
+from .config import *
 
 def difference_list(first, second):
 	return list(set(first) - set(second))
@@ -48,7 +48,8 @@ def get_dependency_tree(sent):
 			assert (word_info.dep_ == "ROOT"), word_info.dep_
 			head_id = "-1"  # root
 
-		str_sub_tree = " ".join([node.text for node in word_info.subtree])
+		sub_tree_text = " ".join([node.text for node in word_info.subtree])
+		sub_tree_indexes = [node.i for node in word_info.subtree]
 
 		dep.append({WORD_INDEX: word_info.i,
 					WORD_TEXT: str(word_info.text),
@@ -59,8 +60,38 @@ def get_dependency_tree(sent):
 					WORD_DEP_RELATION: str(word_info.dep_),
 					WORD_ENT_IOB_TAG: str(word_info.ent_iob_),
 					WORD_ENT_TYPE: str(word_info.ent_type_),
-					WORD_SUB_TREE: str_sub_tree})
+					WORD_SUB_TREE_TEXT: sub_tree_text,
+					WORD_SUB_TREE_INDEXES: sub_tree_indexes})
 	return dep
+
+def get_lexicon_path(file_name, type_of_file, working_directory="", is_verb=False, is_nom=False):
+	file_name = file_name.replace(".txt", "")
+	lexicon_directory = ""
+
+	if type_of_file == "json":
+		lexicon_directory = JSON_DIR
+	elif type_of_file == "pkl":
+		lexicon_directory = PKL_DIR
+	elif type_of_file == "lisp":
+		lexicon_directory = LISP_DIR
+		type_of_file = "txt"
+
+	# Assumption- the "lexicons" directory can be only in the current directory or in a parent one
+	parent_count = 0
+	while not os.path.exists(os.path.join(working_directory, lexicon_directory)):
+		lexicon_directory = "../" + lexicon_directory
+		parent_count += 1
+
+		if parent_count > 5:
+			raise Exception(f"Couldn't find the lexicons directory in relation to the current directory ({working_directory}).")
+
+	if is_verb:
+		return os.path.join(working_directory, lexicon_directory + file_name + "-verb." + type_of_file)
+	elif is_nom:
+		return os.path.join(working_directory, lexicon_directory + file_name + "-nom." + type_of_file)
+	else:
+		return os.path.join(working_directory, lexicon_directory + file_name + "." + type_of_file)
+
 
 def get_linked_arg(is_verb):
 	if is_verb:
@@ -69,12 +100,8 @@ def get_linked_arg(is_verb):
 	return LINKED_NOM
 
 
-def arranged_print(input_to_print):
-	if DEBUG:
-		print(input_to_print)
-
 def separate_line_print(input_to_print, indent_level=0):
-	if DEBUG:
+	if True:
 		indentation_str = ""
 		for _ in range(indent_level):
 			indentation_str += "  "
@@ -83,10 +110,10 @@ def separate_line_print(input_to_print, indent_level=0):
 			for x in input_to_print:
 				if type(x) == defaultdict:
 					x = dict(x)
-				arranged_print(str(indentation_str) + str(x))
+				print(str(indentation_str) + str(x))
 
 		elif type(input_to_print) == dict or type(input_to_print) == defaultdict:
 			for tag, x in input_to_print.items():
 				if x != []: # Print only if it is not an empty list (meaning only if it is worth printing)
-					arranged_print(str(indentation_str) + str(tag) + ": ")
+					print(str(indentation_str) + str(tag) + ": ")
 					separate_line_print(x, indent_level + 2)

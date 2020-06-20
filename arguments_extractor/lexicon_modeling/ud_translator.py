@@ -1,4 +1,4 @@
-from lexicon_constants import *
+from arguments_extractor.utils import *
 
 ########################################################################################################################
 # Translation of UD tags to positions
@@ -6,7 +6,8 @@ from lexicon_constants import *
 LINK_TO_POS = {
 	"nmod": 		([POS_PREFIX],									[POS_PREFIX]),
 	"nsubj": 		([POS_NSUBJ],									[]),
-	"obj":			([POS_DOBJ],									[]),
+	"dobj":			([POS_DOBJ],									[]),				# UD V1
+	"obj":			([POS_DOBJ],									[]),				# UD V2
 	"iobj":			([POS_IOBJ],									[]),
 	"advmod":		([POS_ADMOD],									[POS_ADMOD]),
 	"amod":			([],											[POS_AJMOD]),
@@ -15,8 +16,8 @@ LINK_TO_POS = {
 	"ccomp":		([POS_PREFIX, POS_ING, POS_THAT, POS_SBAR],		[POS_THAT]),
 	"acl":			([POS_ACL],										[POS_PREFIX, POS_TO_INF]),
 	"acl:relcl":	([],											[POS_THAT]),
-	"nmod:poss":	([POS_POSS, POS_NSUBJ],							[POS_POSS]),
-	"compound":		([],											[POS_COMPOUND]),
+	"nmod:poss":	([POS_DET_POSS, POS_NSUBJ],						[POS_DET_POSS]),
+	"compound":		([],											[POS_N_N_MOD]),
 }
 
 

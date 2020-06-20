@@ -60,8 +60,8 @@ def sanity_checks(lexicon, is_verb=False):
 				for constraint in complement_info[ARG_CONSTRAINTS]:
 					is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
 
-				if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_POSS not in complement_info[ARG_CONSTANTS]) or\
-				   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_COMPOUND not in complement_info[ARG_CONSTANTS]):
+				if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_CONSTANTS]) or\
+				   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_CONSTANTS]):
 					noms_with_missing_positions.append(word)
 
 				positions_by_type["CONSTANTS"].update(complement_info[ARG_CONSTANTS])

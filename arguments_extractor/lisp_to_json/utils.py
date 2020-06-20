@@ -1,4 +1,4 @@
-from utils import *
+from arguments_extractor.utils import *
 
 # For debug
 unknown_values_dict = defaultdict(set)

@@ -4,12 +4,14 @@ class Lexicon:
 	entries = defaultdict(Entry)
 	is_verb: bool
 
-	def __init__(self, json_filename, is_verb=False):
-		lexicon_name = json_filename.split("/")[-1]
-		print(json_filename)
+	def __init__(self, lisp_file_name, is_verb=False):
+		curr_dir = os.path.dirname(__file__)
+		json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir, is_verb=is_verb, is_nom=not is_verb)
+		pkl_file_path = get_lexicon_path(lisp_file_name, "pkl", working_directory=curr_dir, is_verb=is_verb, is_nom=not is_verb)
 
-		if LOAD_LEXICON and os.path.exists(PKL_DIR + lexicon_name + '.pkl'):
-			with open(PKL_DIR + lexicon_name.replace(".json",'.pkl'), 'rb') as input_file:
+		# Should we create the Lexicon classes again (pkl formated lexicon)?
+		if LOAD_LEXICON and os.path.exists(pkl_file_path):
+			with open(pkl_file_path, "rb") as input_file:
 				loaded_lexicon = pickle.load(input_file)
 				self.use_loaded_lexicon(loaded_lexicon)
 		else:
@@ -17,18 +19,18 @@ class Lexicon:
 			self.is_verb = is_verb
 
 			# Loading the lexicon from the json file with the given name
-			with open(json_filename, "r") as input_file:
+			with open(json_file_path, "r") as input_file:
 				lexicon_json = json.load(input_file)
 
 			# Adding each entry of the lexicon to this object
-			for entry_word in lexicon_json.keys():
+			for entry_word in tqdm(lexicon_json.keys(), "Modeling the lexicon"):
 				self.entries[entry_word] = Entry(lexicon_json[entry_word], is_verb)
 
 			# Update the next entry for the linked entry
 			for entry_word in self.entries.keys():
 				self.entries[entry_word].set_next(self)
 
-			with open(PKL_DIR + lexicon_name.replace(".json",'.pkl'), 'wb') as output_file:
+			with open(pkl_file_path, 'wb') as output_file:
 				pickle.dump(self, output_file)
 
 	def get_entry(self, entry_word):
@@ -92,7 +94,7 @@ class Lexicon:
 
 			# Get the candidates for the arguments of this word (relevant direct links in the ud)
 			argument_candidates = get_argument_candidates(dependency_tree, word[WORD_INDEX])
-			print(f"Candidates for {word[WORD_TEXT]}:", [(dependency_tree[candidate_idx][WORD_SUB_TREE]) for candidate_idx in argument_candidates])
+			print(f"Candidates for {word[WORD_TEXT]}:", [(dependency_tree[candidate_idx][WORD_SUB_TREE_TEXT]) for candidate_idx in argument_candidates])
 
 			# Get all the possible extractions of this word
 			extractions = self.entries[lexical_word].match_arguments(dependency_tree, argument_candidates, word[WORD_INDEX])
