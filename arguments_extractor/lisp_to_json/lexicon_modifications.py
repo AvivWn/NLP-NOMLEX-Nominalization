@@ -1,4 +1,5 @@
-from .utils import *
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor.constants.ud_constants import *
 
 # This file includes several "tables" (dictionary) for needed modifications for the lexicon, based on the manual
 
@@ -61,15 +62,15 @@ lexicon_fixes_dict = {
 	# GERUNDS
 	"NOM-NP-ING": 				(([COMP_NP, COMP_ING_NPC],							{}, 															{COMP_OBJ: IGNORE_COMP},											{}),
 								 ([COMP_NP, COMP_ING_NPC],							{},																{COMP_OBJ: COMP_ING_NPC},											{})),
-	"NOM-NP-ING-OC": 			(([COMP_OBJ, COMP_ING_OC], 							{},																{COMP_OBJ: IGNORE_COMP},											{}),
+	"NOM-NP-ING-OC": 			(([COMP_OBJ, COMP_ING_OC], 							{},																{},																	{}),
 								 ([COMP_OBJ, COMP_ING_OC],							{},																{},																	{})),
-	"NOM-NP-ING-SC": 			(([COMP_OBJ, COMP_ING_SC], 							{}, 															{COMP_OBJ: IGNORE_COMP},											{}),
+	"NOM-NP-ING-SC": 			(([COMP_OBJ, COMP_ING_SC], 							{}, 															{},																	{}),
 								 ([COMP_OBJ, COMP_ING_SC],							{},																{},																	{})),
-	"NOM-NP-P-ING": 			(([COMP_NP, COMP_P_ING_NPC],						{},																{COMP_PP: COMP_P_ING_NPC, COMP_OBJ: IGNORE_COMP},					{COMP_P_ING_NPC: ["NOM-SUBC", "P-", "PVAL"]}),
+	"NOM-NP-P-ING": 			(([COMP_NP, COMP_P_ING_NPC],						{},																{COMP_PP: COMP_P_ING_NPC, COMP_OBJ: COMP_NP},						{COMP_P_ING_NPC: ["NOM-SUBC", "P-", "PVAL"]}),
 								 ([COMP_NP, COMP_P_ING_NPC], 						{}, 															{COMP_PP: COMP_P_ING_NPC, COMP_OBJ: COMP_NP}, 						{COMP_P_ING_NPC: ["NOM-SUBC", "P-", "PVAL"]})), # NOM-SUBC for both
-	"NOM-NP-P-ING-OC": 			(([COMP_OBJ, COMP_P_ING_OC], 						{}, 															{COMP_PP: COMP_P_ING_OC, COMP_OBJ: IGNORE_COMP}, 					{COMP_P_ING_OC: ["NOM-SUBC", "P-", "PVAL"]}),
+	"NOM-NP-P-ING-OC": 			(([COMP_OBJ, COMP_P_ING_OC], 						{}, 															{COMP_PP: COMP_P_ING_OC}, 											{COMP_P_ING_OC: ["NOM-SUBC", "P-", "PVAL"]}),
 								 ([COMP_OBJ, COMP_P_ING_OC], 						{}, 															{COMP_PP: COMP_P_ING_OC}, 											{COMP_P_ING_OC: ["NOM-SUBC", "P-", "PVAL"]})), # NOM-SUBC for both
-	"NOM-NP-P-ING-SC": 			(([COMP_OBJ, COMP_P_ING_SC],						{}, 															{COMP_PP: COMP_P_ING_SC, COMP_OBJ: IGNORE_COMP}, 					{COMP_P_ING_SC: ["NOM-SUBC", "P-", "PVAL"]}),
+	"NOM-NP-P-ING-SC": 			(([COMP_OBJ, COMP_P_ING_SC],						{}, 															{COMP_PP: COMP_P_ING_SC}, 											{COMP_P_ING_SC: ["NOM-SUBC", "P-", "PVAL"]}),
 								 ([COMP_OBJ, COMP_P_ING_SC],	 					{}, 															{COMP_PP: COMP_P_ING_SC}, 											{COMP_P_ING_SC: ["NOM-SUBC", "P-", "PVAL"]})), # NOM-SUBC for both
 
 

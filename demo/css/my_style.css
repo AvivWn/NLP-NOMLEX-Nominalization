@@ -150,7 +150,8 @@ body.dark {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    border: 1px solid #2196F3;
+    /*border: 1px solid #2196F3;*/
+    /*border: 1px solid lightgray;*/
     -webkit-border-radius: 8px;
     -moz-border-radius: 8px;
     border-radius: 8px;
@@ -167,13 +168,13 @@ body.dark {
     display: block;
     position: relative;
     padding-left: 25px;
-    padding-top: 2px;
     cursor: pointer;
     font-size: 22px;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    margin-right: 3px;
 }
 
 /*Hide the browser's default checkbox*/
@@ -203,9 +204,21 @@ body.dark {
     background-color: #a1a1a1;
 }
 
+.btn-container.nom-btn input:checked ~ .checkmark {
+    background-color: #64b34c;
+}
+
 /*When the checkbox is checked, add a blue background*/
-.btn-container input:checked ~ .checkmark {
-    background-color: #2196F3;
+.btn-container.verb-btn input:checked ~ .checkmark {
+    background-color: #299eec;
+}
+
+.btn-container.pos-btn input:checked ~ .checkmark {
+    background-color: #d0968f;
+}
+
+.btn-container.ud-btn input:checked ~ .checkmark {
+    background-color: #999;
 }
 
 /*Create the checkmark/indicator (hidden when not checked)*/
@@ -301,6 +314,11 @@ body.dark {
     color: lightgray;
 }
 
+.random-btn {
+    width: 50px;
+    font-size: 17px;
+}
+
 .no-touchevents .submit-btn.dark:hover {
     background-color: lightgray !important;
     color: #353535;
@@ -325,6 +343,7 @@ body.dark {
 /*The colors of extractions container for dark mode*/
 .extractions-contrainer.dark {
     background-color: #353535;
+    /*color: #85ee61;*/
 }
 
 

@@ -1,4 +1,10 @@
-from .simplify_representation import *
+from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs
+from arguments_extractor.constants.lexicon_constants import *
+
+from copy import deepcopy
+from tqdm import tqdm
+
+from arguments_extractor.utils import engine
 
 def duplicate_entry(lexicon, entry, new_orth=None):
 	"""
@@ -310,7 +316,6 @@ def split_entries(lexicon):
 		new_noms += split_entry(lexicon, nom)
 
 	return new_noms
-
 
 
 

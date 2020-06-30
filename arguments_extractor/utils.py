@@ -1,6 +1,19 @@
-from .lexicon_constants import *
-from .ud_constants import *
-from .config import *
+import time
+from collections import defaultdict
+
+import spacy
+from spacy.tokens import Token
+import inflect
+
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor import config
+
+engine = inflect.engine()
+
+# Load the ud-parser
+Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for node in token.subtree]))
+Token.set_extension("subtree_indices", getter=lambda token: [node.i for node in token.subtree])
+ud_parser = spacy.load("en_ud_model_lg")
 
 def difference_list(first, second):
 	return list(set(first) - set(second))
@@ -23,6 +36,8 @@ def timeit(method):
 
 	return timed
 
+
+
 def list_to_regex(list_of_options, delimiter, start_constraint="", end_constraint=""):
 	for i in range(len(list_of_options)):
 		list_of_options[i] = start_constraint + list_of_options[i] + end_constraint
@@ -31,67 +46,33 @@ def list_to_regex(list_of_options, delimiter, start_constraint="", end_constrain
 
 	return regex_pattern
 
-def get_dependency_tree(sent):
+def get_dependency_tree(sentence):
 	"""
 	Returns the dependency tree of a given sentence
-	:param sent: a string sentence
-	:return: the dependency tree of the sentence (a list of tuples)
+	:param sentence: a string sentence
+	:return: the dependency tree of the sentence (a list of doc = sequence of Spacy tokens)
 	"""
 
-	dep = []
+	return ud_parser(sentence)
 
-	# Here, the dependency tree is created using Spacy Package
-	sentence_info = nlp(sent)
-	for word_info in sentence_info:
-		head_id = str(word_info.head.i)  # we want ids to be 1 based
-		if word_info == word_info.head:  # and the ROOT to be 0.
-			assert (word_info.dep_ == "ROOT"), word_info.dep_
-			head_id = "-1"  # root
-
-		sub_tree_text = " ".join([node.text for node in word_info.subtree])
-		sub_tree_indexes = [node.i for node in word_info.subtree]
-
-		dep.append({WORD_INDEX: word_info.i,
-					WORD_TEXT: str(word_info.text),
-					WORD_LEMMA: str(word_info.lemma_),
-					WORD_POS_TAG: str(word_info.tag_),
-					WORD_UPOS_TAG: str(word_info.pos_),
-					WORD_HEAD_ID: int(head_id),
-					WORD_DEP_RELATION: str(word_info.dep_),
-					WORD_ENT_IOB_TAG: str(word_info.ent_iob_),
-					WORD_ENT_TYPE: str(word_info.ent_type_),
-					WORD_SUB_TREE_TEXT: sub_tree_text,
-					WORD_SUB_TREE_INDEXES: sub_tree_indexes})
-	return dep
-
-def get_lexicon_path(file_name, type_of_file, working_directory="", is_verb=False, is_nom=False):
+def get_lexicon_path(file_name, type_of_file, is_verb=False, is_nom=False):
 	file_name = file_name.replace(".txt", "")
 	lexicon_directory = ""
 
 	if type_of_file == "json":
-		lexicon_directory = JSON_DIR
+		lexicon_directory = config.JSON_DIR
 	elif type_of_file == "pkl":
-		lexicon_directory = PKL_DIR
+		lexicon_directory = config.PKL_DIR
 	elif type_of_file == "lisp":
-		lexicon_directory = LISP_DIR
+		lexicon_directory = config.LISP_DIR
 		type_of_file = "txt"
 
-	# Assumption- the "lexicons" directory can be only in the current directory or in a parent one
-	parent_count = 0
-	while not os.path.exists(os.path.join(working_directory, lexicon_directory)):
-		lexicon_directory = "../" + lexicon_directory
-		parent_count += 1
-
-		if parent_count > 5:
-			raise Exception(f"Couldn't find the lexicons directory in relation to the current directory ({working_directory}).")
-
 	if is_verb:
-		return os.path.join(working_directory, lexicon_directory + file_name + "-verb." + type_of_file)
+		return lexicon_directory + file_name + "-verb." + type_of_file
 	elif is_nom:
-		return os.path.join(working_directory, lexicon_directory + file_name + "-nom." + type_of_file)
+		return lexicon_directory + file_name + "-nom." + type_of_file
 	else:
-		return os.path.join(working_directory, lexicon_directory + file_name + "." + type_of_file)
-
+		return lexicon_directory + file_name + "." + type_of_file
 
 def get_linked_arg(is_verb):
 	if is_verb:
@@ -100,20 +81,20 @@ def get_linked_arg(is_verb):
 	return LINKED_NOM
 
 
+
 def separate_line_print(input_to_print, indent_level=0):
-	if True:
-		indentation_str = ""
-		for _ in range(indent_level):
-			indentation_str += "  "
+	indentation_str = ""
+	for _ in range(indent_level):
+		indentation_str += "  "
 
-		if type(input_to_print) == list:
-			for x in input_to_print:
-				if type(x) == defaultdict:
-					x = dict(x)
-				print(str(indentation_str) + str(x))
+	if type(input_to_print) == list:
+		for x in input_to_print:
+			if type(x) == defaultdict:
+				x = dict(x)
+			print(str(indentation_str) + str(x))
 
-		elif type(input_to_print) == dict or type(input_to_print) == defaultdict:
-			for tag, x in input_to_print.items():
-				if x != []: # Print only if it is not an empty list (meaning only if it is worth printing)
-					print(str(indentation_str) + str(tag) + ": ")
-					separate_line_print(x, indent_level + 2)
+	elif type(input_to_print) == dict or type(input_to_print) == defaultdict:
+		for tag, x in input_to_print.items():
+			if x != []: # Print only if it is not an empty list (meaning only if it is worth printing)
+				print(str(indentation_str) + str(tag) + ": ")
+				separate_line_print(x, indent_level + 2)

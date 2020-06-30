@@ -1,4 +1,10 @@
-from .simplify_subcat import *
+from copy import deepcopy
+
+from arguments_extractor.lisp_to_json.simplify_subcat import simplify_subcat
+from arguments_extractor.lisp_to_json.simplify_representation import simplify_representation
+from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, unknown_values_dict, known_values_dict
+from arguments_extractor.lisp_to_json.lexicon_modifications import lexicon_fixes_dict, subcat_typos_dict
+from arguments_extractor.constants.lexicon_constants import *
 
 # For debug
 alt_subcats = {FEATURE_SUBJ_OBJ_ALT: [], FEATURE_SUBJ_IND_OBJ_ALT: []}

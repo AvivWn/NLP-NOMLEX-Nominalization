@@ -1,5 +1,8 @@
-# from arguments_extractor.utils import *
-from .ud_translator import *
+from copy import deepcopy
+
+from spacy.tokens import Token
+
+from arguments_extractor.rule_based.ud_translator import *
 
 def get_right_value(table, subcat_type, default=None, is_verb=False):
 	if subcat_type not in table.keys():
@@ -10,24 +13,17 @@ def get_right_value(table, subcat_type, default=None, is_verb=False):
 
 	return deepcopy(table[subcat_type][1])
 
-def get_argument_candidates(dependency_tree, reference_word_index):
+def get_argument_candidates(referenced_token: Token):
 	argument_candidates = []
 
-	for word in dependency_tree:
-		print(word[WORD_TEXT], word[WORD_HEAD_ID], word[WORD_DEP_RELATION], reference_word_index)
-		if word[WORD_DEP_RELATION] in LINK_TO_POS.keys() and word[WORD_HEAD_ID] == reference_word_index:
-			argument_candidates.append(word[WORD_INDEX])
+	for sub_token in referenced_token.subtree:
+		if sub_token.dep_ in LINK_TO_POS.keys() and sub_token.head.i == referenced_token.i:
+			argument_candidates.append(sub_token)
 
 	return argument_candidates
 
 def relation_to_position(word_info, is_verb):
-	"""
-	Translates the
-	:param word_info:
-	:return:
-	"""
-
-	dep_link = word_info[WORD_DEP_RELATION]
+	dep_link = word_info.dep_
 	positions = get_right_value(LINK_TO_POS, dep_link, default=[], is_verb=is_verb)
 
 	return positions
@@ -40,13 +36,13 @@ def check_relations(dependency_tree, referenced_word, relations):
 			head_relation_info = head_relation.split("_")
 			relation = head_relation_info[0]
 
-			if not other_word[WORD_HEAD_ID] == referenced_word[WORD_INDEX] or not other_word[WORD_DEP_RELATION] == relation:
+			if not other_word.head.i == referenced_word.i or not other_word.dep_ == relation:
 				continue
 
 			if len(head_relation_info) == 2:
 				specific_word = head_relation_info[1]
 
-				if other_word[WORD_TEXT] == specific_word:
+				if other_word.orth_ == specific_word:
 					found_relation = True
 			else:
 				found_relation = True

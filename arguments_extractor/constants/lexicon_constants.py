@@ -169,7 +169,6 @@ NONE_VALUES = ["NONE", "*NONE*", "none"] # Means that there is no possible value
 # Possible positions for the arguments, splitted into two different lists
 ARG_CONSTANTS = "CONSTANTS"
 ARG_PREFIXES = "PREFIXES"
-ARG_LINKED = "LINKED"
 
 # Basic argument properties
 ARG_ILLEGAL_PREFIXES = "ILLEGAL-PREFIXES"
@@ -199,7 +198,7 @@ ARG_INCLUDING = "INCLUDING" # Relevant for plural when subject should be plural
 ARG_CONTIGUOUS_TO = "CONTIGUOUS" # the arguemnt that is right before that argument (the two arguments must be adjacent)
 ARG_CONTROLLED = "CONTROLLED"
 
-# The argument can be linked to the nom, the verb or other possible argument
+# The argument can be linked to the nom, the verb or ANY other possible complement
 LINKED_NOM = "NOM"
 LINKED_VERB = "VERB"
 

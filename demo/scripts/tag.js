@@ -40084,15 +40084,18 @@ function () {
       } else if (lHandles.length === 0) {
         // Put it in between the trigger and the first right handle
         var rHandle = rHandles[0];
-        var linkLabelX = rHandle.row.idx === triggerHandle.row.idx ? (triggerHandle.x + rHandle.x) / 2 : (triggerHandle.x + triggerHandle.row.rw) / 2;
-        this.linkLabel.move(linkLabelX, linkLabelY);
+
+        // if (typeof rHandle !== "undefined") {
+		var linkLabelX = rHandle.row.idx === triggerHandle.row.idx ? (triggerHandle.x + rHandle.x) / 2 : (triggerHandle.x + triggerHandle.row.rw) / 2;
+		this.linkLabel.move(linkLabelX, linkLabelY);
+		// }
       } else if (rHandles.length === 0) {
         // Put it in between the trigger and the first left handle
         var lHandle = lHandles[0];
 
-        var _linkLabelX = lHandle.row.idx === triggerHandle.row.idx ? (triggerHandle.x + lHandle.x) / 2 : triggerHandle.x / 2;
+		var _linkLabelX = lHandle.row.idx === triggerHandle.row.idx ? (triggerHandle.x + lHandle.x) / 2 : triggerHandle.x / 2;
 
-        this.linkLabel.move(_linkLabelX, linkLabelY);
+		this.linkLabel.move(_linkLabelX, linkLabelY);
       } // Perform draw
 
 
@@ -40827,7 +40830,7 @@ function () {
         }
 
         // Add a special padding between sentences
-        if (prevWord.isPunct) {
+        if (prevWord.text === ".") {
             newX += this.config.wordAfterSentencePadding;
         }
       }
@@ -40861,6 +40864,10 @@ function () {
 
       if (prevWord) {
         var wordPadding = word.isPunct ? this.config.wordPunctPadding : this.config.wordPadding;
+
+        if (prevWord.text === ".") {
+            wordPadding += this.config.wordAfterSentencePadding;
+        }
 
         if (newX < prevWord.x + prevWord.minWidth + wordPadding) {
           throw "Trying to position new Word over existing one!\n        (Row: ".concat(this.idx, ", wordIndex: ").concat(wordIndex, ")");
@@ -42354,9 +42361,6 @@ function () {
       else {
         this.svg.addClass("dark");
         this.svgText = this.svg.text(this.text).addClass("tag-element").addClass("word-text").leading(1);
-        // var attr = document.createAttribute("style");
-        // attr.value = "fill: black";
-        // this.svg.setAttributeNode(attr);
       }
       // to translate the entire Word rightward by half its width.
       // In addition, the x/y-position points at the upper-left corner of the
@@ -44121,6 +44125,11 @@ function () {
       if (nextWord) {
         rightEdge = nextWord.x;
         rightEdge -= nextWord.isPunct ? this.config.wordPunctPadding : this.config.wordPadding;
+
+        if (word.text === ".") {
+	 	  rightEdge -= this.config.wordAfterSentencePadding;
+	    }
+
       } else {
         rightEdge = row.rw - this.config.rowEdgePadding;
       }
@@ -44170,6 +44179,10 @@ function () {
       var space = word.x;
 
       if (prevWord) {
+      	if (prevWord.text === ".") {
+		  leftPadding += this.config.wordAfterSentencePadding;
+	  	}
+
         space -= prevWord.x + prevWord.minWidth + leftPadding;
       } else {
         space -= this.config.rowEdgePadding;

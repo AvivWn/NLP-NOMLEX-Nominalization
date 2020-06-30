@@ -1,4 +1,4 @@
-from arguments_extractor.utils import *
+from arguments_extractor.constants.lexicon_constants import *
 
 ########################################################################################################################
 # Translation of UD tags to positions
@@ -14,34 +14,11 @@ LINK_TO_POS = {
 	"advcl":		([POS_PREFIX, POS_TO_INF],						[]),
 	"xcomp":		([POS_TO_INF, POS_ING],							[]),
 	"ccomp":		([POS_PREFIX, POS_ING, POS_THAT, POS_SBAR],		[POS_THAT]),
-	"acl":			([POS_ACL],										[POS_PREFIX, POS_TO_INF]),
+	"acl":			([POS_ACL],										[POS_PREFIX, POS_TO_INF, POS_ING]),
 	"acl:relcl":	([],											[POS_THAT]),
 	"nmod:poss":	([POS_DET_POSS, POS_NSUBJ],						[POS_DET_POSS]),
 	"compound":		([],											[POS_N_N_MOD]),
+
+	"prt":			([POS_PREFIX],									[]),
+	"compound:prt":	([POS_PREFIX],									[]),
 }
-
-
-#
-# VERB_LINK_TO_POS = {
-# 	"nmod": [POS_PREFIX],
-# 	"nsubj": [POS_NSUBJ],
-# 	"obj": [POS_DOBJ],
-# 	"iobj": [POS_IOBJ],
-# 	"advmod": [POS_ADMOD],
-# 	"advcl": [POS_PREFIX, POS_TO_INF], # Maybe not pos-to-inf?
-# 	"xcomp": [POS_TO_INF, POS_ING],
-# 	"ccomp": [POS_PREFIX, POS_ING, POS_THAT, POS_SBAR],
-# 	"acl": [POS_ACL],
-# 	"nmod:poss": [POS_POSS, POS_NSUBJ]
-# }
-#
-# NOM_LINK_TO_POS = {
-# 	"nmod": [POS_PREFIX],
-# 	"acl": [POS_PREFIX, POS_TO_INF],
-# 	"nmod:poss": [POS_POSS],
-# 	"amod": [POS_AJMOD],
-# 	"advmod": [POS_ADMOD],
-# 	"compound": [POS_COMPOUND],
-# 	"acl:relcl": [POS_THAT],
-# 	"ccomp": [POS_THAT]
-# }

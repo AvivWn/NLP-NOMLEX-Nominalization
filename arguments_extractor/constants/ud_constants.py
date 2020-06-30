@@ -1,21 +1,4 @@
 ########################################################################################################################
-# Word information for dependency trees
-
-WORD_INDEX = "INDEX"
-WORD_TEXT = "TEXT"
-WORD_LEMMA = "LEMMA"
-WORD_POS_TAG = "POS-TAG"
-WORD_UPOS_TAG = "UPOS-TAG"
-WORD_HEAD_ID = "HEAD-ID"
-WORD_DEP_RELATION = "DEP-LINK"
-WORD_ENT_IOB_TAG = "ENT-IOB-TAG"
-WORD_ENT_TYPE = "ENT-TYPE"
-WORD_SUB_TREE_TEXT = "SUB-TREE-TEXT"
-WORD_SUB_TREE_INDEXES = "SUB-TREE-INDEXES"
-
-
-
-########################################################################################################################
 # Universal dependency relations
 
 # General universal relations
@@ -44,8 +27,10 @@ URELATION_THAT = "mark_that"	# For "that" preceeded S
 
 UPOS_VERB = "VERB"
 UPOS_PART = "PART"
+UPOS_ADP = "ADP"
 UPOS_ADJ = "ADJ"
 UPOS_ADV = "ADV"
 UPOS_NOUN = "NOUN"
 UPOS_PROPN = "PROPN"
 UPOS_PRON = "PRON"
+UPOS_DET = "DET"

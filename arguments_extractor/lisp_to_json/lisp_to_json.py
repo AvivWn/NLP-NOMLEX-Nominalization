@@ -1,5 +1,13 @@
-from .simplify_lexicon import *
-from .utils import *
+import os
+import json
+
+from tqdm import tqdm
+
+from arguments_extractor.lisp_to_json.simplify_lexicon import simplify_lexicon
+from arguments_extractor.lisp_to_json.utils import get_current_specs
+from arguments_extractor.utils import get_lexicon_path
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor import config
 
 # For debug
 phrases = []
@@ -247,14 +255,13 @@ def lisp_to_json(lisp_file_name):
 	:return:
 	"""
 
-	curr_dir = os.path.dirname(__file__)
-	lisp_file_path = get_lexicon_path(lisp_file_name, "lisp", working_directory=curr_dir)
-	json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir)
-	verb_json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir, is_verb=True)
-	nom_json_file_path = get_lexicon_path(lisp_file_name, "json", working_directory=curr_dir, is_nom=True)
+	lisp_file_path = get_lexicon_path(lisp_file_name, "lisp")
+	json_file_path = get_lexicon_path(lisp_file_name, "json")
+	verb_json_file_path = get_lexicon_path(lisp_file_name, "json", is_verb=True)
+	nom_json_file_path = get_lexicon_path(lisp_file_name, "json", is_nom=True)
 
 	# Load the initial loaded lexicon if possible
-	if LOAD_LEXICON and os.path.exists(json_file_path):
+	if config.LOAD_LEXICON and os.path.exists(json_file_path):
 		with open(json_file_path, "r") as loaded_file:
 			lexicon_data = json.load(loaded_file)
 

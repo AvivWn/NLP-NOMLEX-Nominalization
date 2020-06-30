@@ -1,4 +1,9 @@
-from arguments_extractor.utils import *
+from collections import defaultdict
+from copy import deepcopy
+
+# Needed for knowing the "known" constants
+from arguments_extractor.constants.ud_constants import *
+from arguments_extractor.constants.lexicon_constants import *
 
 # For debug
 unknown_values_dict = defaultdict(set)

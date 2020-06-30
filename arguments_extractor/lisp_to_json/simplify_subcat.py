@@ -1,4 +1,9 @@
-from .simplify_representation import *
+from copy import deepcopy
+
+from arguments_extractor.lisp_to_json.lexicon_modifications import lexicon_fixes_dict, complex_argument_positions, nom_types_to_args_dict
+from arguments_extractor.lisp_to_json.utils import get_right_value, get_current_specs, without_part, curr_specs
+from arguments_extractor.utils import difference_list
+from arguments_extractor.constants.lexicon_constants import *
 
 # For debug
 nom_roles_for_pval = set()
@@ -276,7 +281,6 @@ def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, is_v
 
 
 
-
 def change_types(subcat, types_dict):
 	"""
 	Translates the types of the complements according to the types dictionary
@@ -504,7 +508,6 @@ def perform_alternation(subcat, subcat_type):
 	# The replaced argument is still part of the structure of the subcat
 	# Thus it can be appeared in other position (like NOM which is changed afterwards)
 	subcat[SUBCAT_OPTIONAL].append(replace_complement)
-
 
 
 

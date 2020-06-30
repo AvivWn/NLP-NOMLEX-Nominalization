@@ -1,4 +1,8 @@
-from .subcat import *
+from collections import defaultdict
+from spacy.tokens import Token
+
+from arguments_extractor.rule_based.subcat import Subcat
+from arguments_extractor.constants.lexicon_constants import *
 
 class Entry:
 	orth: str
@@ -9,8 +13,6 @@ class Entry:
 	singular = None
 	plural_freq = None
 	is_verb: bool
-
-
 
 	def __init__(self, entry: dict, is_verb):
 		self.orth = entry[ENT_ORTH]
@@ -30,34 +32,34 @@ class Entry:
 	def set_next(self, lexicon):
 		self.next = lexicon.get_entry(self.next)
 
-	def match_arguments(self, dependency_tree: list, argument_candidates: list, referenced_word_index: int):
+	def match_arguments(self, argument_candidates: list, referenced_token: Token):
 		"""
 		Matches the given argument candidates to the possible arguments of all the entries with the same orth (this, next and so on)
-		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param argument_candidates: the candidates for the arguments of this entry (as list of root indexes)
-		:return: a list of all the founded argument matching for this entry ([{ARG: root_index}])
+		:param argument_candidates: the candidates for the arguments of this entry (as list of tokens)
+		:param referenced_token: the predicate of the arguments that we are after
+		:return: a list of all the founded argument matches for this entry ([{COMP: Token}])
 		"""
 
-		matchings = []
+		matches = []
 
 		# Match the arguments based on each subcat for this word entry
 		for subcat_type in self.subcats.keys():
-			matchings += self.subcats[subcat_type].match_arguments(dependency_tree, argument_candidates, referenced_word_index)
+			matches += self.subcats[subcat_type].match_arguments(argument_candidates, referenced_token)
 
 		# Match arguments also based on the "next" entry in the lexicon
 		# Meaning, the aruguments properties of the same word with another sense
 		if self.next is not None:
-			matchings += self.next.match_arguments(dependency_tree, argument_candidates, referenced_word_index)
+			matches += self.next.match_arguments(argument_candidates, referenced_token)
 
-		# Sort the matchings based on the number of arguments
-		matchings = sorted(matchings, key=lambda k: len(k.keys()), reverse=True)
+		# Sort the matches based on the number of arguments
+		matches = sorted(matches, key=lambda k: len(k.keys()), reverse=True)
 
-		# Find only the unique matchings, which aren't sub-matchings
-		unique_matchings = []
-		for matching in deepcopy(matchings):
-			is_sub_matching = any([matching.items() <= other_matching.items() for other_matching in unique_matchings])
+		# Find only the unique matches, which aren't sub-matches
+		unique_matches = []
+		for match in matches:
+			is_sub_match = any([match.items() <= other_match.items() for other_match in unique_matches])
 
-			if not is_sub_matching:
-				unique_matchings.append(matching)
+			if not is_sub_match:
+				unique_matches.append(match)
 
-		return unique_matchings
+		return unique_matches

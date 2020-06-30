@@ -7,86 +7,22 @@ from pybart.converter import ConvsCanceler
 from collections import defaultdict
 import pybart.conllu_wrapper as cw
 from getpass import getpass
+import numpy as np
 import ssl
 import smtplib
-import socks
 
 #@TODO- change import of module when it will become a web package
 sys.path.append("../")
 from arguments_extractor import *
 argumentExtractor = ArgumentsExtractor("NOMLEX-plus.1.0.txt")
 
-def extractions_to_mentions(extractions_per_word, sentence_tokens, document_id, sentence_id, event_id, argument_id):
-	mentions = []
+DATA_PATH = "data/sentences"
+with open(DATA_PATH, "r") as sentences_file:
+	sentences = sentences_file.readlines()
 
-	for word, extractions in extractions_per_word.items():
-		if extractions == []:
-			continue
+def _get_list_of_files(dir_name):
+	# Creates a list of all the files in the given directory, recursively
 
-		event_id += 1
-
-		word_str, word_index = word
-		extraction = extractions[0]
-		all_argument_indexes = [word_index]
-		arguments_dict = defaultdict(list)
-
-		for argument, argument_indexes in extraction.items():
-			start_index = min(argument_indexes)
-			end_index = max(argument_indexes)
-
-			new_mention = {
-				"type": "TextBoundMention",
-				"id": f"T:{argument_id}",
-				"text": " ".join(sentence_tokens[start_index: end_index + 1]),
-				"labels": ["\xa0"],
-				"tokenInterval": {
-					"start": start_index,
-					"end": end_index + 1
-				},
-				"sentence": sentence_id,
-				"document": document_id
-			}
-
-			all_argument_indexes += argument_indexes
-			mentions.append(new_mention)
-			argument_id += 1
-
-			arguments_dict[argument].append(new_mention)
-
-		start_index = min(all_argument_indexes)
-		end_index = max(all_argument_indexes)
-
-		new_mention = {
-			"type": "EventMention",
-			"id": f"E:{event_id}",
-			"text": " ".join(sentence_tokens[start_index: end_index + 1]),
-			"labels": [sentence_tokens[word_index]],
-			"sentence": sentence_id,
-			"document": document_id,
-
-			"trigger": {
-				"type": "TextBoundMention",
-				"id": f"T:{argument_id}",
-				"text": sentence_tokens[word_index],
-				"labels": ["\xa0"],
-				"tokenInterval": {
-					"start": word_index,
-					"end": word_index + 1
-				},
-				"sentence": sentence_id,
-				"document": document_id
-			},
-
-			"arguments": arguments_dict
-		}
-
-		argument_id += 1
-		mentions.append(new_mention)
-
-	return mentions, event_id, argument_id
-
-def get_list_of_files(dir_name):
-	# create a list of file and sub directories
 	# names in the given directory
 	list_of_file = os.listdir(dir_name)
 	all_files = list()
@@ -94,19 +30,54 @@ def get_list_of_files(dir_name):
 	for entry in list_of_file:
 		# Create full path
 		full_path = os.path.join(dir_name, entry)
+
 		# If entry is a directory then get the list of files in this directory
 		if os.path.isdir(full_path):
-			all_files = all_files + get_list_of_files(full_path)
+			all_files = all_files + _get_list_of_files(full_path)
 		else:
 			all_files.append(full_path.replace("./", ""))
 
 	return all_files
 
+def _get_random_sentence(sentences):
+	random_sentence = sentences[np.random.choice(len(sentences))]
+	return random_sentence
+
+def _update_mentions_info(mentions, sentence_id, informative_events, mentions_by_events, event_by_word_index):
+	mentions_by_events[sentence_id] = defaultdict(list)
+	most_informative_events = {"verb": -1, "nom": -1}
+	max_num_of_arguments = {"verb": -1, "nom": -1}
+
+	for mention in mentions:
+		is_verb_related = mention["isVerbRelated"]
+
+		# Search for the event with the max number of arguments in the sentence (= the most informative event)
+		if "arguments" in mention:
+			event_type = "verb" if is_verb_related else "nom"
+
+			num_of_arguments = len(mention["arguments"].keys())
+			if num_of_arguments > max_num_of_arguments[event_type]:
+				max_num_of_arguments[event_type] = num_of_arguments
+				most_informative_events[event_type] = mention["event"]
+
+		event_id = mention["event"]
+
+		# The trigger mention (=event) will always appear first in the mentions list
+		if "trigger" in mention:
+			mentions_by_events[sentence_id][event_id] = [mention] + mentions_by_events[sentence_id][event_id]
+			event_by_word_index[mention["trigger"]["realIndex"]] = {"event-id": event_id, "sentence-id": sentence_id, "is-verb": is_verb_related}
+		else:
+			mentions_by_events[sentence_id][event_id].append(mention)
+
+	informative_events[sentence_id] = most_informative_events
+
+
+
 @route('/nomlexDemo/')
 @route('/nomlexDemo/<file_path:path>')
 def server_static(file_path="index.html"):
 	last_part = file_path[file_path.rfind('/') + 1:]
-	all_files = get_list_of_files(".")
+	all_files = _get_list_of_files(".")
 
 	# Check whether the ending of the file is a new of a file, otherwise is it is an input text
 	if (" " in last_part) or (file_path not in all_files):
@@ -141,8 +112,10 @@ def feedback():
 @route('/nomlexDemo/annotate/', method='POST')
 def annotate():
 	sentence = request.json["sentence"]
-	include_verbs = request.json["include_verbs"]
-	include_noms = request.json["include_noms"]
+	is_random = request.json["random"]
+
+	if is_random:
+		sentence = _get_random_sentence(sentences)
 
 	# Parse the sentence using UD as odin formated representation
 	ud_doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
@@ -156,22 +129,37 @@ def annotate():
 
 	document_id = ""
 	sentence_id = 0
-	event_id = 0
-	argument_id = 0
-	odin_formated_doc["mentions"] = []
+	first_word_index = 0
 
-	# Add the mentions to the odin representation
-	# The mentions will be the founded extractions in the sentences
-	for sentence in odin_formated_doc["documents"][""]["sentences"]:
-		sentence_tokens = sentence["words"]
-		sentence_text = " ".join(sentence_tokens)
+	mentions_by_events = {} # list of mentions per event-id per sentence-id
+	informative_events = {} # event-id per sentence-id (the most informative events)
+	event_by_word_index = {} # event-id, sentence-id, is-verb per word-id in the input
 
-		extractions_per_words = argumentExtractor.extract_arguments(sentence_text, as_indexes=True, include_verbs=include_verbs, include_noms=include_noms)
-		mentions, event_id, argument_id = extractions_to_mentions(extractions_per_words, sentence_tokens, document_id, sentence_id, event_id, argument_id)
-		odin_formated_doc["mentions"] += mentions
+	# Generate the mentions for each sentence
+	# The mentions will be based on the founded extractions (if any) in the sentences
+	for sentence_info in odin_formated_doc["documents"][""]["sentences"]:
+		sentence_words = sentence_info["words"]
+		sentence_text = " ".join(sentence_words)
+
+		extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.rule_based_extraction(sentence_text, return_dependency_tree=True)
+		postags = [token.pos_ for token in dependency_tree]
+		sentence_info["tags"] = postags
+
+		extractions_per_word = extractions_per_verb
+		extractions_per_word.update(extractions_per_nom)
+		mentions = argumentExtractor.extractions_as_mentions(extractions_per_word, document_id, sentence_id, first_word_index)
+		_update_mentions_info(mentions, sentence_id, informative_events, mentions_by_events, event_by_word_index)
+
+		first_word_index += len(sentence_words)
 		sentence_id += 1
 
-	return odin_formated_doc
+	return {
+		"sentence": sentence,
+		"parsed-data": odin_formated_doc,
+		"mentions-by-events": mentions_by_events,
+		"informative-events": informative_events,
+		"event-by-word-index": event_by_word_index
+	}
 
 
 # Ask for password for the email respones
@@ -184,6 +172,7 @@ converter = Converter(False, False, False, 0, False, False, False, False, False,
 # nlp.add_pipe(converter, name="BART")
 tagger = nlp.get_pipe('tagger')
 parser = nlp.get_pipe('parser')
+# annotate()
 
 # Start the server
 run(host='0.0.0.0', reloader=False, port=5001)

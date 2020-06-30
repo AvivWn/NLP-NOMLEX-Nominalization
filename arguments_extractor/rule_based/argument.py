@@ -1,4 +1,11 @@
-from .utils import *
+import re
+from collections import defaultdict
+
+from spacy.tokens import Token
+
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor.rule_based.utils import check_relations, relation_to_position
+from arguments_extractor.utils import list_to_regex, get_linked_arg
 
 class Argument:
 	# Possible positions as two different lists
@@ -43,68 +50,66 @@ class Argument:
 	def is_linked(self):
 		return self.get_possible_linked_args() == [get_linked_arg(self.is_verb)]
 
+
+
+	# Argument constraints
+
 	def is_det_poss_only(self, linked_arg: str):
 		return ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in self.constraints[linked_arg]
 
 	def is_n_n_mod_only(self, linked_arg: str):
 		return ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in self.constraints[linked_arg]
 
-	def check_root(self, dependency_tree: list, root_info: dict, linked_arg: str):
+	def _check_root(self, candidate_token: Token, linked_arg: str):
 		"""
 		Checks that the constraints on the root according to this argument works for the given root word
-		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param root_info: the info of the root of an arugment in the dependency tree
+		:param candidate_token: a token candidate for this argument
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: True if the root doesn't contradict the root constraints of this argument, and False otherwise
 		"""
 
-		if self.root_upostags[linked_arg] != [] and root_info[WORD_UPOS_TAG] not in self.root_upostags[linked_arg]:
+		if self.root_upostags[linked_arg] != [] and candidate_token.pos_ not in self.root_upostags[linked_arg]:
 			return False
 
-		print(4)
-
-		if self.root_pattern[linked_arg] != "" and not re.search(self.root_pattern[linked_arg], root_info[WORD_TEXT].lower(), re.M):
+		if self.root_pattern[linked_arg] != "" and not re.search(self.root_pattern[linked_arg], candidate_token.orth_.lower(), re.M):
 			return False
 
-		if not check_relations(dependency_tree, root_info, self.root_urelations[linked_arg]):
+		if not check_relations(candidate_token.subtree, candidate_token, self.root_urelations[linked_arg]):
 			return False
 
 		return True
 
-	def check_constraints(self, dependency_tree: list, candidate_info: dict, linked_arg: str):
+	def _check_constraints(self, candidate_token: Token, linked_arg: str):
 		"""
 		Checks whether the given candidate is compatible with the constraints of this argument
-		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param candidate_info: the info of the candidate in the dependency tree (this is the root of the argument)
+		:param candidate_token: a token candidate for this argument
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: True if the candidate doesn't contradict the constraints, and False otherwise
 		"""
-		print(2)
 
 		# Checks the constraints on the root
-		if not self.check_root(dependency_tree, candidate_info, linked_arg):
+		if not self._check_root(candidate_token, linked_arg):
 			return False
 
 		####################################
 		# Check the boolean constraints
 
-		print(3)
-
 		# Check the possessive constraint
 		if ARG_CONSTRAINT_POSSESSIVE in self.constraints[linked_arg]:
-			if not candidate_info[WORD_SUB_TREE_TEXT].lower().endswith("'s") and \
-					not candidate_info[WORD_SUB_TREE_TEXT].lower().endswith("s'") and \
-					not candidate_info[WORD_TEXT].lower() in POSSESIVE_OPTIONS:
+			if not candidate_token._.subtree_text.lower().endswith("'s") and \
+					not candidate_token._.subtree_text.lower().endswith("s'") and \
+					not candidate_token.orth_.lower() in POSSESIVE_OPTIONS:
 				return False
 
 		return True
 
-	def check_position(self, dependency_tree: list, position: str, candidate_info: dict, linked_arg: str):
+
+
+	def check_position(self, position: str, candidate_token: Token, linked_arg: str):
 		"""
 		Checks whether the given candidate word and this argument are compatible and can occur as the given position
-		:param dependency_tree: the appropriate dependency tree for a sentence
 		:param position: a possible position for the candidate (prefix or constant)
-		:param candidate_info: the info of the candidate in the dependency tree (this is the root of the argument)
+		:param candidate_token: a token candidate for this argument
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: True if the three (this argument and the given position and candidate) are compatible, and False otherwise
 		:return: is_match (bool), matched_position (str)
@@ -120,12 +125,12 @@ class Argument:
 				return False, None
 
 			# Check whether the candidate is compatible with the prefix pattern
-			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE_TEXT],re.M)
+			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_token._.subtree_text,re.M)
 			if matched_position is None:
 				return False, None
 
 			# Check wether the candidate isn't compatible with the *illegal* prefix pattern
-			if self.illegal_prefix_pattern[linked_arg] != "" and re.search(self.illegal_prefix_pattern[linked_arg], candidate_info[WORD_SUB_TREE_TEXT],re.M) is not None:
+			if self.illegal_prefix_pattern[linked_arg] != "" and re.search(self.illegal_prefix_pattern[linked_arg], candidate_token._.subtree_text,re.M) is not None:
 				return False, None
 
 			matched_position = matched_position.group()
@@ -134,15 +139,13 @@ class Argument:
 		elif position not in self.constant_positions[linked_arg]:
 			return False, None
 
-		print(1)
 		# Check the compatibility between the candidate and this argument
-		return self.check_constraints(dependency_tree, candidate_info, linked_arg), matched_position
+		return self._check_constraints(candidate_token, linked_arg), matched_position
 
-	def check_matching(self, dependency_tree: list, candidate_index: int, linked_arg: str):
+	def check_match(self, candidate_token: Token, linked_arg: str):
 		"""
 		Checks whether the given candidate matches to to this argument
-		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param candidate_index: the index of the candidate argument in the dependency tree (the root index)
+		:param candidate_token: a token candidate for this argument
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: is_match (bool), matched_position (str)
 				 is_match is True if there is a match between the candidate to this argument, and False otherwise
@@ -152,15 +155,13 @@ class Argument:
 		if linked_arg not in self.get_possible_linked_args():
 			return False, None
 
-		candidate_info = dependency_tree[candidate_index]
-
 		# Get the possible "position" type for the candidate (like DET-POSS, of, for and so on)
 		# Based on the dependency relation that connects the candidate to the rest of the tree (its head relation)
-		possible_positions = relation_to_position(candidate_info, self.is_verb)
+		possible_positions = relation_to_position(candidate_token, self.is_verb)
 
 		# Check the compatibility of each position with this argument and the candidate
 		for position in possible_positions:
-			is_match, matched_position = self.check_position(dependency_tree, position, candidate_info, linked_arg)
+			is_match, matched_position = self.check_position(position, candidate_token, linked_arg)
 
 			if is_match:
 				return True, matched_position

@@ -1,1 +1,1 @@
-from .arguments_extractor import ArgumentsExtractor
+from arguments_extractor.arguments_extractor import ArgumentsExtractor

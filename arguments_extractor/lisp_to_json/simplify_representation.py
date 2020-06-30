@@ -1,5 +1,10 @@
-from .lexicon_modifications import *
-from .utils import *
+from copy import deepcopy
+
+from arguments_extractor.lisp_to_json.lexicon_modifications import argument_constraints, subcat_constraints
+from arguments_extractor.lisp_to_json.utils import get_right_value, get_current_specs, is_known, curr_specs
+from arguments_extractor.utils import difference_list, get_linked_arg
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor.constants.ud_constants import *
 
 # For debug
 missing_required = []
@@ -25,6 +30,7 @@ def simplify_complement_positions(subcat, complement_type, is_verb=False):
 	Simplifies the representation of the given complement type in the given subcat
 	:param subcat: a dictionary of the subcategorization info
 	:param complement_type: the type of the complement that is needed to be simplified
+	:param is_verb: whether or not the given subcat is for verb rearranging (otherwise- nominalization)
 	:return: None
 	"""
 
@@ -88,7 +94,9 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 		simplify_complement_positions(subcat, complement_type, is_verb)
 
 		if complement_type in subcat.keys():
-			for complement_by_referenced in subcat[complement_type].values():
+			tmp_subcat[complement_type] = {}
+			for linked_arg in deepcopy(subcat[complement_type]).keys():
+				complement_by_referenced = subcat[complement_type][linked_arg]
 
 				# Update more manual constraints for that compelement/argument
 				complement_by_referenced.update(more_argument_constraints.get(complement_type, {}))
@@ -96,9 +104,9 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 				# Update the possible root postags for specific complements
 				if ARG_ROOT_UPOSTAGS not in complement_by_referenced.keys():
 					if complement_type == COMP_PART:
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART]
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART, UPOS_ADP]
 					elif complement_type in [COMP_IND_OBJ, COMP_FOR_NP, COMP_P_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_OBJ, COMP_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET]
 					else:
 						args_without_pos.append(complement_type)
 
@@ -108,6 +116,10 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 
 				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
 					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
+
+				# After all the changes, delete all complement subentries that doesn't contain any possible position
+				if complement_by_referenced[ARG_PREFIXES] == [] and complement_by_referenced[ARG_CONSTANTS] == []:
+					del subcat[complement_type][linked_arg]
 
 	curr_specs["comp"] = None
 

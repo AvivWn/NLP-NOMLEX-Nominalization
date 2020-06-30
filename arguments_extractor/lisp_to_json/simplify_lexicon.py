@@ -1,5 +1,17 @@
-from .simplify_lexicon_keys import *
-from .simplify_entry import *
+import numpy as np
+from copy import deepcopy
+from collections import defaultdict
+
+from tqdm import tqdm
+
+from arguments_extractor.lisp_to_json.simplify_lexicon_keys import remove_entries, split_entries
+from arguments_extractor.lisp_to_json.simplify_entry import rearrange_entry
+from arguments_extractor.lisp_to_json.simplify_subcat import nom_roles_for_pval
+from arguments_extractor.lisp_to_json.simplify_representation import argument_constraints, missing_required, args_without_pos
+from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, without_part, get_right_value, unknown_values_dict, known_values_dict
+from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor.utils import difference_list
+from arguments_extractor import config
 
 # For debug
 added_noms = []
@@ -56,17 +68,18 @@ def sanity_checks(lexicon, is_verb=False):
 
 			for complement_type in all_complements:
 				curr_specs["comp"] = complement_type
-				complement_info = subcat[complement_type]
-				for constraint in complement_info[ARG_CONSTRAINTS]:
-					is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
 
-				if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_CONSTANTS]) or\
-				   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_CONSTANTS]):
-					noms_with_missing_positions.append(word)
+				for linked_arg in subcat[complement_type]:
+					complement_info = subcat[complement_type][linked_arg]
+					for constraint in complement_info[ARG_CONSTRAINTS]:
+						is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
 
-				positions_by_type["CONSTANTS"].update(complement_info[ARG_CONSTANTS])
-				positions_by_type["PREFIXES"].update(complement_info[ARG_PREFIXES])
-				positions_by_type["LINKED TO"].update(complement_info[ARG_LINKED].keys())
+					if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_CONSTANTS]) or\
+					   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_CONSTANTS]):
+						noms_with_missing_positions.append(word)
+
+					positions_by_type["CONSTANTS"].update(complement_info[ARG_CONSTANTS])
+					positions_by_type["PREFIXES"].update(complement_info[ARG_PREFIXES])
 
 			curr_specs["comp"] = None
 			more_argument_constraints = get_right_value(argument_constraints, subcat_type, {}, is_verb)
@@ -76,36 +89,40 @@ def sanity_checks(lexicon, is_verb=False):
 				if complement_type not in subcat.keys():
 					continue
 
-				auto_controlled = []
+				for linked_arg in subcat[complement_type]:
+					auto_controlled = []
 
-				# Automatic constraints
-				if complement_type.endswith("-P-OC"):
-					auto_controlled = [COMP_PP]
-				elif complement_type.endswith("-FOR-OC"):
-					auto_controlled = [COMP_FOR_NP]
-				elif complement_type.endswith("-POSSC"):
-					auto_controlled = [COMP_POSS_ING_VC]
-				elif complement_type.endswith("-NPC"):
-					auto_controlled = [COMP_NP]
-				elif complement_type.endswith("-OC"):
-					auto_controlled = [COMP_OBJ]
-				elif complement_type.endswith("-SC"):
-					auto_controlled = [COMP_SUBJ]
-				elif complement_type.endswith("-VC"):
-					auto_controlled = [COMP_SUBJ, COMP_OBJ]
+					# Automatic constraints
+					if complement_type.endswith("-P-OC"):
+						auto_controlled = [COMP_PP]
+					elif complement_type.endswith("-FOR-OC"):
+						auto_controlled = [COMP_FOR_NP]
+					elif complement_type.endswith("-POSSC"):
+						auto_controlled = [COMP_POSS_ING_VC]
+					elif complement_type.endswith("-NPC"):
+						auto_controlled = [COMP_NP]
+					elif complement_type.endswith("-OC"):
+						auto_controlled = [COMP_OBJ]
+					elif complement_type.endswith("-SC"):
+						auto_controlled = [COMP_SUBJ]
+					elif complement_type.endswith("-VC"):
+						auto_controlled = [COMP_SUBJ, COMP_OBJ]
 
-					if subcat_type == "NOM-P-NP-TO-INF-VC":
-						auto_controlled = [COMP_SUBJ, COMP_PP]
+						if subcat_type == "NOM-P-NP-TO-INF-VC":
+							auto_controlled = [COMP_SUBJ, COMP_PP]
 
-				# Assure that the manual constraints were added correctly
-				if set(auto_controlled) != set(subcat[complement_type].get(ARG_CONTROLLED, [])):
-					print(subcat[complement_type][ARG_CONTROLLED])
-					print(auto_controlled)
-					raise Exception(f"Manual controlled constraints do not agree with the automatic ones ({get_current_specs()}).")
+						if complement_type.startswith("POSS-ING"):
+							auto_controlled = []
 
-				if subcat[complement_type][ARG_LINKED] == {} and subcat[complement_type][ARG_CONSTANTS] == subcat[complement_type][ARG_PREFIXES] == []:
-					print(word, subcat_type, complement_type)
-					raise Exception(f"There is a complement without any position ({get_current_specs()}).")
+					# Assure that the manual constraints were added correctly
+					if set(auto_controlled) != set(subcat[complement_type][linked_arg].get(ARG_CONTROLLED, [])):
+						print(subcat[complement_type][linked_arg].get(ARG_CONTROLLED, []))
+						print(auto_controlled)
+						raise Exception(f"Manual controlled constraints do not agree with the automatic ones ({get_current_specs()}).")
+
+					if subcat[complement_type][linked_arg][ARG_CONSTANTS] == subcat[complement_type][linked_arg][ARG_PREFIXES] == []:
+						print(word, subcat_type, complement_type)
+						raise Exception(f"There is a complement without any position ({get_current_specs()}).")
 
 			curr_specs["comp"] = None
 
@@ -116,7 +133,7 @@ def get_summary():
 	print(f"Possible nom roles for PVAL: {nom_roles_for_pval}")
 	print(f"Required arguments that are sometimes missing: {list(zip(*np.unique(missing_required, return_counts=True)))}")
 	print(f"Words with missing DET-POSS/N-N-MOD (based on NO-OTHER-OBJ feature): {noms_with_missing_positions}")
-	print(f"Complements that don't specify specific postag: {args_without_pos}")
+	print(f"Complements that don't specify specific postag: {set(args_without_pos)}")
 
 	for constant_type in list(set(list(unknown_values_dict.keys()) + list(known_values_dict.keys()))):
 		print(f"\n{constant_type}:")
@@ -231,7 +248,7 @@ def simplify_lexicon(original_lexicon):
 	print(f"Total verbs entries: {len(verbs_lexicon)}")
 	print(f"Total noms entries: {len(noms_lexicon)}")
 
-	if DEBUG:
+	if config.DEBUG:
 		sanity_checks(verbs_lexicon, is_verb=True)
 		sanity_checks(noms_lexicon, is_verb=False)
 		get_summary()
