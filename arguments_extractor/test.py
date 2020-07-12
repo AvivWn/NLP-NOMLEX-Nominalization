@@ -1,6 +1,8 @@
 import pickle
 from os.path import isfile
 
+from tqdm import tqdm
+
 from arguments_extractor.arguments_extractor import ArgumentsExtractor
 from arguments_extractor import config
 
@@ -16,11 +18,11 @@ def compare_extractions(extractions, loaded_extractions, sentence):
 			difference_predicates.append(predicate)
 
 	for predicate in difference_predicates:
-		print(f"The extractions are different for \"{predicate}\" in the sentence\"{sentence}\"")
-		print(f"OLD:{loaded_extractions[predicate]}")
-		print(f"NEW:{extractions[predicate]}")
+		print(f"The extractions are different for \"{predicate}\" in the sentence: \"{sentence}\"")
+		print(f"OLD:{loaded_extractions.get(predicate, 'NONE')}")
+		print(f"NEW:{extractions.get(predicate, 'NONE')}")
 
-	return difference_predicates == []
+	return difference_predicates != []
 
 def load_extractions(extractions_file_path):
 	loaded_extractions = {}
@@ -51,8 +53,8 @@ def test_rule_based():
 	test_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
 	found_differences = False
 
-	for line in test_sentences:
-		line = line.replace("\n", "").replace("\r", "")
+	for line in tqdm(test_sentences, "Testing", leave=False):
+		line = line.strip(" \t\n\r")
 
 		if line == "" or line.startswith("#"):
 			continue
@@ -76,8 +78,8 @@ def test_rule_based():
 		save_extractions(config.TEST_NOM_EXTRACTIONS, loaded_nom_extractions)
 
 	if config.REWRITE_TEST:
-		print("Test Override")
-	elif found_differences:
-		print("Test Succesful")
+		print("Test Overrided!")
+	elif not found_differences:
+		print("Test Succeeded!")
 	else:
-		print("Test Failed")
+		print("Test Failed!")

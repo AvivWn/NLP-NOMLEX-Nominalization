@@ -266,14 +266,7 @@ def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, is_v
 	if COMP_SUBJ not in requires:
 		optionals.append(COMP_SUBJ)
 
-	if is_verb:
-		# SUBJECT and OBJECT cannot be optionals for verbs (it depends on the subcategorization- transitive or intransitive)
-		optionals = difference_list(optionals, [COMP_SUBJ, COMP_OBJ])
-
-		# SUBJECT is always required for verbs
-		requires += [COMP_SUBJ]
-
-	# All the non-optional constraints in the default requires list are required
+	# All the non-optional constraints in the default requires list are also required
 	requires += difference_list(default_requires, optionals)
 
 	subcat[SUBCAT_REQUIRED] = list(set(requires))
@@ -298,8 +291,24 @@ def change_types(subcat, types_dict):
 			if new_complement_type != IGNORE_COMP:
 				subcat[new_complement_type] = deepcopy(subcat[complement_type])
 
+				# Replacing the complement type on the required list
+				if complement_type in difference_list(subcat[SUBCAT_REQUIRED], types_dict.values()):
+					subcat[SUBCAT_REQUIRED].remove(complement_type)
+
+					if new_complement_type not in subcat[SUBCAT_OPTIONAL]:
+						subcat[SUBCAT_REQUIRED].append(new_complement_type)
+
+				# Replacing the complement type on the optionals list
+				if complement_type in difference_list(subcat[SUBCAT_OPTIONAL], types_dict.values()):
+					subcat[SUBCAT_OPTIONAL].remove(complement_type)
+
+					if new_complement_type not in subcat[SUBCAT_REQUIRED]:
+						subcat[SUBCAT_OPTIONAL].append(new_complement_type)
+
 			del subcat[complement_type]
 
+	subcat[SUBCAT_REQUIRED] = list(set(subcat[SUBCAT_REQUIRED]))
+	subcat[SUBCAT_OPTIONAL] = list(set(subcat[SUBCAT_OPTIONAL]))
 	curr_specs["comp"] = None
 
 def get_special_values(entry, location_list):
@@ -382,6 +391,20 @@ def use_defaults(subcat, defaults_dict):
 			if default_positions != []:
 				subcat[complement_type] = default_positions
 
+		# Add the existing default positions to the existing ones
+		if ADD_POS in default_positions:
+			default_positions.remove(ADD_POS)
+
+			for pos in default_positions:
+				if type(pos) != dict:
+					continue
+
+				for linked_arg in pos:
+					pos[linked_arg] += deepcopy(subcat[complement_type])
+
+			subcat[complement_type] += default_positions
+
+
 	curr_specs["comp"] = None
 
 def add_extensions(subcat, is_verb=False):
@@ -420,6 +443,9 @@ def add_extensions(subcat, is_verb=False):
 				else:
 					extensions = [option]
 
+				if option in extensions:
+					extensions = [option]
+
 				new_options += get_options_with_extensions(option, extensions)
 
 			subcat[complement_type] = new_options
@@ -437,8 +463,8 @@ def use_nom_type(subcat, nom_type_info, is_verb=False):
 	"""
 
 	# Get the type of complements that appropriate to the given type of nominalization
-	type_of_nom = nom_type_info[TYPE_OF_NOM]
-	complement_types = nom_types_to_args_dict.get(without_part(type_of_nom), [])
+	type_of_nom = without_part(nom_type_info[TYPE_OF_NOM])
+	complement_types = nom_types_to_args_dict.get(type_of_nom, [])
 
 	changed = False
 
@@ -454,11 +480,13 @@ def use_nom_type(subcat, nom_type_info, is_verb=False):
 				changed = True
 
 		# For noms, the only position of the complement is NOM
-		# The complement appear in the list of complement or in the required or optional lists
-		elif complement_type == COMP_INSTRUMENT or complement_type in list(subcat.keys()) + subcat[SUBCAT_REQUIRED] + subcat[SUBCAT_OPTIONAL]:
-			subcat[complement_type] = [POS_NOM]
-			subcat[SUBCAT_REQUIRED] = list(set(subcat[SUBCAT_REQUIRED] + [complement_type]))
-			subcat[SUBCAT_OPTIONAL] = difference_list(subcat[SUBCAT_OPTIONAL], [complement_type])
+		# The complement should appear in the required or optional lists
+		elif complement_type in list(subcat.keys()) + subcat[SUBCAT_REQUIRED] + subcat[SUBCAT_OPTIONAL]: # or complement_type == COMP_INSTRUMENT
+			# Instead of the founded relevant complement, we will write the type of nom as a new complement
+			subcat.pop(complement_type, None)
+			subcat[type_of_nom] = [POS_NOM]
+			subcat[SUBCAT_REQUIRED] = list(set(difference_list(subcat[SUBCAT_REQUIRED], [complement_type]) + [type_of_nom]))
+			subcat[SUBCAT_OPTIONAL] = difference_list(subcat[SUBCAT_OPTIONAL], [type_of_nom, complement_type])
 			changed = True
 
 		if changed:
@@ -524,11 +552,11 @@ def simplify_subcat(entry, subcat, subcat_type, is_verb=False):
 
 	# Update the subject and the object differently for verbs and noms
 	if is_verb:
-		subcat[COMP_SUBJ] = [POS_NSUBJ]
+		subcat[COMP_SUBJ] = [POS_NSUBJ, POS_DET_POSS, "by"]
 
 		# Object is relevant only for transitive verbs
 		if without_part(subcat_type).startswith("NOM-NP"):
-			subcat[COMP_OBJ] = [POS_DOBJ]
+			subcat[COMP_OBJ] = [POS_DOBJ, POS_NSUBJPASS]
 
 		# Does the verb requires a particle?
 		if OLD_COMP_ADVAL in subcat:
@@ -537,6 +565,7 @@ def simplify_subcat(entry, subcat, subcat_type, is_verb=False):
 		rearrange_subject(subcat, entry.get(ENT_VERB_SUBJ, {}))
 		rearrange_object(subcat)
 		subcat.pop(COMP_PART, None)
+		subcat.pop(OLD_COMP_ADVAL, None)
 
 	rearrange_ind_object(subcat)
 

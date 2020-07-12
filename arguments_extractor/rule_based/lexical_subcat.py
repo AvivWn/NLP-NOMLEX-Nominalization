@@ -3,23 +3,28 @@ from collections import defaultdict
 
 from spacy.tokens import Token
 
-from arguments_extractor.rule_based.argument import Argument
+from arguments_extractor.rule_based.lexical_argument import LexicalArgument
+from arguments_extractor.rule_based.extraction import Extraction
 from arguments_extractor.constants.lexicon_constants import *
 from arguments_extractor.rule_based.utils import get_argument_candidates
-from arguments_extractor.utils import difference_list, get_linked_arg, reverse_dict
+from arguments_extractor.utils import difference_list, get_linked_arg
 
-class Subcat:
-	arguments = defaultdict(Argument)
+class LexicalSubcat:
+	subcat_type: str
+
+	arguments = defaultdict(LexicalArgument)
 	requires: list
 	optionals: list
 	constraints: list
 	not_constraints: dict
 	is_verb: bool
 
-	def __init__(self, subcat_info: dict, is_verb):
-		self.arguments = defaultdict(Argument)
+	def __init__(self, subcat_info: dict, subcat_type, is_verb):
+		self.subcat_type = subcat_type
+
+		self.arguments = defaultdict(LexicalArgument)
 		for complement_type in difference_list(subcat_info.keys(), [SUBCAT_REQUIRED, SUBCAT_OPTIONAL, SUBCAT_NOT, SUBCAT_CONSTRAINTS]):
-			self.arguments[complement_type] = Argument(subcat_info[complement_type], is_verb)
+			self.arguments[complement_type] = LexicalArgument(subcat_info[complement_type], complement_type, is_verb)
 
 		self.requires = subcat_info.get(SUBCAT_REQUIRED, [])
 		self.optionals = difference_list(self.arguments.keys(), subcat_info.get(SUBCAT_REQUIRED, []))
@@ -33,15 +38,13 @@ class Subcat:
 		"""
 		Checks that the order of the pre-nom arguments is as "SUBJECT > INDIRECT OBJECT > DIRECT OBJECT > OBLIQUE" ("Ordering Constraint", NOMLEX manual)
 		This constraint is relevant only to nominalizations
-		:param match: the match between the arguments types and the actual arguments ({(COMP, POS): Token})
+		:param match: the match between the arguments types and the actual arguments ({COMP: Token})
 		:param referenced_token: the predicate of the arguments that we are after
 		:return: True if the given match is compatible with the "Ordering Constraint", and False otherwise
 		"""
 
 		if self.is_verb:
 			return True
-
-		match = dict([(match_key[0], match_value) for match_key, match_value in match.items()])
 
 		subject_index = match.get(COMP_SUBJ, referenced_token).i
 		ind_object_index = match.get(COMP_IND_OBJ, referenced_token).i
@@ -71,7 +74,7 @@ class Subcat:
 		Checks that different arguments of noms don't appear using the same positions (relevant to specific positions)
 		And that any complement doesn't appear more than once
 		:param complement_types: a list of complement types
-		:param matched_positions: a list of the matched positions for the complements
+		:param matched_positions: a list of the corresponding matched positions for the complements
 		:return: True if the given match is compatible with the "Uniqueness Principle", and False otherwise
 		"""
 
@@ -82,7 +85,7 @@ class Subcat:
 		if self.is_verb:
 			return True
 
-		# The next positions can appear at most once
+		# The next positions can appear at most once (for nominalizations)
 		for position in [POS_DET_POSS, "of"]:
 			if list(matched_positions).count(position) > 1:
 				return False
@@ -93,7 +96,7 @@ class Subcat:
 		"""
 		Checks whether the given match between arguments and positions appear in the NOT constraints
 		:param complement_types: a list of complement types
-		:param matched_positions: a list of the matched positions for the complements
+		:param matched_positions: a list of the corresponding matched positions for the complements
 		:return: True if this match don't appear in the NOT constraints of this subcat, and False otherwise
 		"""
 
@@ -157,35 +160,46 @@ class Subcat:
 
 		return True
 
-	def _check_constraints(self, match: dict, referenced_token: Token):
+	def _check_constraints(self, extraction: Extraction, referenced_token: Token):
 		"""
 		Checks whether the given subcat match is compatible with the constraints of this subcat
-		:param match: the matches between the arguments types and the actual arguments ({(COMP, POS): Token})
+		:param extraction: an extraction object that includes the matches between the arguments types and the actual arguments
 		:param referenced_token: the predicate of the arguments that we are after
 		:return: True if the candidate doesn't contradict the constraints, and False otherwise
 		"""
 
-		complement_types = [arg for arg, _ in match.keys()]
-		matched_positions = [pos for _, pos in match.keys()]
+		if extraction.get_complements() == []:
+			return False
+
+		complement_types = extraction.get_complements()
+		argument_tokens = [extraction.get_argument(complement_type).argument_token for complement_type in complement_types]
+		matched_positions = [extraction.get_argument(complement_type).matched_position for complement_type in complement_types]
+		match = dict(zip(complement_types, argument_tokens))
 
 		####################################
 		# Check subcat constraints regarding just the complement types
 
-		# Check that all the required arguments appear in the given match
+		# Check that all the required arguments appear in the given extraction
 		if not set(self.requires).issubset(complement_types):
 			return False
 
-		# Check that the given match satisfied the "Ordering Constraint" (NOMLEX manual)
+		# Check that the given extraction satisfied the "Ordering Constraint" (NOMLEX manual)
 		if not self._check_ordering(match, referenced_token):
 			return False
 
 		# Check the boolean constraints
 		if SUBCAT_CONSTRAINT_ADVP_OR_ADJP in self.constraints:
-			if COMP_ADVP not in match and COMP_ADJP not in match:
+			if COMP_ADVP not in complement_types and COMP_ADJP not in complement_types:
 				return False
 
 		####################################
 		# Check subcat constraints regarding the complement types and their matched positions
+
+		# The sbuject of a *verb* may follow "by" only if the verb isn't written in passive voice
+		if self.is_verb and COMP_SUBJ in complement_types:
+			if extraction.match[COMP_SUBJ].matched_position == "by" and \
+				(COMP_OBJ not in complement_types or extraction.match[COMP_OBJ].matched_position != POS_NSUBJPASS):
+				return False
 
 		# Check that the arguments and positions not appear in the NOT position constraints
 		if self._is_in_not(complement_types, matched_positions):
@@ -199,16 +213,24 @@ class Subcat:
 		if not self._check_if_no_other_object(complement_types, matched_positions):
 			return False
 
+		# Check that all the plurality constraint is being satisfied
+		for complement_type, extracted_argument in extraction.match.items():
+			argument_token = extracted_argument.argument_token
+			linked_argument = extracted_argument.linked_arg
+			if not self.arguments[complement_type].check_plurality(argument_token, complement_types, linked_argument):
+				return False
+
 		return True
 
 
 
-	def _check_arguments_compatibility(self, args_per_candidate: dict, argument_types: list, argument_candidates: list):
+	def _check_arguments_compatibility(self, args_per_candidate: dict, argument_types: list, argument_candidates: list, referenced_token: Token):
 		"""
 		Checks the compatibility of the given argument types with each argument candidate
-		:param args_per_candidate: the possible argument types for each candidate
+		:param args_per_candidate: the possible extracted arguments for each candidate
 		:param argument_types: a list of argument types
 		:param argument_candidates: the candidates for the arguments of this subcat (as list of tokens)
+		:param referenced_token: the predicate of the arguments that we are after
 		:return: None
 		"""
 
@@ -216,76 +238,71 @@ class Subcat:
 			argument = self.arguments[complement_type]
 
 			for candidate_token in argument_candidates:
-				is_matched, matched_position = argument.check_match(candidate_token, get_linked_arg(self.is_verb))
+				matched_argument = argument.check_match(candidate_token, get_linked_arg(self.is_verb), referenced_token)
 
-				if is_matched:
-					args_per_candidate[candidate_token].append((complement_type, matched_position))
+				if matched_argument is not None:
+					args_per_candidate[candidate_token].append(matched_argument)
 
-	def _match_linked_arguments(self, args_that_linked_to_args: list, match: dict):
+	def _match_linked_arguments(self, args_that_linked_to_args: list, extraction: Extraction):
 		"""
 		Matches the given linked arguments based on the given match
 		:param args_that_linked_to_args: a list of argument types that can be "linked" to other arguments
-		:param match: the matches between the arguments types and the actual arguments ({(COMP, position): Token})
+		:param extraction: an extraction object that includes the matches between the arguments types and the actual arguments
 		:return: None
 		"""
 
-		match_without_pos = dict([(match_key[0], match_value) for match_key, match_value in match.items()])
-
-		for complement_type in difference_list(args_that_linked_to_args, match_without_pos.keys()):
+		for complement_type in difference_list(args_that_linked_to_args, extraction.get_complements()):
 			arg_that_linked_to_args = self.arguments[complement_type]
 
 			for linked_arg in difference_list(arg_that_linked_to_args.get_possible_linked_args(), [LINKED_NOM, LINKED_VERB]):
 				# The linked argument (which is the referenced argument for the current complement) must appear in the given match
 				# An argument that is linked for another argument can't be added without that argument
-				if linked_arg not in match_without_pos:
+				if linked_arg not in extraction.get_complements():
 					continue
 
-				candidates = get_argument_candidates(match_without_pos[linked_arg])
+				candidates = get_argument_candidates(extraction.get_argument(linked_arg).argument_token, self.is_verb)
 
 				for candidate_token in candidates:
-					is_matched, matched_position = arg_that_linked_to_args.check_match(candidate_token, linked_arg)
+					matched_argument = arg_that_linked_to_args.check_match(candidate_token, linked_arg, extraction.get_argument(linked_arg).argument_token)
 
-					if is_matched:
-						match[(complement_type, matched_position)] = candidate_token
+					if matched_argument is not None:
+						extraction.add_argument(matched_argument)
 
-	def _get_matches(self, args_per_candidate: dict, args_that_linked_to_args: list, referenced_token: Token):
+	def _get_extractions(self, args_per_candidate: dict, args_that_linked_to_args: list, referenced_token: Token):
 		"""
-		Genetrates all the possible matches of arguments and candidates, based on the possible arguments per candidate
+		Genetrates all the possible extractions of arguments and candidates, based on the possible arguments per candidate
 		:param args_per_candidate: the possible argument types for each candidate
 		:param args_that_linked_to_args: a list of argument types that can be "linked" to other arguments
 		:param referenced_token: the predicate of the arguments that we are after
-		:return: all the possible matches for this subcat
+		:return: all the possible extractions for this subcat
 		"""
 
+		# Add a "None" argument option for each candidate, cause any candidate may not be an argument
+		for candidate_token in args_per_candidate.keys():
+			args_per_candidate[candidate_token].append(None)
+
 		candidates = args_per_candidate.keys()
-		matches = [dict(zip(candidates, arguments_tuple)) for arguments_tuple in product(*args_per_candidate.values())]
-		relevant_matches = []
+		matches = [dict(zip(candidates, arguments)) for arguments in product(*args_per_candidate.values())]
+		relevant_extractions = []
 
 		for match in matches:
-			match = reverse_dict(match)
+			extraction = Extraction(self, list(match.values()))
 
-			# Add the linked arguments into the match
-			self._match_linked_arguments(args_that_linked_to_args, match)
+			# Add the linked arguments into the extraction
+			self._match_linked_arguments(args_that_linked_to_args, extraction)
 
-			if match == {}:
-				continue
+			# Check constraints on the current extraction
+			if self._check_constraints(extraction, referenced_token):
+				relevant_extractions.append(extraction)
 
-			# Check constraints on the current match
-			if not self._check_constraints(match, referenced_token):
-				continue
-
-			match = dict([(match_key[0], match_value) for match_key, match_value in match.items()])
-
-			relevant_matches.append(match)
-
-		return relevant_matches
+		return relevant_extractions
 
 	def match_arguments(self, argument_candidates: list, referenced_token: Token):
 		"""
 		Matches the given argument candidates to the possible arguments of this subcat
 		:param argument_candidates: the candidates for the arguments of this subcat (as list of tokens)
 		:param referenced_token: the predicate of the arguments that we are after
-		:return: a list of all the founded argument matches for this subcat ([{COMP: Token}])
+		:return: A list of all the possible argument extractions for this subcat ([Extraction])
 		"""
 
 		# The possible arguments for each candidate
@@ -296,14 +313,14 @@ class Subcat:
 		args_that_linked_to_args = [arg_type for arg_type, arg in self.arguments.items() if not arg.is_linked()]
 
 		# Check the compatability of the candidates with the required arguments first
-		self._check_arguments_compatibility(args_per_candidate, self.requires, argument_candidates)
+		self._check_arguments_compatibility(args_per_candidate, self.requires, argument_candidates, referenced_token)
 		if len(args_per_candidate.keys()) < len(difference_list(self.requires, args_that_linked_to_args)):
 			return []
 
 		# Then, check for the optional arguments
-		self._check_arguments_compatibility(args_per_candidate, self.optionals, argument_candidates)
+		self._check_arguments_compatibility(args_per_candidate, self.optionals, argument_candidates, referenced_token)
 
-		# From possible arguments for each candidate, to possible matches
-		matches = self._get_matches(args_per_candidate, args_that_linked_to_args, referenced_token)
+		# From possible arguments for each candidate, to possible extractions
+		extractions = self._get_extractions(args_per_candidate, args_that_linked_to_args, referenced_token)
 
-		return matches
+		return extractions

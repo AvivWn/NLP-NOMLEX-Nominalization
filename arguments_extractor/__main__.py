@@ -2,6 +2,8 @@ import sys
 
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
 from arguments_extractor.model_based.create_datasets import create_datasets
+from arguments_extractor.model_based.learning import learning
+from arguments_extractor.model_based import hyper_params
 from arguments_extractor.arguments_extractor import ArgumentsExtractor
 from arguments_extractor.test import test_rule_based
 from arguments_extractor.utils import separate_line_print, timeit
@@ -15,6 +17,8 @@ if "-f" in sys.argv:
 
 if "-debug" in sys.argv:
 	config.DEBUG = True
+
+
 
 if "-lispToJson" in sys.argv:
 	lisp_to_json(config.LEXICON_FILE_NAME)
@@ -36,6 +40,9 @@ if "-extract" in sys.argv:
 if "-test" in sys.argv:
 	test_rule_based()
 
-if "-learning" in sys.argv:
-	# Creating\Loading the datasets
-	create_datasets()
+if "-training" in sys.argv:
+	learning(config.TRAIN_SET_PATH + "1M", config.TEST_SET_PATH + "1M")
+
+if "-datasets" in sys.argv:
+	# Creating the training and testing datasets
+	create_datasets(config.LEXICON_FILE_NAME, hyper_params.DATASET_SIZE)

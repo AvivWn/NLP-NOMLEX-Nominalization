@@ -3,8 +3,9 @@ from collections import defaultdict
 
 from arguments_extractor.rule_based.lexicon import Lexicon
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
-from arguments_extractor import config
+from arguments_extractor.constants.ud_constants import *
 from arguments_extractor.utils import get_lexicon_path, get_dependency_tree
+from arguments_extractor import config
 
 class ArgumentsExtractor:
 	verb_lexicon: Lexicon
@@ -50,7 +51,7 @@ class ArgumentsExtractor:
 			sentence_tokens = predicate_token.doc
 
 			# Check whether the current extractions are of a verb or a nominalization
-			is_verb_related = predicate_token.pos_.startswith("V")
+			is_verb_related = predicate_token.pos_ == UPOS_VERB
 
 			all_argument_indexes = [predicate_token.i]
 			arguments_dict = defaultdict(list)
@@ -131,31 +132,61 @@ class ArgumentsExtractor:
 		return mentions
 
 	@staticmethod
-	def extractions_as_bio(extractions_per_predicate):
-		bio_format_extractions = []
+	def extractions_as_IOB(extractions_per_predicate):
+		iob_format_extractions = []
 
-		for word_token, extractions in extractions_per_predicate.items():
-			dependency_tree = word_token.doc
-			bio_format_extraction = [[word, "O"] for word in dependency_tree]
-			bio_format_extraction[word_token.i][1] = "PREDICATE"
+		for predicate_token, extractions in extractions_per_predicate.items():
+			dependency_tree = predicate_token.doc
+			iob_format_extraction = [[word, "O"] for word in dependency_tree]
+			iob_format_extraction[predicate_token.i][1] = "VERB" if predicate_token.pos_ == UPOS_VERB else "NOM"
 
 			if extractions != []:
 				extraction = extractions[0]
 
 				for complement_type, argument_span in extraction.items():
-					for arument_token in argument_span:
-						if arument_token == argument_span[0]:
-							bio_tag = "B-" + complement_type
+					for argument_token in argument_span:
+						if argument_token == argument_span[0]:
+							label = "B"
 						else:
-							bio_tag = "I-" + complement_type
+							label = "I"
 
-						bio_format_extraction[arument_token.i][1] = bio_tag
+						iob_format_extraction[argument_token.i][1] = label + "-" + complement_type
 
-			bio_format_extraction = " ".join([f"{word}/{tag}" for word, tag in bio_format_extraction]) + "\n"
+			iob_format_extraction = " ".join([f"{word}/{tag}" for word, tag in iob_format_extraction]) + "\n"
 
-			bio_format_extractions.append(bio_format_extraction)
+			iob_format_extractions.append(iob_format_extraction)
 
-		return bio_format_extractions
+		return iob_format_extractions
+
+	@staticmethod
+	def extractions_as_IOBES(extractions_per_predicate):
+		iobes_format_extractions = []
+
+		for predicate_token, extractions in extractions_per_predicate.items():
+			dependency_tree = predicate_token.doc
+			iobes_format_extraction = [[word, "O"] for word in dependency_tree]
+			iobes_format_extraction[predicate_token.i][1] = "VERB" if predicate_token.pos_ == UPOS_VERB else "NOM"
+
+			if extractions != []:
+				extraction = extractions[0]
+
+				for complement_type, argument_span in extraction.items():
+					for argument_token in argument_span:
+						if len(argument_span) == 1:
+							label = "S"
+						elif argument_token == argument_span[0]:
+							label = "B"
+						elif argument_token == argument_span[-1]:
+							label = "E"
+						else:
+							label = "I"
+
+						iobes_format_extraction[argument_token.i][1] = label + "-" + complement_type
+
+			iobes_format_extraction = " ".join([f"{word}/{tag}" for word, tag in iobes_format_extraction]) + "\n"
+			iobes_format_extractions.append(iobes_format_extraction)
+
+		return iobes_format_extractions
 
 	@staticmethod
 	def extractions_as_str(extractions_per_predicate):
@@ -176,39 +207,15 @@ class ArgumentsExtractor:
 		return str_extractions_per_predicate
 
 
-	@staticmethod
-	def _clean_extractions(dependency_tree, extractions):
-		"""
-		Cleans the resulted extraction, deletes duplicates between arguments and translates arguments into spans
-		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param extractions: a list of all the possible extractions based on a specific word (which isn't given)
-		:return: None
-		"""
 
-		for extraction in extractions:
-			extraction_token_indices = [token.i for token in extraction.values()]
-
-			for complement_type in extraction.keys():
-				complement_token = extraction[complement_type]
-				relevant_indices = [complement_token.i]
-
-				# Find all the subtoken that aren't the root of another complement
-				for sub_token in complement_token.subtree:
-					if sub_token.i not in extraction_token_indices:
-						relevant_indices.append(sub_token.i)
-
-				start_span_index = min(relevant_indices)
-				end_span_index = max(relevant_indices) + 1
-				extraction[complement_type] = dependency_tree[start_span_index:end_span_index]
-
-	def rule_based_extraction(self, sentence, limited_noms=None, return_dependency_tree=False):
+	def rule_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
 		"""
 		Extracts arguments of nominalizations and verbs in the given sentence, using NOMLEX lexicon
 		:param sentence: a string text or a dependency tree parsing of a sentence
-		:param limited_noms: a limited list of relevant nominalizations
 		:param return_dependency_tree: whether to return the depenency tree of the given sentence as a third parameter (optional)
-		:return: Two dictionaries:
-					The founded extractions for each relevant verbs in the given sentence ({verb_Span: [extraction_Span]})
+		:param min_arguments: The minimum number of arguments for any founed extraction (0 is deafult)
+		:return: Two dictionaries (and an optional dependency tree):
+					The founded extractions for each relevant verbs in the given sentence ({verb_Token: [extraction_Span]})
 					The founded extractions for each relevant nominalizations in the given sentence ({nom_Token: [extraction_Span]})
 		"""
 
@@ -218,14 +225,10 @@ class ArgumentsExtractor:
 			dependency_tree = sentence
 
 		# Extract arguments based on the verbal lexicon
-		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, limited_noms=limited_noms)
-		for _, extractions in extractions_per_verb.items():
-			self._clean_extractions(dependency_tree, extractions)
+		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments)
 
 		# Extract arguments based on the nominal lexicon
-		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, limited_noms=limited_noms)
-		for _, extractions in extractions_per_nom.items():
-			self._clean_extractions(dependency_tree, extractions)
+		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments)
 
 		if return_dependency_tree:
 			return extractions_per_verb, extractions_per_nom, dependency_tree

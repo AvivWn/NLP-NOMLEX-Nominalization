@@ -11,9 +11,9 @@ missing_required = []
 args_without_pos = []
 
 def split_positions(subcat, complement_type, argument_positions, referenced_arg):
-	subcat[complement_type].update({referenced_arg: {ARG_CONSTANTS: [], ARG_PREFIXES: [], ARG_CONSTRAINTS: []}})
+	subcat[complement_type].update({referenced_arg: {ARG_POSITIONS: [], ARG_PREFIXES: [], ARG_CONSTRAINTS: []}})
 
-	# Split the possible positions into 3 different positions
+	# Split the possible positions into different argument properties
 	for argument_position in argument_positions:
 		if type(argument_position) == dict:
 			for new_referenced_arg, positions in argument_position.items():
@@ -21,9 +21,21 @@ def split_positions(subcat, complement_type, argument_positions, referenced_arg)
 		elif argument_position.islower():
 			subcat[complement_type][referenced_arg][ARG_PREFIXES] += [argument_position]
 		elif is_known(argument_position, ["POS"], "POS"):
-			subcat[complement_type][referenced_arg][ARG_CONSTANTS] += [argument_position]
+			subcat[complement_type][referenced_arg][ARG_POSITIONS] += [argument_position]
 		else:
 			raise Exception(f"Unknown complement positon ({get_current_specs()}).")
+
+	# Delete any complement that don't get prefixes positions and any position
+	if subcat[complement_type][referenced_arg][ARG_POSITIONS] == [] and subcat[complement_type][referenced_arg][ARG_PREFIXES] == []:
+		del subcat[complement_type][referenced_arg]
+		return
+
+	# Prefixes can be also the position itself
+	if subcat[complement_type][referenced_arg][ARG_PREFIXES] != []:
+		# Only "direct" relations to the predicate can get a "prefix" position
+		if referenced_arg in [LINKED_NOM, LINKED_VERB] and complement_type != COMP_FOR_TO_INF:
+			subcat[complement_type][referenced_arg][ARG_POSITIONS] += [POS_PREFIX]
+
 
 def simplify_complement_positions(subcat, complement_type, is_verb=False):
 	"""
@@ -105,8 +117,12 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 				if ARG_ROOT_UPOSTAGS not in complement_by_referenced.keys():
 					if complement_type == COMP_PART:
 						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART, UPOS_ADP]
-					elif complement_type in [COMP_IND_OBJ, COMP_FOR_NP, COMP_P_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_OBJ, COMP_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
+					elif complement_type in [COMP_IND_OBJ, COMP_OBJ, COMP_SUBJ, COMP_SECOND_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
 						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET]
+					elif complement_type in [COMP_PP, COMP_PP1, COMP_PP2]: # VERB is not allowed for PP head
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET, UPOS_ADV]
+					elif complement_type == COMP_P_NP:	# The head of the P-NP phrase must be a noun
+						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
 					else:
 						args_without_pos.append(complement_type)
 
@@ -116,10 +132,6 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 
 				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
 					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
-
-				# After all the changes, delete all complement subentries that doesn't contain any possible position
-				if complement_by_referenced[ARG_PREFIXES] == [] and complement_by_referenced[ARG_CONSTANTS] == []:
-					del subcat[complement_type][linked_arg]
 
 	curr_specs["comp"] = None
 

@@ -2,55 +2,68 @@
 
 ########################################################################################################################
 # Types of arguments\complements
+
+# Noun Phrases Complements
 COMP_SUBJ = "SUBJECT"
+COMP_SECOND_SUBJ = "SECOND-SUBJECT"
 COMP_OBJ = "OBJECT"
 COMP_IND_OBJ = "IND-OBJ"
-COMP_P_IND_OBJ = "P-IND-OBJ"
+COMP_NP = "NP"
+
+# Prepositional Complements
 COMP_PP = "PP"
 COMP_PP1 = "PP1"
 COMP_PP2 = "PP2"
-COMP_FOR_NP = "FOR-NP"
+COMP_P_NP = "P-NP"				# A preposition phrase that must contains a noun
+COMP_AS_NP_OC = "AS-NP-OC"		# Object Controlled
+COMP_AS_NP_SC = "AS-NP-SC"		# Subject Controlled
+
+# Modifier Complements
 COMP_ADVP = "ADVP"
 COMP_ADJP = "ADJP"
-COMP_AS_NP_OC = "AS-NP-OC"
-COMP_AS_NP_SC = "AS-NP-SC"
+COMP_AS_ADJP = "AS-ADJP"
 
-COMP_NP = "NP"
-COMP_ING_NPC = "ING-NPC"
-COMP_ING_OC = "ING-OC"
-COMP_ING_SC = "ING-SC"
-COMP_ING_POSSC = "ING-POSSC"
+# ING Complements
+COMP_ING_NPC = "ING-NPC"	# NP Controlled
+COMP_ING_OC = "ING-OC"		# Object Controlled
+COMP_ING_SC = "ING-SC"		# Subject Controlled
+COMP_ING_POC = "ING-POC"	# Preposition Object Controlled
+COMP_ING_ARBC = "ING-ARBC"	# Arbitrary Controlled
+COMP_POSSING = "POSSING"	# Possessive Gerund
+
+# P-ING Complements
 COMP_AS_ING_OC = "AS-ING-OC"
 COMP_P_ING_NPC = "P-ING-NPC"
 COMP_P_ING_OC = "P-ING-OC"
 COMP_P_ING_SC = "P-ING-SC"
-COMP_P_ING_POSSC = "P-ING-POSSC"
-COMP_P_NP_ING = "P-NP-ING"
-COMP_POSS_ING_SC = "POSS-ING-SC"
-COMP_POSS_ING_VC = "POSS-ING-VC"
+COMP_P_ING_ARBC = "P-ING-ARBC"
+COMP_P_POSSING = "P-POSSING"
 
+# TO-INF Complements
 COMP_TO_INF = "TO-INF"
 COMP_TO_INF_OC = "TO-INF-OC"
 COMP_TO_INF_SC = "TO-INF-SC"
 COMP_TO_INF_VC = "TO-INF-VC"
-COMP_TO_INF_P_OC = "TO-INF-P-OC"
-#COMP_FOR_NP_TO_INF = "FOR-NP-TO-INF"
-COMP_TO_INF_FOR_OC = "TO-INF-FOR-OC"
+COMP_TO_INF_POC = "TO-INF-POC"
+COMP_FOR_TO_INF = "FOR-TO-INF"
 
+# SBAR Complements
 COMP_SBAR = "SBAR"
-#COMP_SBAR_SUBJUNCT = "SBAR-SUBJUNCT"
-#COMP_AS_IF_S_SUBJUNCT = "AS-IF-S-SUBJUNCT"
-COMP_AS_IF_S = "AS-IF-S"
 COMP_WH_S = "WH-S"
 COMP_WHERE_WHEN_S = "WHERE-WHEN-S"
 COMP_HOW_S = "HOW-S"
 COMP_HOW_TO_INF = "HOW-TO-INF"
 COMP_P_WH_S = "P-WH-S"
-#COMP_P_SECOND_SUBJECT = "COMP-P-SECOND-SUBJECT"
+
+# SBAR-SUBJUNCT Complements
+# Currently they are just standard SBAR complements (still not sure how to detect the SUBJUNCTIVE MOOD)
+COMP_SBAR_SUBJUNCT = "SBAR"
+COMP_AS_IF_S_SUBJUNCT = "AS-IF-S"
 
 COMP_PART = "PARTICLE"
-COMP_INSTRUMENT = "INSTRUMENT"
-#COMP_INSTRUMENT = "INSTRUMENT"
+# COMP_INSTRUMENT = "INSTRUMENT"
+
+
 
 # Arguments\Complements that appear only in the original representation of the lexicon
 OLD_COMP_PVAL = "PVAL"
@@ -61,7 +74,6 @@ OLD_COMP_PVAL_NOM1 = "PVAL-NOM1"
 OLD_COMP_PVAL_NOM2 = "PVAL-NOM2"
 OLD_COMP_ADVAL = "ADVAL"
 OLD_COMP_ADVAL_NOM = "ADVAL-NOM"
-OLD_COMP_P_OBJ = "P-OBJ"
 
 # Complements that are used temporarily and are not a legitable COMP in the new representation
 IGNORE_COMP = "IGNORE-COMPLEMENT" # = The original complement should be ignored and deleted
@@ -82,8 +94,8 @@ NOM_TYPE_VERB_NOM = "VERB-NOM"
 NOM_TYPE_SUBJ = "SUBJECT"
 NOM_TYPE_OBJ = "OBJECT"
 NOM_TYPE_IND_OBJ = "IND-OBJ"
-NOM_TYPE_INSTRUMENT = "INSTRUMENT"
-NOM_TYPE_P_OBJ = "P-OBJ"
+# NOM_TYPE_INSTRUMENT = "INSTRUMENT"
+# NOM_TYPE_P_OBJ = "P-OBJ"
 TYPE_PART = "PARTICLE"
 TYPE_PP = "PP"
 
@@ -120,6 +132,7 @@ ENT_PLURAL_FREQ = "PLURAL-FREQ"
 POS_N_N_MOD = "N-N-MOD"
 POS_DET_POSS = "DET-POSS"
 POS_NSUBJ = "NSUBJ"
+POS_NSUBJPASS = "NSUBJPASS"
 POS_DOBJ = "DOBJ"
 POS_IOBJ = "IOBJ"
 POS_AJMOD = "AJMOD"
@@ -135,6 +148,7 @@ POS_NOM = "NOM"
 
 # Positions that are used temporarily and are not a legitable POS in the new representation
 OPT_POS = "OPTIONAL-POSITION" # = The position of a complement is optional
+ADD_POS = "ADDITIONAL-POSITION" # = The position should be added to the existing ones
 
 
 
@@ -156,7 +170,7 @@ WH_NOM_OPTIONS = ["whether", "what"]
 WHERE_WHEN_OPTIONS = ["where", "when", "how many", "how much"]
 HOW_OPTIONS = ["how"]
 HOW_TO_OPTIONS = ["how to"]
-POSSESIVE_OPTIONS = ["my", "your", "his", "our", "her", "their"]
+POSSESIVE_OPTIONS = ["my", "your", "his", "our", "her", "their", "its"]
 
 NONE_VALUES = ["NONE", "*NONE*", "none"] # Means that there is no possible value for that entry
 
@@ -167,10 +181,10 @@ NONE_VALUES = ["NONE", "*NONE*", "none"] # Means that there is no possible value
 
 
 # Possible positions for the arguments, splitted into two different lists
-ARG_CONSTANTS = "CONSTANTS"
-ARG_PREFIXES = "PREFIXES"
+ARG_POSITIONS = "POSITIONS"
 
 # Basic argument properties
+ARG_PREFIXES = "PREFIXES"
 ARG_ILLEGAL_PREFIXES = "ILLEGAL-PREFIXES"
 
 
@@ -187,15 +201,16 @@ ARG_ROOT_RELATIONS = "ROOT-RELATIONS"
 
 # Argument boolean constraints
 ARG_CONSTRAINTS = "CONSTRAINTS"
-ARG_CONSTRAINT_POSSESSIVE = "POSSESSIVE"
+ARG_CONSTRAINT_REQUIRED_PREFIX = "REQUIRED-PREFIX" # Prefix is required for all positions
+ARG_CONSTRAINT_OPTIONAL_POSSESSIVE = "OPTIONAL-POSSESSIVE"
 ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ = "N-N-MOD-NO-OTHER-OBJ"
 ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ = "DET-POSS-NO-OTHER-OBJ"
 ARG_CONSTRAINT_PLURAL = "PLURAL"
 ARG_CONSTRAINT_SUBJUNCT = "SUBJUNCT"
 
 # Argument properties that depends on other arguments
-ARG_INCLUDING = "INCLUDING" # Relevant for plural when subject should be plural
-ARG_CONTIGUOUS_TO = "CONTIGUOUS" # the arguemnt that is right before that argument (the two arguments must be adjacent)
+ARG_INCLUDING = "INCLUDING" 		# An argument may include another argument (relevant for plurality constraints)
+ARG_CONTIGUOUS_TO = "CONTIGUOUS" 	# the arguemnt that is right before that argument (the two arguments must be adjacent)
 ARG_CONTROLLED = "CONTROLLED"
 
 # The argument can be linked to the nom, the verb or ANY other possible complement
@@ -212,6 +227,6 @@ SUBCAT_REQUIRED = "REQUIRED"
 SUBCAT_OPTIONAL = "OPTIONAL"
 
 SUBCAT_CONSTRAINTS = "CONSTRAINTS"
-SUBCAT_CONSTRAINT_ADVP_OR_ADJP = "ADVP_OR_ADJP"
+SUBCAT_CONSTRAINT_ADVP_OR_ADJP = "ADVP-OR-ADJP"
 SUBCAT_CONSTRAINT_ALTERNATES = "ALTERNATES"
 OLD_SUBCAT_CONSTRAINT_ALTERNATES_OPT = "ALTERNATES-OPT" # only in the original representation

@@ -2,6 +2,8 @@ import time
 from collections import defaultdict
 
 import spacy
+from spacy.util import compile_infix_regex
+from spacy.tokenizer import Tokenizer
 from spacy.tokens import Token
 import inflect
 
@@ -15,11 +17,34 @@ Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for
 Token.set_extension("subtree_indices", getter=lambda token: [node.i for node in token.subtree])
 ud_parser = spacy.load("en_ud_model_lg")
 
+# Change the tokenizer, so it won't split hypens between words
+def custom_tokenizer(parser):
+	# inf = list(parser.Defaults.infixes)            # Default infixes
+	# inf.remove(r"(?<=[0-9])[+\-\*^](?=[0-9-])")    # Remove the generic op between numbers or between a number and a -
+	# inf = tuple(inf)                               # Convert inf to tuple
+	# infixes = inf + tuple([r"(?<=[0-9])[+*^](?=[0-9-])", r"(?<=[0-9])-(?=-)"])  # Add the removed rule after subtracting (?<=[0-9])-(?=[0-9]) pattern
+	infixes = parser.Defaults.infixes
+	infixes = [x for x in infixes if '-|–|—|--|---|——|~' not in x] # Remove - between letters rule
+	infix_re = compile_infix_regex(infixes)
+
+	return Tokenizer(parser.vocab, prefix_search=parser.tokenizer.prefix_search,
+					 			suffix_search=parser.tokenizer.suffix_search,
+					 			infix_finditer=infix_re.finditer,
+					 			token_match=parser.tokenizer.token_match,
+					 			rules=parser.Defaults.tokenizer_exceptions)
+
+ud_parser.tokenizer = custom_tokenizer(ud_parser)
+
+
+
 def difference_list(first, second):
 	return list(set(first) - set(second))
 
 def reverse_dict(dictionary):
 	return {value:key for key, value in dictionary.items()}
+
+def flatten(l):
+	return [item for sublist in l for item in sublist]
 
 def timeit(method):
 	def timed(*args, **kw):

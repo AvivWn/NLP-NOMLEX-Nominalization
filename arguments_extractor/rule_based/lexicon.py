@@ -8,7 +8,7 @@ import numpy as np
 from spacy.tokens import Token
 from tqdm import tqdm
 
-from arguments_extractor.rule_based.entry import Entry
+from arguments_extractor.rule_based.lexical_entry import Entry
 from arguments_extractor.rule_based.utils import get_argument_candidates
 from arguments_extractor.utils import get_lexicon_path
 from arguments_extractor.constants.ud_constants import *
@@ -17,6 +17,8 @@ from arguments_extractor import config
 class Lexicon:
 	entries = defaultdict(Entry)
 	is_verb: bool
+
+	MAX_N_CANDIDATES = 5
 
 	def __init__(self, lisp_file_name, is_verb=False):
 		json_file_path = get_lexicon_path(lisp_file_name, "json", is_verb=is_verb, is_nom=not is_verb)
@@ -80,11 +82,10 @@ class Lexicon:
 
 		return train_limited_noms, test_limited_noms
 
-	def _find(self, word: Token, limited_noms):
+	def find(self, word: Token):
 		"""
 		Finds the given word in this lexicon
 		:param word: word token (spacy token)
-		:param limited_noms: a limited list of relevant nominalizations
 		:return: the suitable word in the lexicon, or None otherwise
 		"""
 
@@ -100,46 +101,48 @@ class Lexicon:
 			if word_form in self.entries.keys():
 				word_entry = self.entries[word_form]
 
-				# If there is no limitation
-				if limited_noms is None:
-					return word_form
-
-				# Otherwise check that the word is whithin the limited nominalizations list
-				if self.is_verb and word_entry.nom in limited_noms:
-					return word_form
-
-				if not self.is_verb and word_entry.orth in limited_noms:
-					return word_form
+				return word_entry
 
 		return None
 
 
 
-	def extract_arguments(self, dependency_tree: list, limited_noms=None):
+	def extract_arguments(self, dependency_tree: list, min_arguments=0):
 		"""
 		Extracts the arguments for any relevant word of the given sentence that appear in this lexicon
 		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param limited_noms: a limited list of relevant nominalizations
-		:return: all the founded argument extractions for any relevant word ({Token: [{COMP: Token}]})
+		:param min_arguments: The minimum number of arguments for any founed extraction (0 is deafult)
+		:return: all the founded argument extractions for any relevant word ({Token: [{COMP: Span}]})
 		"""
 
 		extractions_per_word = defaultdict(list)
 
 		for token in dependency_tree:
-			lexical_word = self._find(token, limited_noms)
-
 			# Ignore words that don't appear in this lexicon
-			if lexical_word is None:
+			word_entry = self.find(token)
+			if word_entry is None:
 				continue
 
+			lexical_word = word_entry.orth
+
 			# Get the candidates for the arguments of this word (based relevant direct links in the ud)
-			argument_candidates = get_argument_candidates(token)
-			if config.DEBUG: print(f"Candidates for {token.orth_}:", [candidate_token._.subtree_text for candidate_token in argument_candidates])
+			argument_candidates = get_argument_candidates(token, self.is_verb)
+
+			if len(argument_candidates) > self.MAX_N_CANDIDATES:
+				continue
+
+			# if config.DEBUG: print(f"Candidates for {token.orth_}:", [candidate_token._.subtree_text if candidate_token != token else candidate_token.orth_ for candidate_token in argument_candidates])
 
 			# Get all the possible extractions of this word
 			extractions = self.entries[lexical_word].match_arguments(argument_candidates, token)
 
-			# Save the extractions under the span of the token
-			extractions_per_word[token] += extractions
+			for extraction in extractions:
+				if len(extraction.get_complements()) >= min_arguments:
+					extractions_per_word[token].append(extraction.as_dict())
+
+			if config.DEBUG and len(extractions_per_word.get(token, [])) > 1:
+				pass
+				# print(extractions_per_word[token])
+				# raise Exception("Found word with more than one legal extraction.")
 
 		return extractions_per_word

@@ -1,213 +1,390 @@
+########################################################################
+# Predicates in passive-voice
+
+The man was appointed by Apple.
+The packages have been delivered by her.
+The document had been released into the public domain.
+Bad advice was given.
+
+########################################################################
+# Complex NOM-TYPE
+
+# SUBJECT
+They examined him.
+The examiners of him.
+
+# OBJECT
+The man employed me.
+The man's employee.
+
+# IND-OBJECT
+He consigned three paintings to Sotheby's.
+The consignee of the three painting appreciated the gesture.
+
+# P-OBJECT (IGNORED)
+They captioned the drawing with an humorous text.
+The caption of the drawing was written in bold.
+
+# INSTRUMENT (IGNORED)
+They lined the cubes in a row.
+The cube's liner in a row.
+
+########################################################################
+# Predicates with prticles
+
+They backed up on the disk.
+Their backup on the disk.
+Their back-up on the disk.
+They backed up the data to the disk.
+Their backup of the data to the disk.
+Their back-up of the data to the disk.
+
+########################################################################
 # Multi-word prepositions
+
 They discussed whether they are going to pass the test.
 Their discussion with respect to whether they are going to pass the test.
 Alice dreamed her boyfriend with regard to his future.
 Alice's dream of her boyfriend with regard to his future.
-Alice dreamed her boyfriend with regard to his future.
-Alice's dream of her boyfriend with respect to his future.
 Alice dreamed her boyfriend in connection with his future.
-Alice's dream of her boyfriend with respect to his future.
+Alice's dream of her boyfriend in connection with his future.
 
-# WH complements
-The man explained how they played.
-The explanation by the man, of how they played.
+########################################################################
+# WH-S complements
+
+# NOM-PP-HOW-TO-INF
 She described how to do it.
 Her description of how to do it.
 The president explained to the man how to cheat.
 The president's explanation to the man, of how to cheat.
-The man explained to his wife how they played.
-The man's explanation to his wife, of how they played.
-Tom asked how many cats they expected.
-Tom's asking of how many cats they expected.
-Tom asked how much snow they would have.
-Tom's asking of how much snow they would have.
-John asked where they should go.
-The asking by John, of where they should go.
-John asked when they should go.
-John's asking of when they should go.
-I asked him about whether we would meet.
-The asking of him by me, regarding whether we would meet.
-I argued with them about what they want.
-The argument by me with them about what they want.
+
+# NOM-WHERE-WHEN-S
+He knows when the blizzard would come.
+His knowledge of when the blizzard would come.
+He predicted where the blizzard would strike.
+The predictor of where the blizzard would strike.
+The man forecasts how many people will arrive.
+His forecast of how many people will arrive.
+They forecasted how many they expect to come.
+Their forecast of how many they expect to come.
+She forecasts how much money they will make.
+Her forecast of how much money they will make.
+
+# NOM-NP-P-WH-S
+I have pressed him about whether we would meet.
+The pressure of him by me, regarding whether we would meet.
+I pressed them about what they want.
+The pressure of them by me about what they want.
+The man pressed the woman with respect to whether he should kill them.
+The woman's pressure by the man, with respect to whether he should kill them.
+
+# NOM-PP-P-WH-S
 I argued with him about whether he should kill them.
 My argument with him about whether he should kill them.
+I argued with them about what they needed to do.
+My argument with them about what they needed to do.
+I argued with him about whether to kill her.
+My argument with him about whether to kill her.
+I argued with them about what to do.
+My argument with them about what to do.
+
+# NOM-P-WH-S
 He inquired about what to do.
 His inquiry about what to do.
 John inquired about whether he should go.
 John's inquiry concerning whether he should go.
+
+# NOM-PP-WH-S
 He explained to us what to do next.
 His explanation to us of what to do next.
-He asked me whether the world is round.
-His asking of me of whether the world is round.
+
+# NOM-NP-WH-S
+He reminded me whether the world is round.
+His reminder to me of whether the world is round.
+
+# NOM-HOW-S
 They know how it was done.
 Their knowledge of how it was done.
+They analyzed how the machine works.
+The analysis by the man, of how they played.
+
+# NOM-WH-S
 I wonder whether he is referring to Jake.
 My wonder of whether he is referring to Jake.
 I know what he will do.
 My knowledge of what he will do.
 I wonder if he is sick.
-My wonder of what he is sick.
+My wonder of whether he is sick.
 
+########################################################################
 # TO-INF complements
+
+# NOM-PP-TO-INF-RECIP
 Henry conspired with Marsha to steal the contract.
 Henry's conspiracy with Marsha to steal the contract.
+Henry and Marsha conspired to steal the contract.
+Henry and Marsha's conspiracy to steal the contract.
+The Henry and Marsha conspiracy to steal the contract.
+Their conspiracy to steal the contract.
+
+# NOM-PP-FOR-TO-INF
 Daniel arranged with her for John to take the bus to school.
 The arrangement by Daniel with her for John to take the bus to school.
-Sue calls for him to tell him that he forgot his keys.
-Sue's call for him to tell him that he forgot his keys.
+Daniel arranged with her for John to be that man.
+Daniel's arrangement with her for John to be that man.
+
+# NOM-FOR-TO-INF
+Sue calls for John to tell him that he forgot his keys.
+Sue's call for John to tell him that he forgot his keys.
+
+# NOM-P-NP-TO-INF
 He relies on her to succeed.
 His reliance on her to succeed.
+He relies on her to be successful.
+His reliance on her to be successful.
+
+# NOM-P-NP-TO-INF-VC
 She appealed to him to leave the compound.
-Her appeal to him, to leave the compound.
-"Alice motioned to John to eat the spinach.
+Her appeal to him to leave the compound.
+
+# NOM-P-NP-TO-INF-OC
+Alice motioned to John to eat the spinach.
 Alice's motion to John to eat the spinach.
+
+# NOM-NP-TO-INF-VC
 She solicited Mayor Koch to lead the parade.
 Her solicitation of Mayor Koch to lead the parade.
+
+# NOM-NP-TO-INF-SC
 John promised Mary to fix the desk lamp.
 John's promise to Mary to fix the desk lamp.
+
+# NOM-NP-TO-INF-OC
 We designated Allie to drive us home from the party.
 Our designation of Allie to drive us home from the party.
-He needs to win every argument.
-His need to win every argument."
 
+# NOM-TO-INF-SC
+He needs to win every argument.
+His need to win every argument.
+
+########################################################################
 # POSSING complements
-She discussed restaurants' giving food to their power.
-The discussion with her with their power, about restaurants' giving food.
-She discussed Adam's giving the sandwich to their power.
-Her discussion with their power, about Adam's giving the sandwich.
-She discussed his giving the sandwich to their power.
-The discussion by her, with their power, about his giving the sandwich.
-She discussed cleaning to their power.
-Her discussion with their power, about cleaning.
-She discussed to their power the lawyers' giving up smoking.
-Her discussion with their power, about the lawyers' giving up smoking.
-She discussed to their power Jerry's giving up smoking.
-Her discussion with their power, about Jerry's giving up smoking.
-She discussed to their power his giving up smoking.
-Her discussion with their power, about his giving up smoking.
-She discussed to their power giving up smoking.
-Her discussion with their power, about giving up smoking.
-We collected money for my friends' sweeping the road.
-Our collection of money for my friends' sweeping the road.
-We collected money for Adam's sweeping the road.
-Our collection of money for Adam's sweeping the road.
-We collected money for her sweeping the road.
-Our collection of money for her sweeping the road.
-We collected money for sweeping the road.
-Our collection of money for sweeping the road.
-Jake disagreed with Mick about the fathers' visiting to China.
-Jake's disagreement with Mick about the fathers' visiting to China.
+
+# NOM-POSSING-PP
+They recommended to the soldiers John's winning the war.
+Their recommendation to the soldiers of John's winning the war.
+They recommended to the soldiers their winning the war.
+Their recommendation of their winning the war, to the soldiers.
+They recommended winning the war, to the soldiers.
+Their recommendation of winning the war, to the soldiers.
+
+# NOM-PP-P-POSSING
 Jake disagreed with Mick about Clinton's visiting to China.
-The disagreement by Jake, with Mick, about Clinton's visiting to China.
+The disagreement by Jake with Mick, about Clinton's visiting to China.
 Jake disagreed with Mick about his visiting to China.
 Jake's disagreement with Mick about his visiting to China.
 Jake disagreed with Mick about visiting to China.
 Jake's disagreement with Mick about visiting to China.
-Jay argued against families' paying for the damage.
-Jay's argument against families' paying for the damage.
+
+# NOM-NP-P-POSSING
+We collected money for John's sweeping the road.
+Our collection of money for John's sweeping the road, helped him a lot.
+We collected money for her sweeping the road.
+Our collection of money for her sweeping the road.
+We collected money for sweeping the road.
+Our collection of money for sweeping the road.
+
+# NOM-P-POSSING
 Jay argued against John's paying for the damage.
 The argument by Jay against John's paying for the damage.
-Jay argued against his paying for the damage.
-Jay's argument against his paying for the damage.
+Jay argued against his doing last night.
+Jay's argument against his doing last night.
 Jay argued against paying for the damage.
 Jay's argument against paying for the damage.
+
+# NOM-POSSING
 My father suggested his taking out loans to pay for college.
 My father's suggestion of his taking out loans to pay for college.
-They suggested the students' taking out loans to pay for college.
-Their suggestion of the students' taking out loans to pay for college.
 Tom suggested Aviv's taking out loans to pay for college.
-Tom's suggestion by him, of Aviv's taking out loans to pay for college.
+The suggestion by Tom, of Aviv's taking out loans to pay for college.
 The administration abolished sitting in on classes.
 The administration's abolition of sitting in on classes.
 
+########################################################################
 # ING complements
-I asked him about english being his first language.
-My asking of him about english being his first language.
-They reported about the manager leaving the site.
-Their report about the manager leaving the site.
-She diagnosed him as being ill with the measles.
-Her diagnosis of him as being ill with the measles.
-I prohibited the man from drinking wine.
-My prohibition of the man from drinking wine.
+
+# NOM-NP-P-NP-ING
+I called him about them leaving the country.
+My call for him about them leaving the country.
+I educated him about Joe being a man.
+
+# NOM-P-NP-ING
+I thought about the student failing the test.
+My thinking about the student failing the test destroyed my day.
+
+# NOM-NP-P-ING-SC
+They justified the delay by riding the bikes.
+Their justification of the delay by riding the bikes.
+
+# NOM-NP-P-ING-OC
 The state imprisoned the congressman for failing to pay taxes.
 The state's imprisonment of the congressman for failing to pay taxes.
-I spent time on classifying words.
-My spending of time on classifying words.
+
+# NOM-NP-P-ING
+I prohibited the man from drinking wine.
+My prohibition of the man from drinking wine.
+
+# NOM-P-ING-SC
 They confessed to lying at poker.
 Their confession to lying at poker.
-He discovered Max cheating.
-His discovery of Max cheating.
-John showed the kids dancing.
-John's showing of the kids dancing.
+They confessed to their doing on the exam.
+
+# NOM-NP-ING-OC
+I imitated the president denying the charges.
+My imitation of the president denying the charges.
+
+# NOM-NP-ING-SC
 He risked his life chasing after her.
-His risk of his life chasing after her.
+His life's risk by him chasing after her, made me proud.
+
+# NOM-NP-ING
+I justified them cheating.
+The justification of them cheating, proved the point.
+
+# NOM-ING-SC
 The police department continued accepting bribes.
 The police department's continuance of accepting bribes.
 
+########################################################################
 # S complements
+
+# NOM-NP-AS-IF-S-SUBJUNCT (SUBJUNCT is ignored)
+They regarded him as if he were an animal.
+Their regard of him as if he were an animal.
+
+# NOM-PP-THAT-S-SUBJUNCT (SUBJUNCT is ignored)
+They suggested to him that he be on time.
+The loanshark's suggestion to Mimi that the payments be on time.
+
+# NOM-PP-THAT-S
 They admitted to the authorities that they did drugs.
-Their admission to the authorities that they did drugs.
+Their admission to the authorities that they did drugs was a lie.
+
+# NOM-NP-S
 I reminded her that the car had been stolen.
 My reminder to her that the car had been stolen.
+
+# NOM-S-SUBJUNCT (SUBJUNCT is ignored)
+I demanded that he be in tune.
+I specified that he should be on time.
+The electrician recommended she buy extra insulation.
+The electrician's recommendation that she buy extra insulation.
+
+# NOM-THAT-S
 She observed that the world is better today.
 Her observation that the world is better today.
+
+# NOM-S
 She knows John is a student.
 Her knowledge that John is a student.
 
-# PP complements
+########################################################################
+# AS-Phrases complements
+
+# NOM-NP-AS-ING
+She diagnosed him as pretending to be sick.
+Her diagnosis of him as pretending to be sick.
+She diagnosed him as being ill with the measles.
+Her diagnosis of him as being ill with the measles.
+
+# NOM-NP-AS-ADJP
+The part-time workers do not consider their plight as statistical.
+The part-time workers' consideration of their plight as statistical.
+They characterized the play as elegant.
+The play's characterization by them as elegant appeared all over the news.
+They viewed the problem as serious.
+Their view of the problem as serious was heard by many.
+
+# NOM-NP-PP-AS-NP
 They mentioned the call to me as a possible lead.
 Their mention of the call, to me as a possible lead.
-They converted the interest from US dollars to Swiss francs.
-Their conversion of the interest, from US dollars, to Swiss francs.
-Nabisco competed against Nestles for market share.
-Nabisco's competition against Nestles for market share.
 
-# IDOBJ complements
-The department allocates a computer to new students.
-The department's allocation of a computer to new students.
-The department allocates new students a computer.
-The department's allocation to new students, of a computer.
-The department allocates to new students a computer.
-The department's allocation of a computer to new students.
-The chef prepared breakfast for the guest.
-The chef's preparation of breakfast for the guest.
-The chef prepared the guest a breakfast.
-The chef's preparation for the guest, of a breakfast.
-The chef prepared for the guest a breakfast.
-The chef's preparation of a breakfast, for the guest.
-She envied him his car.
-Her envy of his car to him.
+# NOM-NP-AS-NP-SC
+He served the people as their guide.
+His service of the people as their guide.
 
-# AS-ADJ complements
-They characterized the play as amazing.
-The play's characterization by them as amazing.
-
-# AS-NP complements
-He judged the facts as a scientist.
-His judgement of the facts, as a scientist.
+# NOM-NP-AS-NP
 They accepted him as a doctor.
 Their acceptance of him as a doctor.
+
+# NOM-AS-NP
 Lulu failed as a pastry cook.
 Lulu's failure as a pastry cook.
-They attributed the painting to Masaccio.
-Their attribution of the painting to Masaccio.
 
-# ADV complements
+########################################################################
+# ADV and ADJ complements
+
+# NOM-ADVP-PP
 He reacted positively to the news.
 His positive reaction to the news.
+
+# NOM-NP-ADVP
 They treated the boy there.
-Their treatment of the boy there.
+Their treatment of the boy, there.
+
+# NOM-ADVP
 He looked slowly.
 His slow look.
 
-# Simple complements
+########################################################################
+# NP and PP
+
+# NOM-NP-PP-PP
+They moved their money from the apartment to this house.
+Their money's movement by them from the apartment to this house.
+
+# NOM-NP-TO-NP
+The department allocates a computer to new students.
+The department's allocation of a computer to new students.
+The department allocates new students a computer.
+The department allocates to new students a computer.
+The department's allocation of a computer to new students.
+
+# NOM-NP-FOR-NP
+The chef prepared a breakfast, for the guest.
+The chef's preparation of breakfast for the guest.
+The chef prepared them a breakfast.
+The breakfast's preparation for them, of the chef.
+The chef prepared for the guest a breakfast.
+The chef's preparation of breakfast, for the guest.
+
+# NOM-NP-PP
+They attributed the painting to Masaccio.
+Their attribution of the painting, to Masaccio.
+
+# NOM-PP-PP
+Nabisco competed against Nestles, for market share.
+Nabisco's competition against Nestles, for market share.
+
+# NOM-PP
 He advised on the compromise.
-The advice by him on the compromise.
+The compromise advice by him.
+
+# NOM-NP-NP
+She envied him his car.
+Her envy of his car to him.
+
+# NOM-NP
 The boy prefers cupcakes.
 The boy's preference for cupcakes.
 
+########################################################################
 # INTRANSITIVE
-He disappeared.
-His disappearance.
+
+# NOM-INTRANS-RECIP
 The streets intersect.
 The intersection of the streets.
+
+# NOM-INTRANS
+He replied.
+His reply.

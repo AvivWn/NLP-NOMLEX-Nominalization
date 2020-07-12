@@ -45,13 +45,17 @@ def sanity_checks(lexicon, is_verb=False):
 				is_known(constraint, ["SUBCAT_CONSTRAINT"], "SUBCAT COMPLEMENTS & CONSTRAINTS")
 
 			if len(set(requires)) != len(requires):
+				print(requires)
 				raise Exception(f"Requires list isn't unique ({get_current_specs()}).")
 
 			if len(set(optionals)) != len(optionals):
+				print(optionals)
 				raise Exception(f"Optionals list isn't unique ({get_current_specs()}).")
 
 			# Check that the requires and the optionals lists aren't intersecting
 			if set(difference_list(optionals, requires)) != set(optionals):
+				print(requires)
+				print(optionals)
 				raise Exception(f"Requires and optionals are intersecting ({get_current_specs()}).")
 
 			all_complements = difference_list(subcat.keys(), [SUBCAT_OPTIONAL, SUBCAT_REQUIRED, SUBCAT_NOT, SUBCAT_CONSTRAINTS])
@@ -74,11 +78,11 @@ def sanity_checks(lexicon, is_verb=False):
 					for constraint in complement_info[ARG_CONSTRAINTS]:
 						is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
 
-					if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_CONSTANTS]) or\
-					   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_CONSTANTS]):
+					if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_POSITIONS]) or\
+					   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_POSITIONS]):
 						noms_with_missing_positions.append(word)
 
-					positions_by_type["CONSTANTS"].update(complement_info[ARG_CONSTANTS])
+					positions_by_type["CONSTANTS"].update(complement_info[ARG_POSITIONS])
 					positions_by_type["PREFIXES"].update(complement_info[ARG_PREFIXES])
 
 			curr_specs["comp"] = None
@@ -93,12 +97,8 @@ def sanity_checks(lexicon, is_verb=False):
 					auto_controlled = []
 
 					# Automatic constraints
-					if complement_type.endswith("-P-OC"):
-						auto_controlled = [COMP_PP]
-					elif complement_type.endswith("-FOR-OC"):
-						auto_controlled = [COMP_FOR_NP]
-					elif complement_type.endswith("-POSSC"):
-						auto_controlled = [COMP_POSS_ING_VC]
+					if complement_type.endswith("-POC"):
+						auto_controlled = [COMP_P_NP]
 					elif complement_type.endswith("-NPC"):
 						auto_controlled = [COMP_NP]
 					elif complement_type.endswith("-OC"):
@@ -109,10 +109,7 @@ def sanity_checks(lexicon, is_verb=False):
 						auto_controlled = [COMP_SUBJ, COMP_OBJ]
 
 						if subcat_type == "NOM-P-NP-TO-INF-VC":
-							auto_controlled = [COMP_SUBJ, COMP_PP]
-
-						if complement_type.startswith("POSS-ING"):
-							auto_controlled = []
+							auto_controlled = [COMP_SUBJ, COMP_P_NP]
 
 					# Assure that the manual constraints were added correctly
 					if set(auto_controlled) != set(subcat[complement_type][linked_arg].get(ARG_CONTROLLED, [])):
@@ -120,7 +117,7 @@ def sanity_checks(lexicon, is_verb=False):
 						print(auto_controlled)
 						raise Exception(f"Manual controlled constraints do not agree with the automatic ones ({get_current_specs()}).")
 
-					if subcat[complement_type][linked_arg][ARG_CONSTANTS] == subcat[complement_type][linked_arg][ARG_PREFIXES] == []:
+					if subcat[complement_type][linked_arg][ARG_POSITIONS] == []:
 						print(word, subcat_type, complement_type)
 						raise Exception(f"There is a complement without any position ({get_current_specs()}).")
 

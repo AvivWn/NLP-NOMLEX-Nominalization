@@ -1,15 +1,20 @@
-import sys, os, traceback
-from bottle import route, run, request, static_file
-import spacy
-from spacy.tokens import Doc
-from pybart.api import Converter
-from pybart.converter import ConvsCanceler
-from collections import defaultdict
-import pybart.conllu_wrapper as cw
-from getpass import getpass
-import numpy as np
+import os
+import sys
+import traceback
 import ssl
 import smtplib
+import numpy as np
+from getpass import getpass
+from collections import defaultdict
+from bottle import route, run, request, static_file
+
+import spacy
+from spacy.tokenizer import Tokenizer
+from spacy.tokens import Doc
+from spacy.util import compile_infix_regex
+from pybart.api import Converter
+from pybart.converter import ConvsCanceler
+import pybart.conllu_wrapper as cw
 
 #@TODO- change import of module when it will become a web package
 sys.path.append("../")
@@ -135,13 +140,16 @@ def annotate():
 	informative_events = {} # event-id per sentence-id (the most informative events)
 	event_by_word_index = {} # event-id, sentence-id, is-verb per word-id in the input
 
+	sentence_docs = list(ud_doc.sents)
+
 	# Generate the mentions for each sentence
 	# The mentions will be based on the founded extractions (if any) in the sentences
-	for sentence_info in odin_formated_doc["documents"][""]["sentences"]:
+	for i, sentence_info in enumerate(odin_formated_doc["documents"][""]["sentences"]):
 		sentence_words = sentence_info["words"]
 		sentence_text = " ".join(sentence_words)
+		sentence_doc = sentence_docs[i][:].as_doc()
 
-		extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.rule_based_extraction(sentence_text, return_dependency_tree=True)
+		extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.rule_based_extraction(sentence_doc, return_dependency_tree=True)
 		postags = [token.pos_ for token in dependency_tree]
 		sentence_info["tags"] = postags
 
@@ -168,6 +176,22 @@ password = getpass("Password for sending emails: ")
 
 # Create the UD parser, that resulted in odin formated representation
 nlp = spacy.load("en_ud_model_lg")
+
+def custom_tokenizer(nlp):
+	inf = list(nlp.Defaults.infixes)               # Default infixes
+	inf.remove(r"(?<=[0-9])[+\-\*^](?=[0-9-])")    # Remove the generic op between numbers or between a number and a -
+	inf = tuple(inf)                               # Convert inf to tuple
+	infixes = inf + tuple([r"(?<=[0-9])[+*^](?=[0-9-])", r"(?<=[0-9])-(?=-)"])  # Add the removed rule after subtracting (?<=[0-9])-(?=[0-9]) pattern
+	infixes = [x for x in infixes if '-|–|—|--|---|——|~' not in x] # Remove - between letters rule
+	infix_re = compile_infix_regex(infixes)
+
+	return Tokenizer(nlp.vocab, prefix_search=nlp.tokenizer.prefix_search,
+					 			suffix_search=nlp.tokenizer.suffix_search,
+								infix_finditer=infix_re.finditer,
+								token_match=nlp.tokenizer.token_match,
+								rules=nlp.Defaults.tokenizer_exceptions)
+
+nlp.tokenizer = custom_tokenizer(nlp)
 converter = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
 # nlp.add_pipe(converter, name="BART")
 tagger = nlp.get_pipe('tagger')
@@ -175,4 +199,4 @@ parser = nlp.get_pipe('parser')
 # annotate()
 
 # Start the server
-run(host='0.0.0.0', reloader=False, port=5001)
+run(host='0.0.0.0', reloader=False, port=5000)

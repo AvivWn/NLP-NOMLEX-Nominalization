@@ -13,9 +13,12 @@ TEST_NOM_EXTRACTIONS = TEST_DIR + "/test_sentences.nom"
 
 
 DATA_DIR = ABSOLUTE_PATH + "/model_based/data"
-WIKIPEDIA_DIR = DATA_DIR + "/wikipedia_files"
+WIKI_SENTENCES_PATH = DATA_DIR + "/shuffled_wiki_sentences"
 SENTENCES_PATH = DATA_DIR + "/sentences"
-PARSED_SENTENCES_PATH = DATA_DIR + "/sentences.parsed"
+
+
+# WIKIPEDIA_DIR = DATA_DIR + "/wikipedia_files"
+# PARSED_SENTENCES_PATH = DATA_DIR + "/sentences.parsed"
 
 DATASET_DIR = ABSOLUTE_PATH + "/model_based/datasets"
 TRAIN_SET_PATH = DATASET_DIR + "/train"

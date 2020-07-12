@@ -252,7 +252,7 @@ body.dark {
 .input-line {
     border: none !important;
     height: 30px !important;
-    width: 80% !important;
+    width: 75% !important;
     min-width: 50px !important;
     -webkit-border-radius: 8px !important;
     -moz-border-radius: 8px !important;

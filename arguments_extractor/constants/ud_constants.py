@@ -15,6 +15,7 @@ URELATION_ACL = "acl"
 URELATION_ACL_RELCL = "acl:relcl"
 URELATION_NMOD_POSS = "nmod:poss"
 URELATION_COMPOUND = "compound"
+URELATION_COP = "cop"
 
 # Specific relations
 URELATION_TO = "mark_to"		# For "to" preceeded TO-INF
@@ -34,3 +35,13 @@ UPOS_NOUN = "NOUN"
 UPOS_PROPN = "PROPN"
 UPOS_PRON = "PRON"
 UPOS_DET = "DET"
+UPOS_AUX = "AUX"
+UPOS_PUNCT = "PUNCT"
+
+
+
+########################################################################################################################
+# NOT Universal pos TAGS
+
+TAG_NNS = "NNS"
+TAG_NNPS = "NNPS"

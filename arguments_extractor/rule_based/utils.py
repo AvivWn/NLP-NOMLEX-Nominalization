@@ -13,44 +13,47 @@ def get_right_value(table, subcat_type, default=None, is_verb=False):
 
 	return deepcopy(table[subcat_type][1])
 
-def get_argument_candidates(referenced_token: Token):
+def get_argument_candidates(referenced_token: Token, is_verb=False):
 	argument_candidates = []
 
 	for sub_token in referenced_token.subtree:
 		if sub_token.dep_ in LINK_TO_POS.keys() and sub_token.head.i == referenced_token.i:
 			argument_candidates.append(sub_token)
 
+	if not is_verb:
+		argument_candidates.append(referenced_token)
+
 	return argument_candidates
 
-def relation_to_position(word_info, is_verb):
-	dep_link = word_info.dep_
+def relation_to_position(word_token, referenced_token, is_verb):
+	if referenced_token == word_token:
+		return [POS_NOM]
+
+	dep_link = word_token.dep_
 	positions = get_right_value(LINK_TO_POS, dep_link, default=[], is_verb=is_verb)
 
 	return positions
 
-def check_relations(dependency_tree, referenced_word, relations):
+def get_word_in_relation(referenced_word, relation):
+	founded_token = None
+
+	head_relation_info = relation.split("_")
+	relation = head_relation_info[0]
+	specific_word = head_relation_info[1] if len(head_relation_info) == 2 else None
+
+	for child_token in referenced_word.children:
+		if not child_token.dep_.startswith(relation):
+			continue
+
+		if specific_word is None or child_token.orth_ == specific_word:
+			founded_token = child_token
+			break
+
+	return founded_token
+
+def check_relations(referenced_word, relations):
 	for head_relation in relations:
-		found_relation = False
-
-		for other_word in dependency_tree:
-			head_relation_info = head_relation.split("_")
-			relation = head_relation_info[0]
-
-			if not other_word.head.i == referenced_word.i or not other_word.dep_ == relation:
-				continue
-
-			if len(head_relation_info) == 2:
-				specific_word = head_relation_info[1]
-
-				if other_word.orth_ == specific_word:
-					found_relation = True
-			else:
-				found_relation = True
-
-			if found_relation:
-				break
-
-		if not found_relation:
+		if get_word_in_relation(referenced_word, head_relation) is None:
 			return False
 
 	return True

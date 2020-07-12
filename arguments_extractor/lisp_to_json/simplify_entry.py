@@ -166,7 +166,7 @@ def rearrange_entry(entry):
 	nom_entry[ENT_VERB_SUBC] = {}
 
 	# By now, there can be only one nom-type for the nominalization
-	nom_type = list(entry[ENT_NOM_TYPE].keys())[0]
+	nom_type = entry[ENT_NOM_TYPE][TYPE_OF_NOM]
 	does_nom_have_part = "PART" in nom_type
 
 	# Generate subcat version for nominalization and verb
