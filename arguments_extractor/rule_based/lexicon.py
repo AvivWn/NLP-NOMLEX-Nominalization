@@ -10,8 +10,9 @@ from tqdm import tqdm
 
 from arguments_extractor.rule_based.lexical_entry import Entry
 from arguments_extractor.rule_based.utils import get_argument_candidates
-from arguments_extractor.utils import get_lexicon_path
+from arguments_extractor.utils import get_lexicon_path, difference_list
 from arguments_extractor.constants.ud_constants import *
+from arguments_extractor.constants.lexicon_constants import *
 from arguments_extractor import config
 
 class Lexicon:
@@ -71,7 +72,7 @@ class Lexicon:
 		if self.is_verb:
 			return []
 
-		all_noms = [entry.orth for entry in self.entries.values() if entry.nom is None]
+		all_noms = [entry.orth for entry in self.entries.values() if entry.verb is not None and entry.orth is not None]
 		all_noms = np.unique(all_noms)
 
 		random.shuffle(all_noms)
@@ -85,33 +86,38 @@ class Lexicon:
 	def find(self, word: Token):
 		"""
 		Finds the given word in this lexicon
-		:param word: word token (spacy token)
-		:return: the suitable word in the lexicon, or None otherwise
+		:param word: word token (spacy Token)
+		:return: the suitable entry in the lexicon, or None if it doesn't exist
 		"""
 
 		if self.is_verb and word.pos_ != UPOS_VERB:
-			return None
+			return None, None
 
 		if not self.is_verb and word.pos_ != UPOS_NOUN:
-			return None
+			return None, None
 
 		word_forms = [word.orth_, word.orth_.lower(), word.lemma_]
 
 		for word_form in word_forms:
-			if word_form in self.entries.keys():
+			if word_form in difference_list(self.entries.keys(), [DEFAULT_ENTRY]):
 				word_entry = self.entries[word_form]
 
-				return word_entry
+				if self.is_verb:
+					return word_entry, word_entry.orth
+				else: # Nominalization entry
+					return word_entry, word_entry.verb.split("#")[0]
 
-		return None
+		return None, None
 
 
 
-	def extract_arguments(self, dependency_tree: list, min_arguments=0):
+	def extract_arguments(self, dependency_tree: list, min_arguments=0, using_default=False, arguments_predictor=None):
 		"""
 		Extracts the arguments for any relevant word of the given sentence that appear in this lexicon
 		:param dependency_tree: the appropriate dependency tree for a sentence
-		:param min_arguments: The minimum number of arguments for any founed extraction (0 is deafult)
+		:param min_arguments: the minimum number of arguments for any founed extraction (0 is deafult)
+		:param using_default: whether to use the default entry in the lexicon all of the time, otherwise only whenever it is needed
+		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
 		:return: all the founded argument extractions for any relevant word ({Token: [{COMP: Span}]})
 		"""
 
@@ -119,11 +125,12 @@ class Lexicon:
 
 		for token in dependency_tree:
 			# Ignore words that don't appear in this lexicon
-			word_entry = self.find(token)
+			word_entry, suitable_verb = self.find(token)
 			if word_entry is None:
 				continue
 
-			lexical_word = word_entry.orth
+			if using_default:
+				word_entry = self.entries[DEFAULT_ENTRY]
 
 			# Get the candidates for the arguments of this word (based relevant direct links in the ud)
 			argument_candidates = get_argument_candidates(token, self.is_verb)
@@ -134,11 +141,11 @@ class Lexicon:
 			# if config.DEBUG: print(f"Candidates for {token.orth_}:", [candidate_token._.subtree_text if candidate_token != token else candidate_token.orth_ for candidate_token in argument_candidates])
 
 			# Get all the possible extractions of this word
-			extractions = self.entries[lexical_word].match_arguments(argument_candidates, token)
+			extractions = word_entry.match_arguments(argument_candidates, token, suitable_verb, arguments_predictor=arguments_predictor)
 
 			for extraction in extractions:
 				if len(extraction.get_complements()) >= min_arguments:
-					extractions_per_word[token].append(extraction.as_dict())
+					extractions_per_word[token].append(extraction.as_span_dict())
 
 			if config.DEBUG and len(extractions_per_word.get(token, [])) > 1:
 				pass

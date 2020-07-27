@@ -110,10 +110,11 @@ class LexicalSubcat:
 
 			# Check for any violation with the current NOT constraint
 			found_violation = False
-			for i in range(len(complement_types)):
-				if complement_types[i] in not_constraint.keys() and \
-						not_constraint[complement_types[i]] != matched_positions[i]:
+			for complement_type, matched_position in zip(complement_types, matched_positions):
+				if complement_type in not_constraint.keys() and \
+						matched_position not in not_constraint[complement_type]:
 					found_violation = True
+					break
 
 			if found_violation:
 				return False
@@ -217,7 +218,7 @@ class LexicalSubcat:
 		for complement_type, extracted_argument in extraction.match.items():
 			argument_token = extracted_argument.argument_token
 			linked_argument = extracted_argument.linked_arg
-			if not self.arguments[complement_type].check_plurality(argument_token, complement_types, linked_argument):
+			if not self.arguments[extracted_argument.get_real_complement_type()].check_plurality(argument_token, complement_types, linked_argument):
 				return False
 
 		return True
@@ -242,6 +243,23 @@ class LexicalSubcat:
 
 				if matched_argument is not None:
 					args_per_candidate[candidate_token].append(matched_argument)
+
+	@staticmethod
+	def _choose_informative_positions(arguments: list):
+		informative_argument_types = []
+
+		for argument in arguments:
+			found_more_informative = False
+
+			for other_argument in arguments:
+				if argument.is_more_informative(other_argument):
+					found_more_informative = True
+					break
+
+			if not found_more_informative:
+				informative_argument_types.append(argument)
+
+		return informative_argument_types
 
 	def _match_linked_arguments(self, args_that_linked_to_args: list, extraction: Extraction):
 		"""
@@ -268,17 +286,24 @@ class LexicalSubcat:
 					if matched_argument is not None:
 						extraction.add_argument(matched_argument)
 
-	def _get_extractions(self, args_per_candidate: dict, args_that_linked_to_args: list, referenced_token: Token):
+	def _get_extractions(self, args_per_candidate: dict, args_that_linked_to_args: list, referenced_token: Token, suitable_verb: str, arguments_predictor=None):
 		"""
 		Genetrates all the possible extractions of arguments and candidates, based on the possible arguments per candidate
 		:param args_per_candidate: the possible argument types for each candidate
 		:param args_that_linked_to_args: a list of argument types that can be "linked" to other arguments
 		:param referenced_token: the predicate of the arguments that we are after
+		:param suitable_verb: the appropriate verb for the given reference token
+		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
 		:return: all the possible extractions for this subcat
 		"""
 
+		# Determine the arguments type of candidates with uncertainty about their complement type
+		if arguments_predictor is not None and self.subcat_type == DEFAULT_SUBCAT:
+			args_per_candidate = arguments_predictor.determine_args_type(args_per_candidate, referenced_token, suitable_verb, default_subcat=True)
+
 		# Add a "None" argument option for each candidate, cause any candidate may not be an argument
 		for candidate_token in args_per_candidate.keys():
+			# args_per_candidate[candidate_token] = self._choose_informative_positions(args_per_candidate[candidate_token])
 			args_per_candidate[candidate_token].append(None)
 
 		candidates = args_per_candidate.keys()
@@ -297,11 +322,13 @@ class LexicalSubcat:
 
 		return relevant_extractions
 
-	def match_arguments(self, argument_candidates: list, referenced_token: Token):
+	def match_arguments(self, argument_candidates: list, referenced_token: Token, suitable_verb: str, arguments_predictor=None):
 		"""
 		Matches the given argument candidates to the possible arguments of this subcat
 		:param argument_candidates: the candidates for the arguments of this subcat (as list of tokens)
 		:param referenced_token: the predicate of the arguments that we are after
+		:param suitable_verb: the appropriate verb for the given reference token
+		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
 		:return: A list of all the possible argument extractions for this subcat ([Extraction])
 		"""
 
@@ -321,6 +348,6 @@ class LexicalSubcat:
 		self._check_arguments_compatibility(args_per_candidate, self.optionals, argument_candidates, referenced_token)
 
 		# From possible arguments for each candidate, to possible extractions
-		extractions = self._get_extractions(args_per_candidate, args_that_linked_to_args, referenced_token)
+		extractions = self._get_extractions(args_per_candidate, args_that_linked_to_args, referenced_token, suitable_verb, arguments_predictor=arguments_predictor)
 
 		return extractions

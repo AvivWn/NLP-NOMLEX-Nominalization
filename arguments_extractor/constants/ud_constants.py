@@ -20,6 +20,7 @@ URELATION_COP = "cop"
 # Specific relations
 URELATION_TO = "mark_to"		# For "to" preceeded TO-INF
 URELATION_THAT = "mark_that"	# For "that" preceeded S
+URELATION_ANY = "any"			# wild card ud relation
 
 
 

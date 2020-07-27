@@ -1,11 +1,10 @@
 import sys
 
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
-from arguments_extractor.model_based.create_datasets import create_datasets
-from arguments_extractor.model_based.learning import learning
-from arguments_extractor.model_based import hyper_params
+from arguments_extractor.model_based.create_datasets import create_args_datasets, create_examples_dataset
+from arguments_extractor.model_based.arguments_predictor import ArgumentsPredictor
 from arguments_extractor.arguments_extractor import ArgumentsExtractor
-from arguments_extractor.test import test_rule_based
+from arguments_extractor.test import test
 from arguments_extractor.utils import separate_line_print, timeit
 from arguments_extractor import config
 
@@ -15,34 +14,57 @@ if "-f" in sys.argv:
 	config.LOAD_LEXICON = False
 	config.REWRITE_TEST = True
 
+# DEBUG mode
 if "-debug" in sys.argv:
 	config.DEBUG = True
 
 
 
 if "-lispToJson" in sys.argv:
-	lisp_to_json(config.LEXICON_FILE_NAME)
+	if not config.LOAD_LEXICON:
+		ArgumentsExtractor(config.LEXICON_FILE_NAME)
+	else:
+		lisp_to_json(config.LEXICON_FILE_NAME)
+
+
+
+if "-rule" in sys.argv:
+	extractor_function = ArgumentsExtractor.rule_based_extraction
+elif "-model" in sys.argv:
+	extractor_function = ArgumentsExtractor.model_based_extraction
+elif "-hybrid" in sys.argv:
+	extractor_function = ArgumentsExtractor.hybrid_based_extraction
+else: # default is rule-based
+	extractor_function = ArgumentsExtractor.rule_based_extraction
 
 if "-extract" in sys.argv:
 	sentence = sys.argv[-1]
 	test_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
-	test_extractor.rule_based_extraction = timeit(test_extractor.rule_based_extraction)
-	extractions_per_verb, extractions_per_nom = test_extractor.rule_based_extraction(sentence)
 
-	print("--------------------------------")
-	print("VERB:")
+	extractor_function = timeit(extractor_function)
+	extractions_per_verb, extractions_per_nom = extractor_function(test_extractor, sentence)
+
+	print("--------------------------------\nVERB:")
 	separate_line_print(extractions_per_verb)
 
-	print("--------------------------------")
-	print("NOM:")
+	print("--------------------------------\nNOM:")
 	separate_line_print(extractions_per_nom)
 
 if "-test" in sys.argv:
-	test_rule_based()
+	test_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
+	test(test_extractor, extractor_function)
+
+
 
 if "-training" in sys.argv:
-	learning(config.TRAIN_SET_PATH + "1M", config.TEST_SET_PATH + "1M")
+	arguments_predictor = ArgumentsPredictor()
+	arguments_predictor.train(config.ARG_DATASET_DIR + "/train", config.ARG_DATASET_DIR + "/test")
 
 if "-datasets" in sys.argv:
-	# Creating the training and testing datasets
-	create_datasets(config.LEXICON_FILE_NAME, hyper_params.DATASET_SIZE)
+	arguments_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
+
+	if "-args" in sys.argv:
+		# Creating the training and testing datasets for arguments predicator
+		create_args_datasets(arguments_extractor)
+	elif "-example" in sys.argv:
+		create_examples_dataset(arguments_extractor)

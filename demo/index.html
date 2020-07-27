@@ -41,28 +41,28 @@
                 </form>
             </div>
             <div class="container my-container">
-<!--                <div class="options-container narrow" data-step="" data-intro="">-->
-<!--                    <div class="btn-container narrow"><label>Rule-based<input type="checkbox" name="check" id="rule-based-cb" value="1" checked><span class="checkmark"></span></label></div>-->
-<!--                    <div class="btn-container narrow"><label>Model-based<input type="checkbox" name="check" id="model-based-cb" value="2" onclick="return false;"><span class="checkmark"></span></label></div>-->
-<!--                </div>-->
+                <div class="options-container narrow" data-step="" data-intro="">
+                    <div class="btn-container based-radio-btn narrow"><label>Rule-based<sup>1</sup><input type="radio" name="radio" id="rule-based" value="1" checked="checked"><span class="checkmark"></span></label></div>
+                    <div class="btn-container based-radio-btn narrow"><label>Model-based<input type="radio" name="radio" id="model-based" value="2"><span class="checkmark"></span></label></div>
+                    <div class="btn-container based-radio-btn narrow"><label>Hybrid<input type="radio" name="radio" id="hybrid-based" value="3"><span class="checkmark"></span></label></div>
+                </div>
                 <div class="options-container narrow" data-step="" data-intro="">
                     <div class="btn-container nom-btn narrow"><label>Nominalizations<input type="checkbox" name="check" id="noms-cb" value="4" checked><span class="checkmark"></span></label></div>
-                    <div class="btn-container verb-btn narrow"><label>Verbs<input type="checkbox" name="check" id="verbs-cb" value="3" checked><span class="checkmark"></span></label></div>
-                    <div class="btn-container ud-btn narrow"><label>UD Relations<input type="checkbox" name="check" id="ud-cb" value="5" checked><span class="checkmark"></span></label></div>
-                    <div class="btn-container pos-btn narrow"><label>POS tags<input type="checkbox" name="check" id="postag-cb" value="6" checked><span class="checkmark"></span></label></div>
+                    <div class="btn-container verb-btn narrow"><label>Verbs<input type="checkbox" name="check" id="verbs-cb" value="5" checked><span class="checkmark"></span></label></div>
+                    <div class="btn-container ud-btn narrow"><label>UD Relations<input type="checkbox" name="check" id="ud-cb" value="6" checked><span class="checkmark"></span></label></div>
+                    <div class="btn-container pos-btn narrow"><label>POS tags<input type="checkbox" name="check" id="postag-cb" value="7" checked><span class="checkmark"></span></label></div>
                 </div>
             </div>
-            <br>
+            <br><br>
             <div class="container my-container" data-step="" data-intro="">
-                <h4 id="scroll-to-here">Rule-based<sup>1</sup> Extractions:</h4>
+<!--                <h4 id="scroll-to-here">Rule-based<sup>1</sup> Extractions:</h4>-->
                 <div id="rule-based-container" class="extractions-contrainer"></div>
-                <br>
-                <h4>Model-based Extractions:</h4>
-                Coming Soon!
+<!--                <br>-->
+<!--                <h4>Model-based Extractions:</h4>-->
+<!--                Coming Soon!-->
 <!--                <div id="model-based-container" style="border: solid 1px lightgray; height: 150px"></div>-->
-                <br>
-                <br>
             </div>
+            <br><br>
         </div>
         <footer id="footer" class="modal-footer mt-auto py-3 my-footer" data-step="" data-intro="">
             <b>(1)</b> Rule-based extractions using our adaptation to the <a class="my-link" href="https://nlp.cs.nyu.edu/nomlex/">NOMLEX lexicon</a>.

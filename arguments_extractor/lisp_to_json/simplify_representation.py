@@ -1,8 +1,9 @@
+import re
 from copy import deepcopy
 
 from arguments_extractor.lisp_to_json.lexicon_modifications import argument_constraints, subcat_constraints
 from arguments_extractor.lisp_to_json.utils import get_right_value, get_current_specs, is_known, curr_specs
-from arguments_extractor.utils import difference_list, get_linked_arg
+from arguments_extractor.utils import difference_list, get_linked_arg, list_to_regex
 from arguments_extractor.constants.lexicon_constants import *
 from arguments_extractor.constants.ud_constants import *
 
@@ -105,33 +106,55 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 
 		simplify_complement_positions(subcat, complement_type, is_verb)
 
-		if complement_type in subcat.keys():
-			tmp_subcat[complement_type] = {}
-			for linked_arg in deepcopy(subcat[complement_type]).keys():
-				complement_by_referenced = subcat[complement_type][linked_arg]
+		if complement_type not in subcat.keys():
+			continue
 
-				# Update more manual constraints for that compelement/argument
-				complement_by_referenced.update(more_argument_constraints.get(complement_type, {}))
+		# tmp_subcat[complement_type] = {}
+		for linked_arg in deepcopy(subcat[complement_type]).keys():
+			complement_by_referenced = subcat[complement_type][linked_arg]
 
-				# Update the possible root postags for specific complements
-				if ARG_ROOT_UPOSTAGS not in complement_by_referenced.keys():
-					if complement_type == COMP_PART:
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART, UPOS_ADP]
-					elif complement_type in [COMP_IND_OBJ, COMP_OBJ, COMP_SUBJ, COMP_SECOND_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET]
-					elif complement_type in [COMP_PP, COMP_PP1, COMP_PP2]: # VERB is not allowed for PP head
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET, UPOS_ADV]
-					elif complement_type == COMP_P_NP:	# The head of the P-NP phrase must be a noun
-						complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON]
-					else:
-						args_without_pos.append(complement_type)
+			# Update more manual constraints for that compelement/argument
+			complement_by_referenced.update(more_argument_constraints.get(complement_type, {}))
 
-				# Add the DET_POSS_NO_OTHER_OBJ\N_N_MOD_NO_OTHER_OBJ constriants for the nominalization (if it is relevant)
-				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]:
-					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]
+			# Update the possible root postags for specific complements
+			if ARG_ROOT_UPOSTAGS not in complement_by_referenced.keys():
+				if complement_type == COMP_PART:
+					complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PART, UPOS_ADP]
+				elif complement_type in [COMP_IND_OBJ, COMP_OBJ, COMP_SUBJ, COMP_SECOND_SUBJ, COMP_NP, COMP_AS_NP_OC, COMP_AS_NP_SC]:
+					complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET]
+				elif complement_type in [COMP_PP, COMP_PP1, COMP_PP2]: # VERB is not allowed for PP head
+					complement_by_referenced[ARG_ROOT_UPOSTAGS] = [UPOS_PROPN, UPOS_NOUN, UPOS_PRON, UPOS_DET]
+				else:
+					args_without_pos.append(complement_type)
 
-				if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
-					complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
+			# Add the DET_POSS_NO_OTHER_OBJ\N_N_MOD_NO_OTHER_OBJ constriants for the nominalization (if it is relevant)
+			if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]:
+				complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ]
+
+			if not is_verb and complement_type in tmp_subcat[ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]:
+				complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ]
+
+
+			# Gerund phrase cannot start with WH words or "that"
+			if complement_type.startswith("ING") or complement_type.startswith("POSSING"):
+				complement_by_referenced[ARG_ILLEGAL_PREFIXES] = WHERE_WHEN_OPTIONS + HOW_OPTIONS + WH_VERB_OPTIONS + ["that"]
+
+			# Infinitival phrases cannot start with the preposition "for" (cause it refers to FOR-TO-INF)
+			elif complement_type.startswith("TO-INF"):
+				complement_by_referenced[ARG_ILLEGAL_PREFIXES] = ["for"]
+
+			elif complement_type == COMP_HOW_S:
+				complement_by_referenced[ARG_ILLEGAL_PREFIXES] = []
+				# Update illegal prefixes to include a preposition as a prefix (if it is relevant)
+				for prefix in complement_by_referenced[ARG_PREFIXES]:
+					just_preposition_prefix = re.sub(list_to_regex(WHERE_WHEN_OPTIONS + WH_VERB_OPTIONS + HOW_TO_OPTIONS + HOW_OPTIONS, "|"), '', prefix).strip()
+					complement_by_referenced[ARG_ILLEGAL_PREFIXES] += [(just_preposition_prefix + " " + illegal_prefix).strip() for illegal_prefix in ["how to", "how much", "how many"]]
+
+			elif complement_type.startswith("AS-") and complement_type != COMP_AS_IF_S_SUBJUNCT:
+				complement_by_referenced[ARG_ILLEGAL_PREFIXES] = ["as if"]
+
+			if complement_type == COMP_PP and linked_arg in [LINKED_NOM, LINKED_VERB] and ARG_CONSTRAINT_REQUIRED_PREFIX in complement_by_referenced[ARG_CONSTRAINTS]:
+				complement_by_referenced[ARG_CONSTRAINTS].remove(ARG_CONSTRAINT_REQUIRED_PREFIX)
 
 	curr_specs["comp"] = None
 

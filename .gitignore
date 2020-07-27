@@ -9,4 +9,4 @@
 !demo/css/*
 !demo/img/*
 !demo/scripts/*
-!arguments_extractor/test/test_sentences
+!arguments_extractor/test/test_sentences.txt

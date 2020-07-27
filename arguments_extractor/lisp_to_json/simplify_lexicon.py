@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from copy import deepcopy
 from collections import defaultdict
@@ -10,17 +11,17 @@ from arguments_extractor.lisp_to_json.simplify_subcat import nom_roles_for_pval
 from arguments_extractor.lisp_to_json.simplify_representation import argument_constraints, missing_required, args_without_pos
 from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, without_part, get_right_value, unknown_values_dict, known_values_dict
 from arguments_extractor.constants.lexicon_constants import *
-from arguments_extractor.utils import difference_list
+from arguments_extractor.utils import difference_list, list_to_regex
 from arguments_extractor import config
 
 # For debug
 added_noms = []
 removed_noms = []
 noms_with_missing_positions = []  # DET-POSS or N-N-MOD are missing
-positions_by_type = defaultdict(set)
+argument_properties = defaultdict(set)
 entries_by_type = defaultdict(set)
 complements_per_subcat = defaultdict(set)
-
+arguments_collisions = defaultdict(list)
 
 
 def sanity_checks(lexicon, is_verb=False):
@@ -70,10 +71,14 @@ def sanity_checks(lexicon, is_verb=False):
 			if difference_list(requires, subcat.keys()) != []:
 				raise Exception(f"There is a required argument without a specification ({get_current_specs()}).")
 
+			positions_per_complement = defaultdict(list)
+
 			for complement_type in all_complements:
 				curr_specs["comp"] = complement_type
 
 				for linked_arg in subcat[complement_type]:
+					positions_per_complement[complement_type] += subcat[complement_type][linked_arg][ARG_POSITIONS] + subcat[complement_type][linked_arg][ARG_PREFIXES]
+
 					complement_info = subcat[complement_type][linked_arg]
 					for constraint in complement_info[ARG_CONSTRAINTS]:
 						is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
@@ -82,8 +87,16 @@ def sanity_checks(lexicon, is_verb=False):
 					   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_POSITIONS]):
 						noms_with_missing_positions.append(word)
 
-					positions_by_type["CONSTANTS"].update(complement_info[ARG_POSITIONS])
-					positions_by_type["PREFIXES"].update(complement_info[ARG_PREFIXES])
+					argument_properties[ARG_POSITIONS].update(complement_info[ARG_POSITIONS])
+					argument_properties[ARG_PREFIXES].update(complement_info[ARG_PREFIXES])
+					argument_properties[ARG_ILLEGAL_PREFIXES].update(complement_info.get(ARG_ILLEGAL_PREFIXES, []))
+
+			for complement_type, positions in positions_per_complement.items():
+				for other_complement_type, other_positions in positions_per_complement.items():
+					pos_intersection = set(positions).intersection(other_positions)
+					if complement_type != other_complement_type and len(pos_intersection) != 0 and pos_intersection != {POS_PREFIX}:
+						collided_args = sorted(list({complement_type, other_complement_type}))
+						arguments_collisions[tuple(collided_args)].append(word)
 
 			curr_specs["comp"] = None
 			more_argument_constraints = get_right_value(argument_constraints, subcat_type, {}, is_verb)
@@ -98,7 +111,7 @@ def sanity_checks(lexicon, is_verb=False):
 
 					# Automatic constraints
 					if complement_type.endswith("-POC"):
-						auto_controlled = [COMP_P_NP]
+						auto_controlled = [COMP_PP]
 					elif complement_type.endswith("-NPC"):
 						auto_controlled = [COMP_NP]
 					elif complement_type.endswith("-OC"):
@@ -109,7 +122,7 @@ def sanity_checks(lexicon, is_verb=False):
 						auto_controlled = [COMP_SUBJ, COMP_OBJ]
 
 						if subcat_type == "NOM-P-NP-TO-INF-VC":
-							auto_controlled = [COMP_SUBJ, COMP_P_NP]
+							auto_controlled = [COMP_SUBJ, COMP_PP]
 
 					# Assure that the manual constraints were added correctly
 					if set(auto_controlled) != set(subcat[complement_type][linked_arg].get(ARG_CONTROLLED, [])):
@@ -140,13 +153,23 @@ def get_summary():
 
 	print("\nPossible positions by type:")
 	print("----------------------")
-	for positions_type, positions_list in positions_by_type.items():
-		print(f"{positions_type}: {positions_list}")
+	for argument_property, possible_values in argument_properties.items():
+		print(f"{argument_property}: {possible_values}")
+
+		if argument_property == "PREFIXES":
+			only_preposition = lambda pos: re.sub(list_to_regex(WHERE_WHEN_OPTIONS + WH_VERB_OPTIONS + HOW_TO_OPTIONS + HOW_OPTIONS, "|"), '', pos).strip()
+			print(f"MULTI-WORD {argument_property}: {set([only_preposition(pos) for pos in possible_values if len(only_preposition(pos).split(' ')) > 1])}")
 
 	print("\nRelevant entries by type:")
 	print("----------------------")
 	for entries_type, entries_list in entries_by_type.items():
 		print(f"{entries_type.__name__}: {entries_list}")
+
+	print("\nColliding complement types:")
+	print("----------------------")
+	for collided_args, words in arguments_collisions.items():
+		words = list(set(words))
+		print(f"{collided_args}: {len(words)}, such as {words[:5]}")
 
 
 
@@ -196,7 +219,41 @@ def add_to_lexicon(lexicon, word_entry, word_orth=None):
 
 	return numbered_word
 
+def add_default_entry(lexicon):
+	default_entry = {ENT_VERB_SUBC: {DEFAULT_SUBCAT: {}}}
+	default_subcat = default_entry[ENT_VERB_SUBC][DEFAULT_SUBCAT]
 
+	for word_entry in lexicon.values():
+		for subcat in word_entry[ENT_VERB_SUBC].values():
+			all_complements = difference_list(subcat.keys(), [SUBCAT_OPTIONAL, SUBCAT_REQUIRED, SUBCAT_NOT, SUBCAT_CONSTRAINTS])
+
+			for complement_type in all_complements:
+				complement_info = subcat[complement_type]
+				clean_complement_type = re.sub("PP1|PP2", 'PP', complement_type)
+				clean_complement_type = re.sub("-OC|-SC|-POC|-NPC|-VC", '', clean_complement_type)
+
+				if clean_complement_type not in default_subcat:
+					default_subcat[clean_complement_type] = {}
+
+				for linked_arg in complement_info.keys():
+
+					if linked_arg not in default_subcat[clean_complement_type]:
+						default_subcat[clean_complement_type][linked_arg] = defaultdict(list)
+
+					default_arg = default_subcat[clean_complement_type][linked_arg]
+
+					default_arg[ARG_POSITIONS] = list(set(default_arg[ARG_POSITIONS] + complement_info[linked_arg].get(ARG_POSITIONS, [])))
+					default_arg[ARG_PREFIXES] = list(set(default_arg[ARG_PREFIXES] + complement_info[linked_arg].get(ARG_PREFIXES, [])))
+					default_arg[ARG_ROOT_UPOSTAGS] = list(set(default_arg[ARG_ROOT_UPOSTAGS] + complement_info[linked_arg].get(ARG_ROOT_UPOSTAGS, [])))
+					default_arg[ARG_ROOT_URELATIONS] = list(set(default_arg[ARG_ROOT_URELATIONS] + complement_info[linked_arg].get(ARG_ROOT_URELATIONS, [])))
+					default_arg[ARG_ROOT_PATTERNS] = list(set(default_arg[ARG_ROOT_PATTERNS] + complement_info[linked_arg].get(ARG_ROOT_PATTERNS, [])))
+
+					constraints = difference_list(complement_info[linked_arg].get(ARG_CONSTRAINTS, []), [ARG_CONSTRAINT_PLURAL, ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ, ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ])
+					default_arg[ARG_CONSTRAINTS] = list(set(default_arg[ARG_CONSTRAINTS] + constraints))
+
+	default_subcat[SUBCAT_OPTIONAL] = list(default_subcat.keys())
+	default_entry[ENT_ORTH] = DEFAULT_ENTRY
+	lexicon[DEFAULT_ENTRY] = default_entry
 
 def simplify_lexicon(original_lexicon):
 	"""
@@ -249,5 +306,9 @@ def simplify_lexicon(original_lexicon):
 		sanity_checks(verbs_lexicon, is_verb=True)
 		sanity_checks(noms_lexicon, is_verb=False)
 		get_summary()
+
+	# Add an entry for a default verb\nom (words that don't appear in these lexicons)
+	add_default_entry(verbs_lexicon)
+	add_default_entry(noms_lexicon)
 
 	return verbs_lexicon, noms_lexicon

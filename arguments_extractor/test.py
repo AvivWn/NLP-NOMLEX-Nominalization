@@ -9,18 +9,20 @@ from arguments_extractor import config
 def compare_extractions(extractions, loaded_extractions, sentence):
 	difference_predicates = []
 
+	dict_key_func = lambda d: sorted((k, v if v is not None else '') for k, v in d.items())
+
 	for predicate in extractions:
-		if predicate not in loaded_extractions.keys() or loaded_extractions[predicate] != extractions[predicate]:
+		if predicate not in loaded_extractions.keys() or sorted(loaded_extractions[predicate], key=dict_key_func) != sorted(extractions[predicate], key=dict_key_func):
 			difference_predicates.append(predicate)
 
 	for predicate in loaded_extractions:
-		if predicate not in extractions.keys() or loaded_extractions[predicate] != extractions[predicate]:
+		if predicate not in extractions.keys():
 			difference_predicates.append(predicate)
 
 	for predicate in difference_predicates:
 		print(f"The extractions are different for \"{predicate}\" in the sentence: \"{sentence}\"")
-		print(f"OLD:{loaded_extractions.get(predicate, 'NONE')}")
-		print(f"NEW:{extractions.get(predicate, 'NONE')}")
+		print(f"OLD: {loaded_extractions.get(predicate, 'NONE')}")
+		print(f"NEW: {extractions.get(predicate, 'NONE')}")
 
 	return difference_predicates != []
 
@@ -38,9 +40,11 @@ def save_extractions(extractions_file_path, extractions):
 	with open(extractions_file_path, "wb") as extractions_file:
 		pickle.dump(extractions, extractions_file)
 
-def test_rule_based():
+def test(arguments_extractor: ArgumentsExtractor, extraction_func):
 	"""
-	Tests the rule-based extractor on a specific test set
+	Tests the given extraction function vs saved rule-based extraction of a specific test set
+	:param arguments_extractor: The extractor object, which receives a sentence and returns all its extractions
+	:param extraction_func: The extraction function that we should use on the test examples
 	:return: None
 	"""
 
@@ -50,7 +54,10 @@ def test_rule_based():
 	loaded_verb_extractions = load_extractions(config.TEST_VERB_EXTRACTIONS)
 	loaded_nom_extractions = load_extractions(config.TEST_NOM_EXTRACTIONS)
 
-	test_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
+	# Only rule-based extractions should be saved in a file
+	if extraction_func != ArgumentsExtractor.rule_based_extraction:
+		config.REWRITE_TEST = False
+
 	found_differences = False
 
 	for line in tqdm(test_sentences, "Testing", leave=False):
@@ -59,17 +66,17 @@ def test_rule_based():
 		if line == "" or line.startswith("#"):
 			continue
 
-		sentence = line
-		verb_extractions, nom_extractions = test_extractor.rule_based_extraction(sentence)
-		verb_extractions = test_extractor.extractions_as_str(verb_extractions)
-		nom_extractions = test_extractor.extractions_as_str(nom_extractions)
+		sentence = line.split("#")[0].strip()
+		verb_extractions, nom_extractions = extraction_func(arguments_extractor, sentence)
+		verb_extractions = arguments_extractor.extractions_as_str(verb_extractions)
+		nom_extractions = arguments_extractor.extractions_as_str(nom_extractions)
 
 		if config.REWRITE_TEST:
 			loaded_verb_extractions[sentence] = verb_extractions
 			loaded_nom_extractions[sentence] = nom_extractions
 
-		found_verb_differences = compare_extractions(verb_extractions, loaded_verb_extractions[sentence], sentence)
-		found_nom_differences = compare_extractions(nom_extractions, loaded_nom_extractions[sentence], sentence)
+		found_verb_differences = compare_extractions(verb_extractions, loaded_verb_extractions.get(sentence, {}), sentence)
+		found_nom_differences = compare_extractions(nom_extractions, loaded_nom_extractions.get(sentence, {}), sentence)
 
 		found_differences = found_verb_differences or found_nom_differences or found_differences
 

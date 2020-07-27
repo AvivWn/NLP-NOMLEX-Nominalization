@@ -141,8 +141,7 @@ def rearrange_preps(subcat, subcat_type, is_verb=False):
 		if "NOM-ROLE-FOR-PVAL" in subcat.keys():
 			subcat[COMP_PP] = subcat.get(OLD_COMP_PVAL_NOM, subcat.get(COMP_PP, []))
 			roles_for_pval = transform_to_list(subcat["NOM-ROLE-FOR-PVAL"])
-			if POS_NOM in roles_for_pval: subcat[COMP_PP] = roles_for_pval
-			else: subcat[COMP_PP] += roles_for_pval
+			subcat[COMP_PP] += roles_for_pval
 		if "NOM-ROLE-FOR-PVAL1" in subcat.keys():
 			subcat[COMP_PP1] = subcat.get(OLD_COMP_PVAL_NOM1, subcat.get(COMP_PP1, []))
 			subcat[COMP_PP1] += transform_to_list(subcat["NOM-ROLE-FOR-PVAL1"])
@@ -206,7 +205,7 @@ def rearrange_not(subcat, is_verb=False):
 		else:
 			del subcat[SUBCAT_NOT]
 
-def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, is_verb=False):
+def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, other_subcat_types, is_verb=False):
 	"""
 	Rearranges the requires and optionals for the given subcat entry
 	:param subcat: a dictionary of the subcategorization info
@@ -258,16 +257,31 @@ def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, is_v
 
 	curr_specs["comp"] = None
 
-	# OBJECT is optional by default
-	if COMP_OBJ not in requires and without_part(subcat_type).startswith("NOM-NP"):
-		optionals.append(COMP_OBJ)
+	# All the non-optional constraints in the default requires list are also required
+	requires += difference_list(default_requires, optionals)
+
+	# OBJECT is optional for NOM-NP-X subcats, only if NOM-X isn't compatible with the current entry, otherwise it is required
+	if without_part(subcat_type).startswith("NOM-NP"):
+		# Object is required in the next cases
+		obj_is_required = False
+		if subcat_type == "NOM-NP":
+			if "NOM-INTRANS" in other_subcat_types or "NOM-INTRANS-RECIP" in other_subcat_types:
+				obj_is_required = True
+		elif subcat_type == "NOM-NP-AS-NP-SC":
+			if "NOM-NP-AS-NP" in other_subcat_types:
+				obj_is_required = True
+		elif subcat_type.replace("NOM-NP-", "NOM-") in other_subcat_types:
+			obj_is_required = True
+
+		if obj_is_required:
+			requires.append(COMP_OBJ)
+			optionals = difference_list(optionals, [COMP_OBJ])
+		elif COMP_OBJ not in requires:
+			optionals.append(COMP_OBJ)
 
 	# SUBJECT is optional by default
 	if COMP_SUBJ not in requires:
 		optionals.append(COMP_SUBJ)
-
-	# All the non-optional constraints in the default requires list are also required
-	requires += difference_list(default_requires, optionals)
 
 	subcat[SUBCAT_REQUIRED] = list(set(requires))
 	subcat[SUBCAT_OPTIONAL] = list(set(optionals))
@@ -285,6 +299,9 @@ def change_types(subcat, types_dict):
 	# Moving over all the needed to be changed arguments
 	for complement_type, new_complement_type in types_dict.items():
 		curr_specs["comp"] = complement_type
+
+		if complement_type == new_complement_type:
+			continue
 
 		# If the argument appears in the subcat info, change its name
 		if complement_type in subcat.keys():
@@ -474,22 +491,41 @@ def use_nom_type(subcat, nom_type_info, is_verb=False):
 
 		# For verbs, a relevant complement also gets the position of the nom as a new possible position
 		if is_verb:
-			if complement_type in subcat[SUBCAT_REQUIRED] + subcat[SUBCAT_OPTIONAL]:
+			if complement_type in subcat[SUBCAT_REQUIRED] + subcat[SUBCAT_OPTIONAL] and SUBCAT_CONSTRAINT_ALTERNATES not in subcat:
 				if nom_type_info[TYPE_PP] != []:
-					subcat[complement_type] = list(set(subcat.get(complement_type, []) + nom_type_info[TYPE_PP]))
+					subcat[type_of_nom] = list(set(subcat.get(complement_type, []) + nom_type_info[TYPE_PP]))
+
+					if type_of_nom != complement_type:
+						subcat.pop(complement_type, None)
+
+						if complement_type in subcat[SUBCAT_REQUIRED]: subcat[SUBCAT_REQUIRED] = list(set(subcat[SUBCAT_REQUIRED] + [type_of_nom]))
+						else: subcat[SUBCAT_OPTIONAL] = list(set(subcat[SUBCAT_OPTIONAL] + [type_of_nom]))
+
 				changed = True
 
 		# For noms, the only position of the complement is NOM
 		# The complement should appear in the required or optional lists
 		elif complement_type in list(subcat.keys()) + subcat[SUBCAT_REQUIRED] + subcat[SUBCAT_OPTIONAL]: # or complement_type == COMP_INSTRUMENT
+			changed = True
+
 			# Instead of the founded relevant complement, we will write the type of nom as a new complement
 			subcat.pop(complement_type, None)
 			subcat[type_of_nom] = [POS_NOM]
-			subcat[SUBCAT_REQUIRED] = list(set(difference_list(subcat[SUBCAT_REQUIRED], [complement_type]) + [type_of_nom]))
-			subcat[SUBCAT_OPTIONAL] = difference_list(subcat[SUBCAT_OPTIONAL], [type_of_nom, complement_type])
-			changed = True
+			subcat[SUBCAT_REQUIRED] = list(set(subcat[SUBCAT_REQUIRED] + [type_of_nom])) # NOM must be required for the nominalization
+			subcat[SUBCAT_OPTIONAL] = difference_list(subcat[SUBCAT_OPTIONAL], [type_of_nom])
 
 		if changed:
+			# Remove the old complement type from both required and optional lists
+			if complement_type != type_of_nom:
+				subcat[SUBCAT_REQUIRED] = list(set(difference_list(subcat[SUBCAT_REQUIRED], [complement_type])))
+				subcat[SUBCAT_OPTIONAL] = list(set(difference_list(subcat[SUBCAT_OPTIONAL], [complement_type])))
+
+			# If we replaced PP1 with IND-OBJ, then PP2 should actually mean the complement PP
+			if complement_type == COMP_PP1:
+				subcat[COMP_PP] = difference_list(subcat.pop(COMP_PP2), [POS_NOM])  # PP2 cannot also be the NOM
+				if COMP_PP2 in subcat[SUBCAT_REQUIRED]: subcat[SUBCAT_REQUIRED] = difference_list(subcat[SUBCAT_REQUIRED], [COMP_PP2]) + [COMP_PP]
+				else: subcat[SUBCAT_OPTIONAL] = difference_list(subcat[SUBCAT_OPTIONAL], [COMP_PP2]) + [COMP_PP]
+
 			break
 
 	curr_specs["comp"] = None
@@ -575,7 +611,7 @@ def simplify_subcat(entry, subcat, subcat_type, is_verb=False):
 
 	# Rearranging the subcategorization- the order matters
 	rearrange_preps(subcat, subcat_type, is_verb=is_verb)
-	rearrange_requires_and_optionals(subcat, subcat_type, requires, is_verb=is_verb)
+	rearrange_requires_and_optionals(subcat, subcat_type, requires, entry[ENT_VERB_SUBC].keys(), is_verb=is_verb)
 	change_types(subcat, names)
 	use_special_case(subcat, special_cases)
 	use_defaults(subcat, defaults)

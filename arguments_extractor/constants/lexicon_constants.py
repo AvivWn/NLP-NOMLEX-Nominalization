@@ -8,13 +8,13 @@ COMP_SUBJ = "SUBJECT"
 COMP_SECOND_SUBJ = "SECOND-SUBJECT"
 COMP_OBJ = "OBJECT"
 COMP_IND_OBJ = "IND-OBJ"
-COMP_NP = "NP"
+COMP_NP = "OBJECT"
 
 # Prepositional Complements
 COMP_PP = "PP"
 COMP_PP1 = "PP1"
 COMP_PP2 = "PP2"
-COMP_P_NP = "P-NP"				# A preposition phrase that must contains a noun
+# COMP_P_NP = "P-NP"				# A preposition phrase that must contains a noun
 COMP_AS_NP_OC = "AS-NP-OC"		# Object Controlled
 COMP_AS_NP_SC = "AS-NP-SC"		# Subject Controlled
 
@@ -24,7 +24,7 @@ COMP_ADJP = "ADJP"
 COMP_AS_ADJP = "AS-ADJP"
 
 # ING Complements
-COMP_ING_NPC = "ING-NPC"	# NP Controlled
+COMP_ING_NPC = "ING-OC"		# NP Controlled
 COMP_ING_OC = "ING-OC"		# Object Controlled
 COMP_ING_SC = "ING-SC"		# Subject Controlled
 COMP_ING_POC = "ING-POC"	# Preposition Object Controlled
@@ -33,7 +33,7 @@ COMP_POSSING = "POSSING"	# Possessive Gerund
 
 # P-ING Complements
 COMP_AS_ING_OC = "AS-ING-OC"
-COMP_P_ING_NPC = "P-ING-NPC"
+COMP_P_ING_NPC = "P-ING-OC"
 COMP_P_ING_OC = "P-ING-OC"
 COMP_P_ING_SC = "P-ING-SC"
 COMP_P_ING_ARBC = "P-ING-ARBC"
@@ -124,6 +124,8 @@ ENT_SEMI_AUTOMATIC = "SEMI-AUTOMATIC"
 ENT_PLURAL_FREQ = "PLURAL-FREQ"
 #ENT_SUBJECT_PP_OF_FREQ = "SUBJECT-PP-OF-FREQ"
 
+DEFAULT_ENTRY = "DEFAULT"
+
 
 
 ########################################################################################################################
@@ -196,7 +198,7 @@ PATTERN_ING = "ing$"
 
 # Required u-postags and dependency u-relations for the the root of the argument (u=universal)
 ARG_ROOT_UPOSTAGS = "ROOT-UPOSTAGS"
-ARG_ROOT_RELATIONS = "ROOT-RELATIONS"
+ARG_ROOT_URELATIONS = "ROOT-URELATIONS"
 
 
 # Argument boolean constraints
@@ -230,3 +232,5 @@ SUBCAT_CONSTRAINTS = "CONSTRAINTS"
 SUBCAT_CONSTRAINT_ADVP_OR_ADJP = "ADVP-OR-ADJP"
 SUBCAT_CONSTRAINT_ALTERNATES = "ALTERNATES"
 OLD_SUBCAT_CONSTRAINT_ALTERNATES_OPT = "ALTERNATES-OPT" # only in the original representation
+
+DEFAULT_SUBCAT = "DEFAULT"

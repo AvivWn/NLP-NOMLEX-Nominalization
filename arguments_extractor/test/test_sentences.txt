@@ -30,7 +30,7 @@ They lined the cubes in a row.
 The cube's liner in a row.
 
 ########################################################################
-# Predicates with prticles
+# Predicates with particles (PART)
 
 They backed up on the disk.
 Their backup on the disk.
@@ -42,12 +42,43 @@ Their back-up of the data to the disk.
 ########################################################################
 # Multi-word prepositions
 
+# 3-worded prepositions
 They discussed whether they are going to pass the test.
 Their discussion with respect to whether they are going to pass the test.
 Alice dreamed her boyfriend with regard to his future.
 Alice's dream of her boyfriend with regard to his future.
 Alice dreamed her boyfriend in connection with his future.
 Alice's dream of her boyfriend in connection with his future.
+She speculated with respect to whether the man will arrive.
+Her speculation with respect to whether the man will arrive.
+
+# 2-worded prepositions
+He shoot away from the target last night.
+His shoot away from the target last night.
+He started the game ahead of the others.
+His start of the game ahead of the others.
+He stationed the soldier next to his house.
+The soldier's station by him next to his house.
+She speculated as to whether the man will arrive.
+Her speculation as to whether the man will arrive.
+
+########################################################################
+# Complex constraints
+
+# DET-POSS-ONLY
+He destroyed Paris
+Paris's destruction.            # Paris must be OBJ
+
+# N-N-MOD-ONLY
+He registered the child.
+The child registration.         # The child must be OBJ
+
+# NOT constraints
+The man's reflection with regard to the sun.            # compatible with NOT constraints
+The man reflection with regard to the sun.              # NOT- "with regard to" isn't compatible with N-N-MOD
+His representation of the paper to the audience.        # compatible with NOT constraints
+The paper's representation by them to the audience.     # NOT- "them" must be SUBJ, but OBJ isn't compatible with DET-POSS, when there is another PP
+The paper man representation.                           # NOT- Double compound isn't compatible for this nom -> empty extraction
 
 ########################################################################
 # WH-S complements
@@ -119,7 +150,7 @@ My wonder of whether he is sick.
 ########################################################################
 # TO-INF complements
 
-# NOM-PP-TO-INF-RECIP
+# NOM-PP-TO-INF-RECIP (IGNORED)
 Henry conspired with Marsha to steal the contract.
 Henry's conspiracy with Marsha to steal the contract.
 Henry and Marsha conspired to steal the contract.

@@ -41,7 +41,7 @@ class LexicalArgument:
 		for linked_arg in argument_info.keys():
 			self.positions[linked_arg] = argument_info[linked_arg].get(ARG_POSITIONS, [])
 			self.root_upostags[linked_arg] = argument_info[linked_arg].get(ARG_ROOT_UPOSTAGS, [])
-			self.root_urelations[linked_arg] = argument_info[linked_arg].get(ARG_ROOT_RELATIONS, [])
+			self.root_urelations[linked_arg] = argument_info[linked_arg].get(ARG_ROOT_URELATIONS, [])
 			self.constraints[linked_arg] = argument_info[linked_arg].get(ARG_CONSTRAINTS, [])
 			self.including[linked_arg] = argument_info[linked_arg].get(ARG_INCLUDING, None)
 
@@ -85,13 +85,30 @@ class LexicalArgument:
 		return False
 
 
-	def _check_root(self, candidate_token: Token, linked_arg: str):
+	def _check_root(self, candidate_token: Token, matched_argument: ExtractedArgument, linked_arg: str):
 		"""
 		Checks that the constraints on the root according to this argument works for the given root word
 		:param candidate_token: a token candidate for this argument
+		:param matched_argument: The appropriate argument object for this lexical argument
 		:param linked_arg: the linked argument (usually the nominalization [NON] or the verb [VERB])
 		:return: True if the root doesn't contradict the root constraints of this argument, and False otherwise
 		"""
+
+		# Check whether the matched position is a multi-word preposition and the candidate token is part of the preposition prefix
+		# If so, then the "root" of the candidate should be the nearest connected token *after the preposition*, for the purpose of the next tests
+		# Example- "... with regard to the man". The candidate token will be "regard". But we must check the constraints over "man"
+		matched_position = matched_argument.matched_position
+		if matched_position.islower():
+			candidate_index_in_arg = candidate_token.i - candidate_token._.subtree_indices[0]
+			prep_length = len(matched_position.split(" "))
+
+			if prep_length > 1 and candidate_index_in_arg < prep_length:
+				#@TODO- is it right to use "wild card" relation here?
+				end_of_preposition_idx = candidate_token._.subtree_indices[0] + prep_length
+				candidate_token = get_word_in_relation(candidate_token, URELATION_ANY, start_index=end_of_preposition_idx)
+
+				if candidate_token is None:
+					return False
 
 		if not check_relations(candidate_token, self.root_urelations[linked_arg]):
 			return False
@@ -106,8 +123,8 @@ class LexicalArgument:
 		if self.root_upostags[linked_arg] != [] and candidate_token.pos_ not in self.root_upostags[linked_arg]:
 			return False
 
-		#@TODO- can a determiner that isn't possessive pronoun be an argument?
-		if candidate_token.pos_ == UPOS_DET and candidate_token.orth_.lower() not in POSSESIVE_OPTIONS:
+		#@TODO- can a determiner that isn't possessive pronoun be an NP argument?
+		if candidate_token.pos_ == UPOS_DET and self.complement_type in [COMP_SUBJ, COMP_OBJ, COMP_IND_OBJ, COMP_NP] and candidate_token.orth_.lower() not in POSSESIVE_OPTIONS:
 			return False
 
 		if self.root_pattern[linked_arg] != "" and not re.search(self.root_pattern[linked_arg], candidate_token.orth_.lower(), re.M):
@@ -140,7 +157,7 @@ class LexicalArgument:
 		"""
 
 		# Checks the constraints on the root
-		if not self._check_root(candidate_token, linked_arg):
+		if not self._check_root(candidate_token, matched_argument, linked_arg):
 			return False
 
 		####################################

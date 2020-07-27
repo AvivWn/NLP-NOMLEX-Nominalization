@@ -204,11 +204,11 @@ body.dark {
     background-color: #a1a1a1;
 }
 
+/*When a checkbox is checked, add a colorful background*/
 .btn-container.nom-btn input:checked ~ .checkmark {
     background-color: #64b34c;
 }
 
-/*When the checkbox is checked, add a blue background*/
 .btn-container.verb-btn input:checked ~ .checkmark {
     background-color: #299eec;
 }
@@ -219,6 +219,11 @@ body.dark {
 
 .btn-container.ud-btn input:checked ~ .checkmark {
     background-color: #999;
+}
+
+/*When a radio button is checked, change its background color*/
+.btn-container.based-radio-btn input:checked ~ .checkmark {
+    background-color: #923696;
 }
 
 /*Create the checkmark/indicator (hidden when not checked)*/

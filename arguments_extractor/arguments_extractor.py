@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from arguments_extractor.rule_based.lexicon import Lexicon
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
+from arguments_extractor.model_based.arguments_predictor import ArgumentsPredictor
 from arguments_extractor.constants.ud_constants import *
 from arguments_extractor.utils import get_lexicon_path, get_dependency_tree
 from arguments_extractor import config
@@ -11,7 +12,7 @@ class ArgumentsExtractor:
 	verb_lexicon: Lexicon
 	nom_lexicon: Lexicon
 
-	def __init__(self, lexicon_file_name):
+	def __init__(self, lexicon_file_name=config.LEXICON_FILE_NAME):
 		verb_json_file_path = get_lexicon_path(lexicon_file_name, "json", is_verb=True)
 		nom_json_file_path = get_lexicon_path(lexicon_file_name, "json", is_nom=True)
 
@@ -19,8 +20,13 @@ class ArgumentsExtractor:
 		if not (config.LOAD_LEXICON and os.path.exists(verb_json_file_path) and os.path.exists(nom_json_file_path)):
 			lisp_to_json(lexicon_file_name)
 
+		# Create the lexicon objects
 		self.verb_lexicon = Lexicon(lexicon_file_name, is_verb=True)
 		self.nom_lexicon = Lexicon(lexicon_file_name, is_verb=False)
+
+		# Load the predicator of arguments
+		self.arguments_predictor = ArgumentsPredictor()
+		self.arguments_predictor.load_model()
 
 	def get_n_predicates(self, word_tokens: list):
 		n_predicates = 0
@@ -164,11 +170,18 @@ class ArgumentsExtractor:
 
 		for predicate_token, extractions in extractions_per_predicate.items():
 			dependency_tree = predicate_token.doc
-			iobes_format_extraction = [[word, "O"] for word in dependency_tree]
-			iobes_format_extraction[predicate_token.i][1] = "VERB" if predicate_token.pos_ == UPOS_VERB else "NOM"
 
-			if extractions != []:
-				extraction = extractions[0]
+			# if extractions != []:
+			# 	extraction = extractions[0]
+
+			if extractions == []:
+				continue
+
+			extractions = [extractions[0]]
+
+			for extraction in extractions:
+				iobes_format_extraction = [[word, "O"] for word in dependency_tree]
+				iobes_format_extraction[predicate_token.i][1] = "O-VERB" if predicate_token.pos_ == UPOS_VERB else "O-NOM"
 
 				for complement_type, argument_span in extraction.items():
 					for argument_token in argument_span:
@@ -181,10 +194,13 @@ class ArgumentsExtractor:
 						else:
 							label = "I"
 
-						iobes_format_extraction[argument_token.i][1] = label + "-" + complement_type
+						if iobes_format_extraction[argument_token.i][1] != "O":
+							iobes_format_extraction[argument_token.i][1] = iobes_format_extraction[argument_token.i][1].replace("O-", label + "-" + complement_type + "-")
+						else:
+							iobes_format_extraction[argument_token.i][1] = label + "-" + complement_type
 
-			iobes_format_extraction = " ".join([f"{word}/{tag}" for word, tag in iobes_format_extraction]) + "\n"
-			iobes_format_extractions.append(iobes_format_extraction)
+				iobes_format_extraction = " ".join([f"{word}/{tag}" for word, tag in iobes_format_extraction]) + "\n"
+				iobes_format_extractions.append(iobes_format_extraction)
 
 		return iobes_format_extractions
 
@@ -208,12 +224,14 @@ class ArgumentsExtractor:
 
 
 
-	def rule_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
+	def extract_arguments(self, sentence, return_dependency_tree=False, min_arguments=0, using_default=False, arguments_predictor=None):
 		"""
 		Extracts arguments of nominalizations and verbs in the given sentence, using NOMLEX lexicon
 		:param sentence: a string text or a dependency tree parsing of a sentence
 		:param return_dependency_tree: whether to return the depenency tree of the given sentence as a third parameter (optional)
-		:param min_arguments: The minimum number of arguments for any founed extraction (0 is deafult)
+		:param min_arguments: the minimum number of arguments for any founed extraction (0 is deafult)
+		:param using_default: whether to use the default entry in the lexicon all of the time, otherwise only whenever it is needed
+		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
 		:return: Two dictionaries (and an optional dependency tree):
 					The founded extractions for each relevant verbs in the given sentence ({verb_Token: [extraction_Span]})
 					The founded extractions for each relevant nominalizations in the given sentence ({nom_Token: [extraction_Span]})
@@ -225,12 +243,21 @@ class ArgumentsExtractor:
 			dependency_tree = sentence
 
 		# Extract arguments based on the verbal lexicon
-		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments)
+		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments, using_default=using_default, arguments_predictor=arguments_predictor)
 
 		# Extract arguments based on the nominal lexicon
-		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments)
+		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, min_arguments=min_arguments, using_default=using_default, arguments_predictor=arguments_predictor)
 
 		if return_dependency_tree:
 			return extractions_per_verb, extractions_per_nom, dependency_tree
 		else:
 			return extractions_per_verb, extractions_per_nom
+
+	def rule_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments)
+
+	def hybrid_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, arguments_predictor=self.arguments_predictor)
+
+	def model_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, using_default=True, arguments_predictor=self.arguments_predictor)

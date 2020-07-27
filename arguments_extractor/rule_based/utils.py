@@ -3,6 +3,7 @@ from copy import deepcopy
 from spacy.tokens import Token
 
 from arguments_extractor.rule_based.ud_translator import *
+from arguments_extractor.constants.ud_constants import URELATION_ANY
 
 def get_right_value(table, subcat_type, default=None, is_verb=False):
 	if subcat_type not in table.keys():
@@ -34,7 +35,7 @@ def relation_to_position(word_token, referenced_token, is_verb):
 
 	return positions
 
-def get_word_in_relation(referenced_word, relation):
+def get_word_in_relation(referenced_word, relation, start_index=0):
 	founded_token = None
 
 	head_relation_info = relation.split("_")
@@ -42,7 +43,10 @@ def get_word_in_relation(referenced_word, relation):
 	specific_word = head_relation_info[1] if len(head_relation_info) == 2 else None
 
 	for child_token in referenced_word.children:
-		if not child_token.dep_.startswith(relation):
+		if child_token.i < start_index:
+			continue
+
+		if not child_token.dep_.startswith(relation) and relation != URELATION_ANY:
 			continue
 
 		if specific_word is None or child_token.orth_ == specific_word:

@@ -205,26 +205,28 @@ define([
 			return appearing_events;
 		}
 
-		async function parse_sentence(random_sentence=false) {
+		async function parse_sentence(random_sentence=false, must_parse_again=false) {
+			$sentence_input[0].value = $sentence_input[0].value !== "" ? $sentence_input[0].value : "The appointment of Tim Cook by Apple as a CEO was expected. Apple appointed Tim Cook as CEO.";
 			$sentence_input[0].value = $sentence_input[0].value !== "" ? $sentence_input[0].value : "The appointment of Tim Cook by Apple as a CEO was expected. Apple appointed Tim Cook as CEO.";
 
 			const options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
 
-			// Don't parse the sentence if it is the same as the last one
+			// Don't parse the sentence if it is the same as the last one with the same properties
 			let parsed_data = localStorage.getItem(DATA_KEY);
 			let appearing_events = localStorage.getItem(APPEARING_EVENTS_KEY);			// The appearing event-id for each sentence-id
 			let mentions_by_events = localStorage.getItem(MENTIONS_BY_EVENTS_KEY);		// The relevant emntions for each event-id per sentence-id
 			let informative_events = localStorage.getItem(INFORMATIVE_EVENTS_KEY);		// The event-id with the most informative information (max number of arguments) per sentence-id
 			let event_by_word_index = localStorage.getItem(EVENT_BY_WORD_INDEX_KEY);	// The event-id, sentence-id, is-verb by the word index in the input string (that contains all the sentences together)
 
-			if (localStorage.getItem(SENTENCE_KEY) !== $sentence_input[0].value || random_sentence ||
+			if (must_parse_again || localStorage.getItem(SENTENCE_KEY) !== $sentence_input[0].value || random_sentence ||
 				parsed_data == null || appearing_events == null || informative_events == null || mentions_by_events == null || event_by_word_index == null) {
 				// Send the information to the server and get a response
 				const response = await axios.post(
 					'https://nlp.biu.ac.il/~avivwn/nomlexDemo/annotate/',
 					{
 						"sentence": $sentence_input[0].value,
-						"random": random_sentence
+						"random": random_sentence,
+						"extraction-based": options["extraction-based"]
 					}
 				);
 
@@ -292,8 +294,6 @@ define([
 				biu_icon.src = "img/biu_dark.png";
 				biu_nlp_icon.src = "img/biu_nlp_dark.png";
 			}
-
-			parse_sentence();
 		}
 
 
@@ -310,6 +310,7 @@ define([
 			}
 
 			change_theme_color(theme_button, theme_color_mode);
+			await parse_sentence(); // just to update the displayed trees
 		});
 
 
@@ -330,14 +331,22 @@ define([
 		});
 
 		// When any checkbox (option) is checked or unchecked, the current sentence is parsed with the current options
-		const triggers_for_parsing = [$('#verbs-cb'), $('#noms-cb'), $('#ud-cb'), $('#postag-cb')];
+		const triggers_for_parsing = [$('#rule-based'), $('#model-based'), $('#hybrid-based'), $('#verbs-cb'), $('#noms-cb'), $('#ud-cb'), $('#postag-cb')];
 		triggers_for_parsing.forEach((trigger) => {
 			trigger.click(async (e) => {
 				let options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
-				options[e.target.id] = e.target.checked;
-				localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+				let must_parse_again = false;
 
-				await parse_sentence();
+				if (e.target.id.endsWith('based')) {
+					options['extraction-based'] = e.target.id;
+					must_parse_again = true
+				}
+				else {
+					options[e.target.id] = e.target.checked;
+				}
+
+				localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+				await parse_sentence(false, must_parse_again);
 			});
 		});
 
@@ -401,7 +410,7 @@ define([
 
 			// The default chosen options will be- all checkboxes are checked
 			let options = localStorage.getItem(OPTIONS_KEY);
-			const default_options = {"verbs-cb": true, "noms-cb": true, "ud-cb": true, "postag-cb": true};
+			const default_options = {"extraction-based": "rule-based", "verbs-cb": true, "noms-cb": true, "ud-cb": true, "postag-cb": true};
 			if (options == null || JSON.stringify(Object.keys(JSON.parse(options))) !== JSON.stringify(Object.keys(default_options))) {
 				localStorage.setItem(OPTIONS_KEY, JSON.stringify(default_options));
 			}
@@ -412,6 +421,7 @@ define([
 			$('#noms-cb').prop('checked', options["noms-cb"]);
 			$('#ud-cb').prop('checked', options["ud-cb"]);
 			$('#postag-cb').prop('checked', options["postag-cb"]);
+			$('#' + options['extraction-based']).prop('checked', true);
 
 			$('#body').removeClass('hide-all');
 
@@ -425,6 +435,8 @@ define([
 			} else {
 				change_theme_color(theme_button, localStorage.getItem(THEME_COLOR_KEY))
 			}
+
+			parse_sentence();
 		});
 
 	}

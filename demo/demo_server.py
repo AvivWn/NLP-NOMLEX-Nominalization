@@ -10,7 +10,6 @@ from bottle import route, run, request, static_file
 
 import spacy
 from spacy.tokenizer import Tokenizer
-from spacy.tokens import Doc
 from spacy.util import compile_infix_regex
 from pybart.api import Converter
 from pybart.converter import ConvsCanceler
@@ -21,7 +20,7 @@ sys.path.append("../")
 from arguments_extractor import *
 argumentExtractor = ArgumentsExtractor("NOMLEX-plus.1.0.txt")
 
-DATA_PATH = "data/sentences"
+DATA_PATH = "data/example_sentences.txt"
 with open(DATA_PATH, "r") as sentences_file:
 	sentences = sentences_file.readlines()
 
@@ -76,6 +75,20 @@ def _update_mentions_info(mentions, sentence_id, informative_events, mentions_by
 
 	informative_events[sentence_id] = most_informative_events
 
+def _custom_tokenizer(nlp):
+	inf = list(nlp.Defaults.infixes)               # Default infixes
+	inf.remove(r"(?<=[0-9])[+\-\*^](?=[0-9-])")    # Remove the generic op between numbers or between a number and a -
+	inf = tuple(inf)                               # Convert inf to tuple
+	infixes = inf + tuple([r"(?<=[0-9])[+*^](?=[0-9-])", r"(?<=[0-9])-(?=-)"])  # Add the removed rule after subtracting (?<=[0-9])-(?=[0-9]) pattern
+	infixes = [x for x in infixes if '-|–|—|--|---|——|~' not in x] # Remove - between letters rule
+	infix_re = compile_infix_regex(infixes)
+
+	return Tokenizer(nlp.vocab, prefix_search=nlp.tokenizer.prefix_search,
+					 			suffix_search=nlp.tokenizer.suffix_search,
+								infix_finditer=infix_re.finditer,
+								token_match=nlp.tokenizer.token_match,
+								rules=nlp.Defaults.tokenizer_exceptions)
+
 
 
 @route('/nomlexDemo/')
@@ -89,7 +102,6 @@ def server_static(file_path="index.html"):
 		file_path = file_path.replace(last_part, "index.html")
 
 	return static_file(file_path, root='./')
-
 
 @route('/nomlexDemo/feedback/', method='POST')
 def feedback():
@@ -118,19 +130,14 @@ def feedback():
 def annotate():
 	sentence = request.json["sentence"]
 	is_random = request.json["random"]
+	extraction_based = request.json["extraction-based"]
 
 	if is_random:
 		sentence = _get_random_sentence(sentences)
 
-	# Parse the sentence using UD as odin formated representation
-	ud_doc = Doc(nlp.vocab, words=[t.text for t in nlp(sentence) if not t.is_space])
-	tagger(ud_doc)
-	parser(ud_doc)
-	converter(ud_doc)
+	sentence = sentence.strip()
+	ud_doc = nlp(sentence)
 	odin_formated_doc = cw.conllu_to_odin(converter.get_parsed_doc(), is_basic=True, push_new_to_end=False)
-
-	# doc = nlp(sentence)
-	# odin_formated_doc = cw.conllu_to_odin(doc, is_basic=True, push_new_to_end=False)
 
 	document_id = ""
 	sentence_id = 0
@@ -149,7 +156,13 @@ def annotate():
 		sentence_text = " ".join(sentence_words)
 		sentence_doc = sentence_docs[i][:].as_doc()
 
-		extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.rule_based_extraction(sentence_doc, return_dependency_tree=True)
+		if extraction_based == "rule-based":
+			extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.rule_based_extraction(sentence_doc, return_dependency_tree=True)
+		elif extraction_based == "model-based":
+			extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.model_based_extraction(sentence_doc, return_dependency_tree=True)
+		else: # hybrid-based
+			extractions_per_verb, extractions_per_nom, dependency_tree = argumentExtractor.hybrid_based_extraction(sentence_doc, return_dependency_tree=True)
+
 		postags = [token.pos_ for token in dependency_tree]
 		sentence_info["tags"] = postags
 
@@ -170,6 +183,7 @@ def annotate():
 	}
 
 
+
 # Ask for password for the email respones
 email_address = input("Enter your e-mail address: ")
 password = getpass("Password for sending emails: ")
@@ -177,23 +191,9 @@ password = getpass("Password for sending emails: ")
 # Create the UD parser, that resulted in odin formated representation
 nlp = spacy.load("en_ud_model_lg")
 
-def custom_tokenizer(nlp):
-	inf = list(nlp.Defaults.infixes)               # Default infixes
-	inf.remove(r"(?<=[0-9])[+\-\*^](?=[0-9-])")    # Remove the generic op between numbers or between a number and a -
-	inf = tuple(inf)                               # Convert inf to tuple
-	infixes = inf + tuple([r"(?<=[0-9])[+*^](?=[0-9-])", r"(?<=[0-9])-(?=-)"])  # Add the removed rule after subtracting (?<=[0-9])-(?=[0-9]) pattern
-	infixes = [x for x in infixes if '-|–|—|--|---|——|~' not in x] # Remove - between letters rule
-	infix_re = compile_infix_regex(infixes)
-
-	return Tokenizer(nlp.vocab, prefix_search=nlp.tokenizer.prefix_search,
-					 			suffix_search=nlp.tokenizer.suffix_search,
-								infix_finditer=infix_re.finditer,
-								token_match=nlp.tokenizer.token_match,
-								rules=nlp.Defaults.tokenizer_exceptions)
-
-nlp.tokenizer = custom_tokenizer(nlp)
+nlp.tokenizer = _custom_tokenizer(nlp)
 converter = Converter(False, False, False, 0, False, False, False, False, False, ConvsCanceler())
-# nlp.add_pipe(converter, name="BART")
+nlp.add_pipe(converter, name="BART")
 tagger = nlp.get_pipe('tagger')
 parser = nlp.get_pipe('parser')
 # annotate()
