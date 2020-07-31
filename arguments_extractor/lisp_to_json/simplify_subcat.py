@@ -210,8 +210,9 @@ def rearrange_requires_and_optionals(subcat, subcat_type, default_requires, othe
 	Rearranges the requires and optionals for the given subcat entry
 	:param subcat: a dictionary of the subcategorization info
 	:param subcat_type: the type of the subcategorization (for determing whethet the object is required)
-	:param is_verb: whether or not the given subcat is for verb rearranging (otherwise- nominalization)
 	:param default_requires: list of arguments that and constraints that are required for the given subcat
+	:param other_subcat_types: list of the other subcat types in the current lexicon entry
+	:param is_verb: whether or not the given subcat is for verb rearranging (otherwise- nominalization)
 	:return: None
 	"""
 
@@ -596,7 +597,7 @@ def simplify_subcat(entry, subcat, subcat_type, is_verb=False):
 
 		# Does the verb requires a particle?
 		if OLD_COMP_ADVAL in subcat:
-			subcat[COMP_PART] = subcat.pop(OLD_COMP_ADVAL)
+			subcat[COMP_PART] = subcat.pop(OLD_COMP_ADVAL) + [POS_PART]
 	else:
 		rearrange_subject(subcat, entry.get(ENT_VERB_SUBJ, {}))
 		rearrange_object(subcat)

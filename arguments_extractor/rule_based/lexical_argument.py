@@ -46,8 +46,8 @@ class LexicalArgument:
 			self.including[linked_arg] = argument_info[linked_arg].get(ARG_INCLUDING, None)
 
 			# Translate the patterns list into regex patterns
-			self.prefix_pattern[linked_arg] = list_to_regex(argument_info[linked_arg].get(ARG_PREFIXES, []), "|", start_constraint="^")
-			self.illegal_prefix_pattern[linked_arg] = list_to_regex(argument_info[linked_arg].get(ARG_ILLEGAL_PREFIXES, []), "|", start_constraint="^")
+			self.prefix_pattern[linked_arg] = list_to_regex(argument_info[linked_arg].get(ARG_PREFIXES, []), "|", start_constraint="^", end_constraint=" ")
+			self.illegal_prefix_pattern[linked_arg] = list_to_regex(argument_info[linked_arg].get(ARG_ILLEGAL_PREFIXES, []), "|", start_constraint="^", end_constraint=" ")
 			self.root_pattern[linked_arg] = list_to_regex(argument_info[linked_arg].get(ARG_ROOT_PATTERNS, []), "|")
 
 		self.is_verb = is_verb
@@ -203,6 +203,7 @@ class LexicalArgument:
 
 		matched_position = position
 
+		# Check that this argument is compatible with that position
 		if position not in self.positions[linked_arg]:
 			return False
 
@@ -212,21 +213,24 @@ class LexicalArgument:
 				return False
 
 			# Check whether the candidate is compatible with the prefix pattern
-			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_token._.subtree_text, re.M)
+			matched_position = re.search(self.prefix_pattern[linked_arg], candidate_token._.subtree_text + " ", re.M)
 			if matched_position is None:
 				return False
 
-			matched_position = matched_position.group()
+			matched_position = matched_position.group().strip()
 
-		# Otherwise, this is a constant position; Check that this argument is compatible with that position
-		# a complement with standard position may also have prefix constraint
-		elif ARG_CONSTRAINT_REQUIRED_PREFIX in self.constraints and self.prefix_pattern[linked_arg] != "" \
-					and re.search(self.prefix_pattern[linked_arg], candidate_token._.subtree_text, re.M) is None:
-			return False
+			# The prefix cannot be the entire argument
+			if len(matched_position.split()) == len(candidate_token._.subtree_text.split()):
+				return False
+
+		# a complement without a standard prefix position may also required a specific prefix constraint
+		elif ARG_CONSTRAINT_REQUIRED_PREFIX in self.constraints[linked_arg] and self.prefix_pattern[linked_arg] != "" \
+					and re.search(self.prefix_pattern[linked_arg], candidate_token._.subtree_text + " ", re.M) is None:
+				return False
 
 		# Check wether the candidate isn't compatible with the *illegal* prefix pattern
 		if self.illegal_prefix_pattern[linked_arg] != "" and \
-				re.search(self.illegal_prefix_pattern[linked_arg], candidate_token._.subtree_text, re.M) is not None:
+				re.search(self.illegal_prefix_pattern[linked_arg], candidate_token._.subtree_text + " ", re.M) is not None:
 			return False
 
 		# Update the matched position of the given matched argument

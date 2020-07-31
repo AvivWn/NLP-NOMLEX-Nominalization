@@ -11,44 +11,38 @@ from torch import optim
 from arguments_extractor.model_based.arguments_model import ArgumentsModel
 from arguments_extractor.learning_process.training import training
 from arguments_extractor.model_based.pretrained_encoder import PretrainedEncoder
-from arguments_extractor.constants.lexicon_constants import COMP_SUBJ, COMP_OBJ, COMP_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2
+from arguments_extractor.constants.lexicon_constants import COMP_SUBJ, COMP_OBJ, COMP_IND_OBJ, COMP_PP, COMP_PP1, COMP_PP2, COMP_NONE
 from arguments_extractor.utils import difference_list, reverse_dict
+from arguments_extractor import config
 
 class ArgumentsPredictor:
 	LR = 3 * pow(10, -5)
 	WEIGHT_DECAY = 1e-3
 	BATCH_SIZE = 128
+	TRAIN_TEST_RATIO = 0.8	# with regard to the number of verbs
 	PRETRAINED_ENCODER = "bert-base-uncased"  # roberta-base
-	TAGSET = {COMP_OBJ: 0, COMP_SUBJ: 1, COMP_IND_OBJ: 2, COMP_PP: 3}
+	TRAINED_MODEL_PATH = os.path.dirname(__file__) + "/trained_model.pth"
+	TAGSET = {COMP_OBJ: 0, COMP_SUBJ: 1, COMP_IND_OBJ: 2, COMP_PP: 3, COMP_NONE: 4}
+	REVERSE_TAGSET = reverse_dict(TAGSET)
 
 	pretrained_encoder: PretrainedEncoder
 	model: ArgumentsModel
 
 	def __init__(self):
-		self.trained_model_path = os.path.dirname(__file__) + "/trained_model.pth"
-		self.REVERSE_TAGSET = reverse_dict(self.TAGSET)
-
 		self.pretrained_encoder = PretrainedEncoder(self.PRETRAINED_ENCODER)
 		self.model = ArgumentsModel(len(self.TAGSET), self.pretrained_encoder)
 
-	def _load_dataset(self, dataset_path):
-		dataset = pd.read_csv(dataset_path, sep="\t", index_col=0)
-
-		# Example
-		# dataset = pd.DataFrame([("The appointement of the man", 2, 4, 1, "appoint", "OBJECT"),
-		# 						("The man appointed him", 0, 1, 2, "appoint", "SUBJECT"),
-		# 						("The man appointed him", 3, 3, 2, "appoint", "OBJECT")])
-
+	def _create_dataloader(self, dataset: pd.DataFrame):
 		dataset_tuples = []
 
-		for row_info in tqdm(dataset.itertuples(), "Loading the dataset", leave=False):
+		for row_info in tqdm(dataset.itertuples(), "Processing dataset", leave=False):
 			_, sentence, argument_start_index, argument_end_index, predicate_index, suitable_verb, label = tuple(row_info)
 			suitable_verb = suitable_verb.split("#")[0]
 			tokens = sentence.split(" ")
 			label_id = torch.tensor([self.TAGSET[label]])
 
-			bert_ids, bert_mask, start_argument_index, end_argument_index, predicate_index = self.pretrained_encoder.subword_tokenize_to_ids(tokens, argument_start_index, argument_end_index, predicate_index, suitable_verb)
-			dataset_tuples.append((bert_ids, bert_mask, start_argument_index, end_argument_index, predicate_index, label_id))
+			bert_ids, bert_mask, start_argument_index, end_argument_index, predicate_index, suitable_verb_index = self.pretrained_encoder.subword_tokenize_to_ids(tokens, argument_start_index, argument_end_index, predicate_index, suitable_verb)
+			dataset_tuples.append((bert_ids, bert_mask, start_argument_index, end_argument_index, predicate_index, suitable_verb_index, label_id))
 
 		# Build the data-loader object
 		dataset = TensorDataset(*tuple(map(torch.cat, zip(*dataset_tuples))))
@@ -56,17 +50,49 @@ class ArgumentsPredictor:
 
 		return dataloader
 
-	def train(self, train_set_path, test_set_path):
-		train_dataloader = self._load_dataset(train_set_path)
-		test_dataloader = self._load_dataset(test_set_path)
+	def split_dataset(self, dataset_path, nom_lexicon):
+		train_dataloader_path = dataset_path.replace(".csv", "_train.pth")
+		test_dataloader_path = dataset_path.replace(".csv", "_test.pth")
+		if config.LOAD_DATASET and os.path.exists(train_dataloader_path) and os.path.exists(test_dataloader_path):
+			return torch.load(train_dataloader_path), torch.load(test_dataloader_path)
 
+		dataset = pd.read_csv(dataset_path, sep="\t", header=None, names=["sentence", "argument_start_index", "argument_end_index", "predicate_index", "suitable_verb", "label"])
+		verbs = set(dataset["suitable_verb"].tolist())
+		verbs_by_types = defaultdict(list)
+
+		# Split the verbs based on the
+		for verb in verbs:
+			verbs_by_types[tuple(nom_lexicon.find_nom_types(verb))] += [verb]
+
+		# Split the verbs with the same ratio for each tuples of nom types
+		train_limited_verbs = []
+		for specific_verbs in verbs_by_types.values():
+			verbs_part = int(len(specific_verbs) * self.TRAIN_TEST_RATIO)
+			train_limited_verbs += specific_verbs[:verbs_part]
+
+		train_examples = dataset.loc[dataset["suitable_verb"].isin(train_limited_verbs)]
+		test_examples = dataset.loc[~dataset["suitable_verb"].isin(train_limited_verbs)]
+
+		print(f"The train set includes {len(train_examples)} arguments, based on {len(train_limited_verbs)} verbs")
+		print(f"The test set includes {len(test_examples)} arguments, based on {len(verbs) - len(train_limited_verbs)} verbs")
+
+		train_dataloader = self._create_dataloader(train_examples)
+		torch.save(train_dataloader, train_dataloader_path)
+
+		test_dataloader = self._create_dataloader(test_examples)
+		torch.save(test_dataloader, test_dataloader_path)
+
+		return train_dataloader, test_dataloader
+
+	def train(self, dataset_path, nom_lexicon):
+		train_dataloader, test_dataloader = self.split_dataset(dataset_path, nom_lexicon)
 		optimizer = optim.Adam(self.model.parameters(), lr=self.LR, weight_decay=self.WEIGHT_DECAY)
-		training(train_dataloader, test_dataloader, self.REVERSE_TAGSET, self.model, optimizer, self.trained_model_path)
+		training(train_dataloader, test_dataloader, self.REVERSE_TAGSET, self.model, optimizer, self.TRAINED_MODEL_PATH)
 
 	def load_model(self):
 		use_cuda = torch.cuda.is_available()
 		device = torch.device("cuda:0" if use_cuda else "cpu")
-		self.model.load_state_dict(torch.load(self.trained_model_path, map_location=device))
+		self.model.load_state_dict(torch.load(self.TRAINED_MODEL_PATH, map_location=device))
 		self.model.eval()
 
 	def predict(self, dependency_tree, candidate_index, predicate_index, suitable_verb, limited_complements=None):
@@ -114,6 +140,9 @@ class ArgumentsPredictor:
 					# Predict the most compatible complement type, using the model
 					predicted_complement_type, entropy = self.predict(candidate_token.doc, candidate_token.i, predicate_token.i, suitable_verb, limited_complements=tmp_complement_types)
 
+					if predicted_complement_type == COMP_NONE:
+						continue
+
 					# Get the suitable predicted complement type (PP might mean PP1 or PP2)
 					suitable_complement_type = predicted_complement_type
 					if predicted_complement_type == COMP_PP:
@@ -135,8 +164,8 @@ class ArgumentsPredictor:
 			if candidates == []:
 				continue
 
-			# If there is only one option
-			if len(candidates) == 1:
+			# If there is only one option and it isn't the default subcat
+			if len(candidates) == 1 and not default_subcat:
 				candidate_token, entropy, matched_arguments = candidates[0]
 				updated_args_per_candidate[candidate_token] = matched_arguments
 				continue
@@ -151,7 +180,7 @@ class ArgumentsPredictor:
 					predicted_complement_type, entropy = self.predict(candidate_token.doc, candidate_token.i, predicate_token.i, suitable_verb)
 
 					# Save this candidate only if the model was sure that this candidate gets this appropriate complement type
-					if predicted_complement_type == complement_type.replace(COMP_PP1, COMP_PP).replace(COMP_PP2, COMP_PP):
+					if predicted_complement_type != COMP_NONE and predicted_complement_type == complement_type.replace(COMP_PP1, COMP_PP).replace(COMP_PP2, COMP_PP):
 						new_candidates.append((candidate_token, entropy, matched_arguments))
 				else:
 					new_candidates.append(candidate)

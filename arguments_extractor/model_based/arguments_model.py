@@ -15,7 +15,7 @@ class ArgumentsModel(nn.Module):
 		self.dropout = torch.nn.Dropout(p=0.5)
 		self.fc2 = torch.nn.Linear(int(bert_dim / 2), n_labels)
 
-	def forward(self, token_ids, token_mask, start_argument_index, end_argument_index, predicate_index, excluded_tagset_ids=None):
+	def forward(self, token_ids, token_mask, start_argument_index, end_argument_index, predicate_index, suitable_verb_index, excluded_tagset_ids=None):
 		# truncate to longest sequence length in batch (usually much smaller than 512) to save GPU RAM
 		max_length = (token_mask != 0).max(0)[0].nonzero()[-1].item()
 		if max_length < token_ids.shape[1]:

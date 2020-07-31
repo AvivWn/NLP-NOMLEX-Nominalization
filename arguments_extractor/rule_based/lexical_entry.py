@@ -35,11 +35,14 @@ class Entry:
 	def set_next(self, lexicon):
 		self.next = lexicon.get_entry(self.next)
 
+	def get_nom_type(self):
+		return self.nom_type.get(TYPE_OF_NOM, None)
+
 	def _choose_informative_matches(self, extractions: list, referenced_token: Token, suitable_verb: str, arguments_predictor=None):
 		# Sort the extractions based on the number of founded arguments
 		extractions.sort(key=lambda extraction: len(extraction.get_complements()), reverse=True)
 
-		# Chose only the relevant extractions (the ones with the maximum number of arguments)
+		# Choose only the relevant extractions (the ones with the maximum number of arguments)
 		relevant_extractions = []
 		args_per_candidates = defaultdict(list)
 		possible_matches = []
@@ -91,7 +94,7 @@ class Entry:
 
 			# Check if there are more informative extractions than this one
 			for other_extraction in relevant_extractions:
-				if extraction.is_more_informative(other_extraction):
+				if extraction != other_extraction and extraction.is_more_informative(other_extraction):
 					found_more_specific_extraction = True
 					break
 
@@ -116,13 +119,14 @@ class Entry:
 
 		# Match the arguments based on each subcat for this word entry
 		for subcat_type in self.subcats.keys():
-			extractions += self.subcats[subcat_type].match_arguments(argument_candidates, referenced_token, suitable_verb, arguments_predictor=arguments_predictor)
+			extractions += self.subcats[subcat_type].match_arguments(argument_candidates, referenced_token, suitable_verb, arguments_predictor)
 
 		# Match arguments also based on the "next" entry in the lexicon
 		# Meaning, the aruguments properties of the same word with another sense
 		if self.next is not None:
-			extractions += self.next.match_arguments(argument_candidates, referenced_token, suitable_verb, arguments_predictor=arguments_predictor)
+			extractions += self.next.match_arguments(argument_candidates, referenced_token, suitable_verb, arguments_predictor)
 
-		extractions = self._choose_informative_matches(extractions, referenced_token, suitable_verb, arguments_predictor=arguments_predictor)
+		# extractions = self._choose_informative_matches(extractions, referenced_token, suitable_verb, arguments_predictor)
+		extractions = self._choose_informative_matches(extractions, referenced_token, suitable_verb, arguments_predictor)
 
 		return extractions

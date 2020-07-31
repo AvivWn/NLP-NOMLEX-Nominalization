@@ -1,11 +1,9 @@
 import os
 import json
-import random
 import pickle
 from collections import defaultdict
 
-import numpy as np
-from spacy.tokens import Token
+from spacy.tokens import Token, Doc
 from tqdm import tqdm
 
 from arguments_extractor.rule_based.lexical_entry import Entry
@@ -68,88 +66,163 @@ class Lexicon:
 		self.entries = loaded_lexicon.get_entries()
 		self.is_verb = loaded_lexicon.is_verbal_lexicon()
 
-	def split_noms(self, ratio):
+	def find_nom_types(self, suitable_verb):
+		# Finds all the possible nom types for the nominalization that appropriate for this verb (based on nomlex)
+
 		if self.is_verb:
 			return []
 
-		all_noms = [entry.orth for entry in self.entries.values() if entry.verb is not None and entry.orth is not None]
-		all_noms = np.unique(all_noms)
+		nom_types = set()
+		for nom_entry in self.entries.values():
+			if nom_entry.orth == DEFAULT_ENTRY:
+				continue
 
-		random.shuffle(all_noms)
+			if nom_entry.verb.split("#")[0] == suitable_verb:
+				nom_types.update([nom_entry.get_nom_type()])
 
-		train_part = int(len(all_noms) * ratio)
-		train_limited_noms = all_noms[:train_part]
-		test_limited_noms = all_noms[train_part:]
+		return list(nom_types)
 
-		return train_limited_noms, test_limited_noms
+	def find_verbs(self, complement_type):
+		# Finds the verbs that can get the given complement type
 
-	def find(self, word: Token):
+		if self.is_verb:
+			return []
+
+		suitable_verbs = set()
+		for nom_entry in self.entries.values():
+			if nom_entry.orth == DEFAULT_ENTRY:
+				continue
+
+			if nom_entry.get_nom_type() == complement_type:
+				suitable_verbs.update([nom_entry.verb.split("#")[0]])
+
+			for subcat in nom_entry.subcats.values():
+				if complement_type in subcat.arguments.keys():
+					suitable_verbs.update([nom_entry.verb.split("#")[0]])
+					break
+
+		return list(suitable_verbs)
+
+	def find(self, word: Token, using_default=False, nom_dictionary=None, limited_verbs=None):
 		"""
 		Finds the given word in this lexicon
 		:param word: word token (spacy Token)
+		:param using_default: whether to use the default entry in the lexicon all of the time, otherwise only whenever it is needed
+		:param nom_dictionary: a dictionary object of all the known nominalizations
+		:param limited_verbs: a list of limited verbs, which limits the predicates that their arguments will be extracted (optional)
 		:return: the suitable entry in the lexicon, or None if it doesn't exist
 		"""
 
+		# To extract from the verb lexicon, the word must be a verb
 		if self.is_verb and word.pos_ != UPOS_VERB:
 			return None, None
 
+		# To extract from the nom lexicon, the word must be a noun
 		if not self.is_verb and word.pos_ != UPOS_NOUN:
 			return None, None
 
-		word_forms = [word.orth_, word.orth_.lower(), word.lemma_]
+		word_entry = self.entries[DEFAULT_ENTRY]
+		suitable_verb = None
 
+		word_forms = [word.orth_, word.orth_.lower(), word.lemma_]
 		for word_form in word_forms:
 			if word_form in difference_list(self.entries.keys(), [DEFAULT_ENTRY]):
-				word_entry = self.entries[word_form]
+				if not using_default:
+					word_entry = self.entries[word_form]
 
-				if self.is_verb:
-					return word_entry, word_entry.orth
-				else: # Nominalization entry
-					return word_entry, word_entry.verb.split("#")[0]
+					if self.is_verb:
+						suitable_verb = word_entry.orth
+					else: # Nominalization entry
+						suitable_verb = word_entry.verb.split("#")[0]
+
+				break
+
+		if suitable_verb is not None and (limited_verbs is None or suitable_verb in limited_verbs):
+			return word_entry, suitable_verb
+
+		if nom_dictionary is None:
+			return None, None
+
+		if self.is_verb:
+			suitable_verb = word.lemma_
+		else:
+			# Find suitable verb for known nominalizatios that don't appear in nomlex
+			for word_form in word_forms:
+				suitable_verb = nom_dictionary.get_suitable_verb(word_form)
+				if suitable_verb is not None:
+					break
+
+		if suitable_verb is not None and (limited_verbs is None or suitable_verb in limited_verbs):
+			return word_entry, suitable_verb
 
 		return None, None
 
 
+	@staticmethod
+	def _update_unused_candidates(dependency_tree: Doc, token_candidates: list, predicate_token: Token, used_tokens: list, extraction: dict, specify_none=False):
+		if not specify_none:
+			return
 
-	def extract_arguments(self, dependency_tree: list, min_arguments=0, using_default=False, arguments_predictor=None):
+		extraction[COMP_NONE] = []
+
+		# Add any candidate that isn't in the used tokens to the NONE complement
+		for unused_token in difference_list(token_candidates, used_tokens):
+			if unused_token == predicate_token: # if the token is the predicate (the root)
+				start_span_index = unused_token.i
+				end_span_index = unused_token.i
+			else:
+				if unused_token.dep_ not in [URELATION_NMOD, URELATION_NSUBJ, URELATION_IOBJ, URELATION_DOBJ, URELATION_NMOD_POSS, URELATION_COMPOUND, URELATION_NSUBJPASS]:
+					continue
+
+				subtree_tokens = list(unused_token.subtree)
+				start_span_index = subtree_tokens[0].i
+				end_span_index = subtree_tokens[-1].i
+
+			argument_span = dependency_tree[start_span_index: end_span_index + 1]
+			extraction[COMP_NONE].append(argument_span)
+
+	def extract_arguments(self, dependency_tree: Doc, min_arguments=0, using_default=False, arguments_predictor=None, specify_none=False, trim_arguments=True, nom_dictionary=None, limited_verbs=None):
 		"""
 		Extracts the arguments for any relevant word of the given sentence that appear in this lexicon
 		:param dependency_tree: the appropriate dependency tree for a sentence
 		:param min_arguments: the minimum number of arguments for any founed extraction (0 is deafult)
 		:param using_default: whether to use the default entry in the lexicon all of the time, otherwise only whenever it is needed
 		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
+		:param specify_none: wether to specify in the resulted extractions about the unused arguments
+		:param trim_arguments: wether to trim the argument spans in the resulted extractions
+		:param nom_dictionary: a dictionary object of all the known nominalizations (optional)
+		:param limited_verbs: a list of limited verbs, which limits the predicates that their arguments will be extracted (optional)
 		:return: all the founded argument extractions for any relevant word ({Token: [{COMP: Span}]})
 		"""
 
 		extractions_per_word = defaultdict(list)
 
 		for token in dependency_tree:
-			# Ignore words that don't appear in this lexicon
-			word_entry, suitable_verb = self.find(token)
+			# Try to find an appropriate entry for the current word token
+			word_entry, suitable_verb = self.find(token, using_default, nom_dictionary, limited_verbs)
 			if word_entry is None:
 				continue
 
-			if using_default:
-				word_entry = self.entries[DEFAULT_ENTRY]
-
-			# Get the candidates for the arguments of this word (based relevant direct links in the ud)
-			argument_candidates = get_argument_candidates(token, self.is_verb)
+			# Get the candidates for the arguments of this word (based on relevant direct links in the ud dependency tree)
+			argument_candidates = get_argument_candidates(token, is_verb=self.is_verb)
 
 			if len(argument_candidates) > self.MAX_N_CANDIDATES:
 				continue
 
-			# if config.DEBUG: print(f"Candidates for {token.orth_}:", [candidate_token._.subtree_text if candidate_token != token else candidate_token.orth_ for candidate_token in argument_candidates])
+			# if config.DEBUG:
+				# print(f"Candidates for {token.orth_}:", [candidate_token._.subtree_text if candidate_token != token else candidate_token.orth_ for candidate_token in argument_candidates])
 
 			# Get all the possible extractions of this word
-			extractions = word_entry.match_arguments(argument_candidates, token, suitable_verb, arguments_predictor=arguments_predictor)
+			extractions = word_entry.match_arguments(argument_candidates, token, suitable_verb, arguments_predictor)
 
 			for extraction in extractions:
 				if len(extraction.get_complements()) >= min_arguments:
-					extractions_per_word[token].append(extraction.as_span_dict())
+					extraction_dict = extraction.as_span_dict(trim_arguments)
+					self._update_unused_candidates(dependency_tree, argument_candidates, token, extraction.get_tokens(), extraction_dict, specify_none)
+					extractions_per_word[token].append(extraction_dict)
 
 			if config.DEBUG and len(extractions_per_word.get(token, [])) > 1:
-				pass
-				# print(extractions_per_word[token])
-				# raise Exception("Found word with more than one legal extraction.")
+				print(extractions_per_word[token])
+				raise Exception("Found word with more than one legal extraction.")
 
 		return extractions_per_word

@@ -33,11 +33,16 @@ class Extraction:
 	def get_argument(self, complement_type: str):
 		return self.match[complement_type]
 
-	def add_argument(self, argument: ExtractedArgument):
-		self.match[argument.get_real_complement_type()] = argument
+	def get_tokens(self):
+		return [argument.argument_token for argument in self.match.values()]
 
 	def get_arguments_idxs(self):
 		return sorted([argument.get_argument_idx() for argument in self.match.values()])
+
+	def add_argument(self, argument: ExtractedArgument):
+		self.match[argument.get_real_complement_type()] = argument
+
+
 
 	def is_sub_extraction(self, other_extraction):
 		# Is the given extraction is a sub-extraction of this extraction?
@@ -62,6 +67,8 @@ class Extraction:
 
 		return False
 
+
+
 	def as_properties_dict(self):
 		extraction_as_dict = {}
 
@@ -71,12 +78,12 @@ class Extraction:
 
 		return extraction_as_dict
 
-	def as_span_dict(self):
+	def as_span_dict(self, trim_arguments=True):
 		extraction_as_dict = {}
 		extraction_token_indices = [argument.argument_token.i for argument in self.match.values()]
 
 		# Cleans the resulted extraction, deletes duplicates between arguments and translates arguments into spans
 		for complement_type, argument in self.match.items():
-			extraction_as_dict[argument.argument_name] = argument.get_argument_span(extraction_token_indices)
+			extraction_as_dict[argument.argument_name] = argument.as_span(extraction_token_indices, trim_arguments)
 
 		return extraction_as_dict

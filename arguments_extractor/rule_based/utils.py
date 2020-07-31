@@ -14,10 +14,13 @@ def get_right_value(table, subcat_type, default=None, is_verb=False):
 
 	return deepcopy(table[subcat_type][1])
 
-def get_argument_candidates(referenced_token: Token, is_verb=False):
+def get_argument_candidates(referenced_token: Token, limited_relations=None, is_verb=False):
 	argument_candidates = []
 
 	for sub_token in referenced_token.subtree:
+		if limited_relations is not None and sub_token.dep_ not in limited_relations:
+			continue
+
 		if sub_token.dep_ in LINK_TO_POS.keys() and sub_token.head.i == referenced_token.i:
 			argument_candidates.append(sub_token)
 
@@ -35,12 +38,12 @@ def relation_to_position(word_token, referenced_token, is_verb):
 
 	return positions
 
-def get_word_in_relation(referenced_word, relation, start_index=0):
+def get_word_in_relation(referenced_word, original_relation, start_index=0):
 	founded_token = None
 
-	head_relation_info = relation.split("_")
+	head_relation_info = original_relation.split("_")
 	relation = head_relation_info[0]
-	specific_word = head_relation_info[1] if len(head_relation_info) == 2 else None
+	specific = head_relation_info[1] if len(head_relation_info) == 2 else None
 
 	for child_token in referenced_word.children:
 		if child_token.i < start_index:
@@ -49,7 +52,15 @@ def get_word_in_relation(referenced_word, relation, start_index=0):
 		if not child_token.dep_.startswith(relation) and relation != URELATION_ANY:
 			continue
 
-		if specific_word is None or child_token.orth_ == specific_word:
+		if specific is None:
+			founded_token = child_token
+			break
+
+		if specific.islower() and child_token.orth_ == specific:
+			founded_token = child_token
+			break
+
+		if not specific.islower() and child_token.tag_ == specific:
 			founded_token = child_token
 			break
 

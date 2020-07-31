@@ -16,15 +16,14 @@ TEST_NOM_EXTRACTIONS = TEST_DIR + "/test_sentences.nom"
 DATA_DIR = ABSOLUTE_PATH + "/learning_process/data"
 WIKI_SENTENCES_PATH = DATA_DIR + "/shuffled_wiki_sentences.txt"
 EXAMPLE_SENTENCES_PATH = DATA_DIR + "/example_sentences.txt"	# sentences that are used as examples in the demo
-ARG_SENTENCES_PATH = DATA_DIR + "/arguments_sentences.txt"		# sentences that were used to create arguments dataset
 
 # The dataset files will be in the next paths
-ARG_DATASET_DIR = ABSOLUTE_PATH + "/model_based/datasets"
+ARG_DATASET_PATH = ABSOLUTE_PATH + "/model_based/datasets/arguments_dataset.csv"
 
 # More configuration constants
-LEXICON_FILE_NAME = "NOMLEX-plus.1.0.txt"
+LEXICON_FILE_NAME = "NOMLEX-plus.1.0.txt"	# "NOMLEX-2001.txt"
 LOAD_LEXICON = True
 LOAD_DATASET = True
 REWRITE_TEST = False
+IGNORE_PROCESSED_DATASET = True
 DEBUG = False
-CLEAN_NP = True

@@ -1,8 +1,9 @@
 import sys
 
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
-from arguments_extractor.model_based.create_datasets import create_args_datasets, create_examples_dataset
+from arguments_extractor.model_based.create_datasets import create_args_dataset, create_parsed_dataset, create_examples_dataset
 from arguments_extractor.model_based.arguments_predictor import ArgumentsPredictor
+from arguments_extractor.rule_based.lexicon import Lexicon
 from arguments_extractor.arguments_extractor import ArgumentsExtractor
 from arguments_extractor.test import test
 from arguments_extractor.utils import separate_line_print, timeit
@@ -13,6 +14,7 @@ if "-f" in sys.argv:
 	config.LOAD_DATASET = False
 	config.LOAD_LEXICON = False
 	config.REWRITE_TEST = True
+	config.IGNORE_PROCESSED_DATASET = False
 
 # DEBUG mode
 if "-debug" in sys.argv:
@@ -56,15 +58,28 @@ if "-test" in sys.argv:
 
 
 
-if "-training" in sys.argv:
-	arguments_predictor = ArgumentsPredictor()
-	arguments_predictor.train(config.ARG_DATASET_DIR + "/train", config.ARG_DATASET_DIR + "/test")
-
 if "-datasets" in sys.argv:
 	arguments_extractor = ArgumentsExtractor(config.LEXICON_FILE_NAME)
 
-	if "-args" in sys.argv:
+	if "-example" in sys.argv:
+		create_examples_dataset(config.WIKI_SENTENCES_PATH, config.EXAMPLE_SENTENCES_PATH, arguments_extractor)
+
+	elif "-args" in sys.argv:
 		# Creating the training and testing datasets for arguments predicator
-		create_args_datasets(arguments_extractor)
-	elif "-example" in sys.argv:
-		create_examples_dataset(arguments_extractor)
+		# ls -d arguments_extractor/learning_process/data/shuffled_wiki_files/*.parsed | parallel --jobs 7 --u "python -m arguments_extractor -datasets -args"
+		create_args_dataset(sys.argv[-1], arguments_extractor)
+
+	elif "-parse" in sys.argv:
+		# export LC_CTYPE=en_US.UTF-8
+		# export LC_ALL=en_US.UTF-8
+		# ls -d arguments_extractor/learning_process/data/shuffled_wiki_files/*.txt | parallel --jobs 13 --u "python -m arguments_extractor -datasets -parse"
+		sentences_path = sys.argv[-1]
+		create_parsed_dataset(sentences_path)
+
+	# Use this to merge all the extracted arguments
+	# cat shuffled_wiki_files/*_args.csv > shuffled_wiki_sentences_args.csv
+
+if "-train" in sys.argv:
+	arguments_predictor = ArgumentsPredictor()
+	nom_lexicon = Lexicon(config.LEXICON_FILE_NAME)
+	arguments_predictor.train(config.ARG_DATASET_PATH, nom_lexicon)

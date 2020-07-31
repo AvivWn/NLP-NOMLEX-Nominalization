@@ -1,4 +1,4 @@
-# This files contains all the constants that appear in the lexicon
+# This file contains all the constant values that appear in the lexicon
 
 ########################################################################################################################
 # Types of arguments\complements
@@ -62,6 +62,8 @@ COMP_AS_IF_S_SUBJUNCT = "AS-IF-S"
 
 COMP_PART = "PARTICLE"
 # COMP_INSTRUMENT = "INSTRUMENT"
+
+COMP_NONE = "NONE"	# = this argument isn't a complement of the predicate
 
 
 
@@ -144,6 +146,7 @@ POS_SBAR = "SBAR"
 POS_THAT = "THAT"
 POS_ING = "ING"
 POS_ACL = "ACL"
+POS_PART = "PART"
 
 POS_PREFIX = "PREFIX" # other positions, like arguments that starts with prepositions
 POS_NOM = "NOM"

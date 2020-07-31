@@ -34,9 +34,8 @@ def split_positions(subcat, complement_type, argument_positions, referenced_arg)
 	# Prefixes can be also the position itself
 	if subcat[complement_type][referenced_arg][ARG_PREFIXES] != []:
 		# Only "direct" relations to the predicate can get a "prefix" position
-		if referenced_arg in [LINKED_NOM, LINKED_VERB] and complement_type != COMP_FOR_TO_INF:
+		if referenced_arg in [LINKED_NOM, LINKED_VERB] and complement_type not in [COMP_FOR_TO_INF, COMP_PART]:
 			subcat[complement_type][referenced_arg][ARG_POSITIONS] += [POS_PREFIX]
-
 
 def simplify_complement_positions(subcat, complement_type, is_verb=False):
 	"""
@@ -155,6 +154,9 @@ def simplify_representation(subcat, subcat_type, is_verb=False):
 
 			if complement_type == COMP_PP and linked_arg in [LINKED_NOM, LINKED_VERB] and ARG_CONSTRAINT_REQUIRED_PREFIX in complement_by_referenced[ARG_CONSTRAINTS]:
 				complement_by_referenced[ARG_CONSTRAINTS].remove(ARG_CONSTRAINT_REQUIRED_PREFIX)
+
+			if complement_type == COMP_PART:
+				complement_by_referenced[ARG_CONSTRAINTS] += [ARG_CONSTRAINT_REQUIRED_PREFIX]
 
 	curr_specs["comp"] = None
 

@@ -6,7 +6,7 @@ from sklearn.metrics import classification_report
 
 from arguments_extractor import config
 
-MAX_EPOCHS = 20
+MAX_EPOCHS = 5
 
 def ids_to_labels(ids_list, tagset):
 	return [tagset[i] for i in ids_list]

@@ -66,12 +66,12 @@ Her speculation as to whether the man will arrive.
 # Complex constraints
 
 # DET-POSS-ONLY
-He destroyed Paris
-Paris's destruction.            # Paris must be OBJ
+He destroyed Paris.
+Paris's destruction.                                    # Paris must be OBJ
 
 # N-N-MOD-ONLY
 He registered the child.
-The child registration.         # The child must be OBJ
+The child registration.                                 # The child must be OBJ
 
 # NOT constraints
 The man's reflection with regard to the sun.            # compatible with NOT constraints
@@ -79,6 +79,18 @@ The man reflection with regard to the sun.              # NOT- "with regard to" 
 His representation of the paper to the audience.        # compatible with NOT constraints
 The paper's representation by them to the audience.     # NOT- "them" must be SUBJ, but OBJ isn't compatible with DET-POSS, when there is another PP
 The paper man representation.                           # NOT- Double compound isn't compatible for this nom -> empty extraction
+
+# SUBJ-OBJ-ALT (SUBJECT is actually OBJECT)
+Microsoft circulated the rumor.                         # standard
+Microsoft’s circulation of the rumor.                   # standard
+The rumor circulated.                                   # ALTERNATES
+The circulation of the rumor.                           # ALTERNATES
+
+# SUBJ-IND-OBJ-ALT (SUBJECT is actually IND-OJB)
+The man rented Bill a boat.                             # standard
+The man's rental of a boat, to Bill.                    # standard
+Bill rented a boat.                                     # ALTERNATES-OPT
+Bill's rental of a boat.                                # ALTERNATES-OPT
 
 ########################################################################
 # WH-S complements

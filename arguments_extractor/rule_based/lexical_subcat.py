@@ -278,7 +278,7 @@ class LexicalSubcat:
 				if linked_arg not in extraction.get_complements():
 					continue
 
-				candidates = get_argument_candidates(extraction.get_argument(linked_arg).argument_token, self.is_verb)
+				candidates = get_argument_candidates(extraction.get_argument(linked_arg).argument_token, is_verb=self.is_verb)
 
 				for candidate_token in candidates:
 					matched_argument = arg_that_linked_to_args.check_match(candidate_token, linked_arg, extraction.get_argument(linked_arg).argument_token)
@@ -348,6 +348,6 @@ class LexicalSubcat:
 		self._check_arguments_compatibility(args_per_candidate, self.optionals, argument_candidates, referenced_token)
 
 		# From possible arguments for each candidate, to possible extractions
-		extractions = self._get_extractions(args_per_candidate, args_that_linked_to_args, referenced_token, suitable_verb, arguments_predictor=arguments_predictor)
+		extractions = self._get_extractions(args_per_candidate, args_that_linked_to_args, referenced_token, suitable_verb, arguments_predictor)
 
 		return extractions

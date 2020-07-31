@@ -41,13 +41,17 @@ class ExtractedArgument:
 	def set_argument_name(self, argument_name):
 		self.argument_name = argument_name
 
+
+
 	def is_more_informative(self, other_argument):
 		# Wether the given argument is more iformative than this argument
 
 		complement_type = self.get_real_complement_type()
+		argument_name = self.argument_name
 		matched_position = self.matched_position
 
 		other_complement_type = other_argument.get_real_complement_type()
+		other_argument_name = other_argument.argument_name
 		other_matched_position = other_argument.matched_position
 
 		if matched_position.islower() and other_matched_position.islower():
@@ -63,23 +67,47 @@ class ExtractedArgument:
 			if not complement_type.startswith("AS-") and other_complement_type.startswith("AS-"):
 				return True
 
-		# FOR-TO-INF is preferable than a standard TO-INF phrase (shouldn't occur due to the lexicon structure)
+		# FOR-TO-INF is preferable than a standard TO-INF phrase
 		if complement_type.startswith(COMP_TO_INF) and other_complement_type.startswith("FOR-"):
 			return True
 
-		# A complex prepositional phrase is preferable than a standard gerund phrase
-		# Even when the complex PP contain a gerund, it is refered not as a gerund phrase
-		# The PP might be P-HOW-S with a gerund, or WH-S and so on
-		if matched_position == POS_ING and other_matched_position.islower():
+		# An arbitrary controlled argument should be avoided when the standard arguemnt is an option
+		if "-ARBC" in argument_name and argument_name.replace("-ARBC", "") == other_argument_name:
 			return True
 
-		# Prefix of preposition is preferable over ADVP
+		# A possessive controlled argument is preferable over standard one (POSSING vs ING)
+		if "POSS" in other_argument_name and other_argument_name.replace("POSS", "") == argument_name:
+			return True
+
+		# FOR-TO-INF is preferable over standard preposition phrase
+		# We want that FOR-TO-INF argument won't be tagged as FOR-NP (like in PP)
+		if matched_position.islower() and other_complement_type == COMP_FOR_TO_INF:
+			return True
+
+		# A complex prepositional phrase is preferable than a standard gerund phrase or infinitival phrase
+		# Even when the complex PP contain a gerund, it is refered not as a gerund phrase
+		# The PP might be P-HOW-S with a gerund, or WH-S and so on
+		# Currently P-ING is also preferable over just ING
+		if matched_position in [POS_ING, POS_TO_INF] and other_matched_position.islower():
+			return True
+
+		# Prefix of preposition is preferable over ADVP, for 2-worded prepositions like "next to"
 		if complement_type == COMP_ADVP and other_matched_position.islower():
+			return True
+
+		# Sometimes an argument with "P-" can be the same as the argument without it
+		if "P-" + complement_type == other_complement_type:
+			return True
+
+		# AS-ING is probably more specific than AS-ADJ (like in as being ill)
+		if complement_type == COMP_AS_ADJP and "AS-ING" in other_complement_type:
 			return True
 
 		return False
 
-	def get_argument_span(self, extraction_token_indices):
+
+
+	def as_span(self, extraction_token_indices, trim_argument=True):
 		relevant_children = [self.argument_token.i]
 
 		# NOM complement stays as NOM
@@ -109,7 +137,7 @@ class ExtractedArgument:
 			argument_span = argument_span[:-1]
 
 		# Remove prepositionsal prefixes
-		if config.CLEAN_NP and self.matched_position.islower() and re.match(f'^PP|^P-|^FOR-|^AS-|{COMP_PART}', self.argument_name) is None:
+		if trim_argument and self.matched_position.islower() and re.match(f'^PP|^P-|^FOR-|^AS-|{COMP_PART}', self.argument_name) is None:
 			only_preposition = re.sub(list_to_regex(WHERE_WHEN_OPTIONS + WH_VERB_OPTIONS + HOW_TO_OPTIONS + HOW_OPTIONS, "|"), '', self.matched_position).strip()
 
 			if only_preposition != "":

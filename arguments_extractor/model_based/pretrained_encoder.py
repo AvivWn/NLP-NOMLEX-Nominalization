@@ -62,6 +62,7 @@ class PretrainedEncoder:
 		start_argument_index = torch.tensor([subwords.index(self.START_ARG)])
 		end_argument_index = torch.tensor([subwords.index(self.END_ARG)])
 		predicate_index = torch.tensor([token_start_idxs[predicate_index]])
+		suitable_verb_index = torch.tensor([subwords.index(self.SEP) + 1])
 		subword_ids, mask = self.convert_tokens_to_ids(subwords)
 
-		return subword_ids, mask, start_argument_index, end_argument_index, predicate_index
+		return subword_ids, mask, start_argument_index, end_argument_index, predicate_index, suitable_verb_index
