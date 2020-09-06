@@ -10,23 +10,33 @@ define([
 	introJs
 ) {
 	function main() {
-		const DATA_KEY = "parsed-data";
 		const SENTENCE_KEY = "sentence";
-		const APPEARING_EVENTS_KEY = "appearing-events";
+		const EXTRACTIONS_KEY = "extractions";
+		const MATCHES_KEY = "matches";
+
+		const DATA_KEY = "parsed-data";
 		const INFORMATIVE_EVENTS_KEY = "informative-events";
 		const MENTIONS_BY_EVENTS_KEY = "mentions-by-events";
 		const EVENT_BY_WORD_INDEX_KEY = "event-by-word-index";
+		const APPEARING_EVENTS_KEY = "appearing-events";
+
 		const THEME_COLOR_KEY = "theme-color-mode";
 		const OPTIONS_KEY = "options";
 
+		const DEFAULT_OPTIONS = {"extraction-based": "rule-based", "verbs-cb": true, "noms-cb": true, "ud-cb": true, "postag-cb": true};
+
 		// ------------------------------------------------------------------------------------------
 		// Display a tree over the input sentence. The tree relations are given in the data parameter
-		function display_tree(data, appearing_events, mentions_by_events, event_by_word_index, options, containerId, bottomTagCategory, bottomLinkCategory) {
-			if (data === null) {
+		function display_tree(extractions_info, extractions_key, options, container_id, bottom_tag_category, bottom_link_category, separate_lines_sentences) {
+			const parsed_data = extractions_info[DATA_KEY];
+			const event_by_word_index = extractions_info[EVENT_BY_WORD_INDEX_KEY];
+			let appearing_events = extractions_info[APPEARING_EVENTS_KEY];
+
+			if (parsed_data === null) {
 				return;
 			}
 
-			const container = $('#' + containerId);
+			const container = $('#' + container_id);
 
 			// Be aware that I made a few changes to TAG's API
 			const tag = TAG.tag({
@@ -35,7 +45,7 @@ define([
 				container: container,
 
 				// The initial data to load.
-				data: data,
+				data: parsed_data,
 				format: "odin",
 
 				// Overrides of default options
@@ -46,17 +56,18 @@ define([
 					showBottomMainLabel: true,
 					showBottomLinksOnMove: true,
 					showBottomArgLabels: false,
-					bottomLinkCategory: bottomLinkCategory,
+					bottomLinkCategory: bottom_link_category,
 					topTagCategory: "none",
-					bottomTagCategory: bottomTagCategory,
+					bottomTagCategory: bottom_tag_category,
 					rowEdgePadding: 13,
 					linkCurveWidth: 5,
-					wordPadding: 12,
+					wordPadding: 9,
 					compactRows: true,
 
 					// New options that I added
 					custom_theme: localStorage.getItem(THEME_COLOR_KEY),
-					wordAfterSentencePadding: 50 //Padding between sentences
+					wordAfterSentencePadding: 50, //Padding between sentences (according to "." that is separated by spaces)
+					separateLinesSentences: separate_lines_sentences
 				}
 			});
 
@@ -98,8 +109,14 @@ define([
 							// Change the event that should appear of that sentence, only if the user clicked on an invisible event
 							if (event_id !== appearing_events[sentence_id]) {
 								appearing_events[sentence_id] = event_id;
-								localStorage.setItem(APPEARING_EVENTS_KEY, JSON.stringify(appearing_events));
-								parse_sentence();
+								extractions_info[APPEARING_EVENTS_KEY] = appearing_events;
+
+								if (extractions_key !== null) {
+									sessionStorage.setItem(extractions_key, JSON.stringify(extractions_info));
+								}
+
+								update_relevant_mentions(extractions_info, options);
+								display_all_trees(extractions_info, EXTRACTIONS_KEY, container_id, options, separate_lines_sentences);
 							}
 						});
 					}
@@ -107,31 +124,36 @@ define([
 			});
 		}
 
-		function display_all_trees(data, appearing_events, event_by_word_index, mentions_by_events, options) {
+		function display_all_trees(extractions_info, extractions_key, container_id, options, separate_lines_sentences) {
 			const show_UD = options["ud-cb"];
 			const show_POS = options["postag-cb"];
 
-			// Empty the container that includes the last parsing results
-			$('#rule-based-container').empty();
+			// Empty the container with the given id
+			$('#' + container_id).empty();
 
 			// Get the relevant tags
-			const bottomTagCategory = show_POS? "POS":"none";
-			const bottomLinkCategory = show_UD? "universal-basic":"none";
+			const bottom_tag_category = show_POS? "POS":"none";
+			const bottom_link_category = show_UD? "universal-basic":"none";
 
 			// Display the sentence with the wanted relations
-			display_tree(data, appearing_events, event_by_word_index, mentions_by_events, options, "rule-based-container", bottomTagCategory, bottomLinkCategory);
+			display_tree(extractions_info, extractions_key, options, container_id, bottom_tag_category, bottom_link_category, separate_lines_sentences);
 
 			// Scroll down to the results
-			$('html,body').animate({
-				scrollTop: $("#scroll-to-here").offset().top
-			}, 800);
+			// $('html,body').animate({
+			// 	scrollTop: $("#scroll-to-here").offset().top
+			// }, 800);
 		}
 
 		// ------------------------------------------------------------------------------------------
 		// Parses the sentence using the python server
 		const $sentence_input = $("#sentence-input");
 
-		function update_relevant_mentions(parsed_data, informative_events, mentions_by_events, appearing_events, options) {
+		function update_relevant_mentions(extractions_info, options) {
+			const parsed_data = extractions_info[DATA_KEY];
+			const informative_events = extractions_info[INFORMATIVE_EVENTS_KEY];
+			const mentions_by_events = extractions_info[MENTIONS_BY_EVENTS_KEY];
+			let appearing_events = extractions_info[APPEARING_EVENTS_KEY];
+
 			const include_verbs = options["verbs-cb"];
 			const include_noms = options["noms-cb"];
 			let all_relevant_mentions = [];
@@ -165,7 +187,7 @@ define([
 			});
 
 			parsed_data["mentions"] = all_relevant_mentions;
-			localStorage.setItem(APPEARING_EVENTS_KEY, JSON.stringify(appearing_events));
+			extractions_info[APPEARING_EVENTS_KEY] = appearing_events;
 		}
 
 		function get_most_informative_event(informative_events, mentions_by_events, include_verbs, include_noms) {
@@ -191,7 +213,10 @@ define([
 			return -1;
 		}
 
-		function choose_appearing_events(informative_events, mentions_by_events, options) {
+		function choose_appearing_events(extractions_info, options) {
+			const informative_events = extractions_info[INFORMATIVE_EVENTS_KEY];
+			const mentions_by_events = extractions_info[MENTIONS_BY_EVENTS_KEY];
+
 			const include_verbs = options["verbs-cb"];
 			const include_noms = options["noms-cb"];
 
@@ -205,56 +230,90 @@ define([
 			return appearing_events;
 		}
 
-		async function parse_sentence(random_sentence=false, must_parse_again=false) {
-			$sentence_input[0].value = $sentence_input[0].value !== "" ? $sentence_input[0].value : "The appointment of Tim Cook by Apple as a CEO was expected. Apple appointed Tim Cook as CEO.";
-			$sentence_input[0].value = $sentence_input[0].value !== "" ? $sentence_input[0].value : "The appointment of Tim Cook by Apple as a CEO was expected. Apple appointed Tim Cook as CEO.";
+		function show_matching_extractions(matches_info) {
+			if (typeof matches_info !== "string") {
+				matches_info[APPEARING_EVENTS_KEY] = choose_appearing_events(matches_info, DEFAULT_OPTIONS);
+				update_relevant_mentions(matches_info, DEFAULT_OPTIONS);
+				display_all_trees(matches_info, null, "matches-container", DEFAULT_OPTIONS, true);
+				sessionStorage.setItem(MATCHES_KEY, JSON.stringify(matches_info));
+			}
+			else {
+				if (localStorage.getItem(THEME_COLOR_KEY) === "Dark") {
+					document.getElementById("matches-container").innerHTML = "<h5 style='padding-left:15px;color:lightgray;'>" + matches_info + "</h5>";
+				} else {
+					document.getElementById("matches-container").innerHTML = "<h5 style='padding-left:15px;color:black;'>" + matches_info + "</h5>";
+				}
+				sessionStorage.setItem(MATCHES_KEY, matches_info);
+			}
+		}
 
-			const options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
+		async function parse_sentence(random_sentence=false, must_parse_again=false) {
+			$sentence_input[0].value = $sentence_input[0].value !== "" ? $sentence_input[0].value : "[AGENT Apple] [# appointed] [APPOINTEE Tim Cook] [TITLE as CEO]. The appointment of Tim Cook by Apple as a CEO was expected.";
 
 			// Don't parse the sentence if it is the same as the last one with the same properties
-			let parsed_data = localStorage.getItem(DATA_KEY);
-			let appearing_events = localStorage.getItem(APPEARING_EVENTS_KEY);			// The appearing event-id for each sentence-id
-			let mentions_by_events = localStorage.getItem(MENTIONS_BY_EVENTS_KEY);		// The relevant emntions for each event-id per sentence-id
-			let informative_events = localStorage.getItem(INFORMATIVE_EVENTS_KEY);		// The event-id with the most informative information (max number of arguments) per sentence-id
-			let event_by_word_index = localStorage.getItem(EVENT_BY_WORD_INDEX_KEY);	// The event-id, sentence-id, is-verb by the word index in the input string (that contains all the sentences together)
+			let extractions_info = sessionStorage.getItem(EXTRACTIONS_KEY);
+			let matches_info = sessionStorage.getItem(MATCHES_KEY);
+			let options = JSON.parse(sessionStorage.getItem(OPTIONS_KEY));
+			let is_new_extractions = must_parse_again || sessionStorage.getItem(SENTENCE_KEY) !== $sentence_input[0].value || random_sentence || extractions_info == null;
 
-			if (must_parse_again || localStorage.getItem(SENTENCE_KEY) !== $sentence_input[0].value || random_sentence ||
-				parsed_data == null || appearing_events == null || informative_events == null || mentions_by_events == null || event_by_word_index == null) {
-				// Send the information to the server and get a response
-				const response = await axios.post(
-					'https://nlp.biu.ac.il/~avivwn/nomlexDemo/annotate/',
+			// Put a loading icon in the containers, until the response receiving the response
+			let loading_icon = "img/loading_icon.gif";
+			if (localStorage.getItem(THEME_COLOR_KEY) === "Dark") {
+				loading_icon = "img/loading_icon_dark.gif";
+			}
+
+			// Were predicates and arguments specified in the given sentence
+			if ($sentence_input[0].value.includes("[#") && !random_sentence) {
+				document.getElementById("matches-container").innerHTML = "<img src='" + loading_icon + "' style='margin:auto;display:flex;'/>";
+			}
+			else {
+				matches_info = "[THING No relevant arguments and predicates] were [# specified] by [AGENT the user].";
+				show_matching_extractions(matches_info)
+			}
+
+			if (is_new_extractions) {
+				document.getElementById("extractions-container").innerHTML = "<img src='" + loading_icon + "' style='margin:auto;display:flex;'/>";
+
+				// Send the information to the server and get the extractions
+				const extractions_response = await axios.post(
+					'https://nlp.biu.ac.il/~avivwn/nomlexDemo/extract/',
 					{
 						"sentence": $sentence_input[0].value,
 						"random": random_sentence,
-						"extraction-based": options["extraction-based"]
+						"extraction-based": options["extraction-based"],
 					}
 				);
 
-				$sentence_input[0].value = response.data[SENTENCE_KEY];
-				parsed_data = response.data[DATA_KEY];
-				mentions_by_events = response.data[MENTIONS_BY_EVENTS_KEY];
-				informative_events = response.data[INFORMATIVE_EVENTS_KEY];
-				event_by_word_index = response.data[EVENT_BY_WORD_INDEX_KEY];
-				appearing_events = choose_appearing_events(informative_events, mentions_by_events, options);
+				$sentence_input[0].value = extractions_response.data[SENTENCE_KEY];
+				extractions_info = extractions_response.data[EXTRACTIONS_KEY];
+				extractions_info[APPEARING_EVENTS_KEY] = choose_appearing_events(extractions_info, options);
 
-				// Save locally the last entered sentence, its parsing and other properties
-				localStorage.setItem(DATA_KEY, JSON.stringify(parsed_data));
-				localStorage.setItem(SENTENCE_KEY, $sentence_input[0].value);
-				localStorage.setItem(APPEARING_EVENTS_KEY, JSON.stringify(appearing_events));
-				localStorage.setItem(INFORMATIVE_EVENTS_KEY, JSON.stringify(informative_events));
-				localStorage.setItem(MENTIONS_BY_EVENTS_KEY, JSON.stringify(mentions_by_events));
-				localStorage.setItem(EVENT_BY_WORD_INDEX_KEY, JSON.stringify(event_by_word_index));
+				// Save locally the last entered sentence and its parsing
+				sessionStorage.setItem(EXTRACTIONS_KEY, JSON.stringify(extractions_info));
+				sessionStorage.setItem(SENTENCE_KEY, $sentence_input[0].value);
+
+				update_relevant_mentions(extractions_info, options);
+				sessionStorage.setItem(EXTRACTIONS_KEY, JSON.stringify(extractions_info));
 			}
 			else {
-				parsed_data = JSON.parse(parsed_data);
-				appearing_events = JSON.parse(appearing_events);
-				mentions_by_events = JSON.parse(mentions_by_events);
-				informative_events = JSON.parse(informative_events);
-				event_by_word_index = JSON.parse(event_by_word_index);
+				extractions_info = JSON.parse(extractions_info);
 			}
 
-			update_relevant_mentions(parsed_data, informative_events, mentions_by_events, appearing_events, options);
-			display_all_trees(parsed_data, appearing_events, mentions_by_events, event_by_word_index, options);
+			display_all_trees(extractions_info, EXTRACTIONS_KEY, "extractions-container", options, false);
+
+			// New matches should be requested only if we can get any
+			if ($sentence_input[0].value.includes("[#") && !random_sentence) {
+				// Send the information to the server and get the founded matches
+				const matches_response = await axios.post(
+					'https://nlp.biu.ac.il/~avivwn/nomlexDemo/match/',
+					{
+						"extraction-based": options["extraction-based"],
+						"extractions": extractions_info,
+					}
+				);
+				matches_info = matches_response.data[MATCHES_KEY];
+				show_matching_extractions(matches_info);
+			}
 		}
 
 
@@ -266,7 +325,7 @@ define([
 			// Toggle from dark mode to light mode for each element in the document
 			const relevant_for_theme = [$("body"), $("header"), $("footer"),
 				$("#theme-button"), $("#feedback-button"), $("#github-button"),
-				$("#rule-based-container"), $("#submit-button"), $("#random-button"), $("#sentence-input"), $("#main-content")];
+				$("#extractions-container"), $("#matches-container"), $("#submit-button"), $("#random-button"), $("#sentence-input"), $("#main-content")];
 
 			relevant_for_theme.forEach((e) => {
 				if (e.hasClass("dark")) {
@@ -296,6 +355,14 @@ define([
 			}
 		}
 
+		function is_json_string(str) {
+			try {
+				JSON.parse(str);
+			} catch (e) {
+				return false;
+			}
+			return true;
+		}
 
 		const $theme_button = $("#theme-button");
 		const theme_button = document.getElementById("theme-button");
@@ -303,14 +370,29 @@ define([
 		$theme_button.click(async (e) => {
 			e.preventDefault();
 
-			var theme_color_mode = "Dark";
-
+			let theme_color_mode = "Dark";
 			if (theme_button.innerHTML === "Light") {
 				theme_color_mode = "Light";
 			}
 
 			change_theme_color(theme_button, theme_color_mode);
-			await parse_sentence(); // just to update the displayed trees
+
+			// Display the current trees again
+			const options = JSON.parse(sessionStorage.getItem(OPTIONS_KEY));
+			let extractions_info = JSON.parse(sessionStorage.getItem(EXTRACTIONS_KEY));
+			display_all_trees(extractions_info, EXTRACTIONS_KEY, "extractions-container", options, false);
+
+			let matching_extractions_info = sessionStorage.getItem(MATCHES_KEY);
+			if (is_json_string(matching_extractions_info)) {
+				display_all_trees(JSON.parse(matching_extractions_info), null, "matches-container", DEFAULT_OPTIONS, true);
+			}
+			else {
+				if (localStorage.getItem(THEME_COLOR_KEY) === "Dark") {
+					document.getElementById("matches-container").innerHTML = "<h5 style='padding-left:15px;color:lightgray;'>" + matching_extractions_info + "</h5>";
+				} else {
+					document.getElementById("matches-container").innerHTML = "<h5 style='padding-left:15px;color:black;'>" + matching_extractions_info + "</h5>";
+				}
+			}
 		});
 
 
@@ -334,19 +416,27 @@ define([
 		const triggers_for_parsing = [$('#rule-based'), $('#model-based'), $('#hybrid-based'), $('#verbs-cb'), $('#noms-cb'), $('#ud-cb'), $('#postag-cb')];
 		triggers_for_parsing.forEach((trigger) => {
 			trigger.click(async (e) => {
-				let options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
+				let options = JSON.parse(sessionStorage.getItem(OPTIONS_KEY));
 				let must_parse_again = false;
 
 				if (e.target.id.endsWith('based')) {
 					options['extraction-based'] = e.target.id;
 					must_parse_again = true
-				}
-				else {
+				} else {
 					options[e.target.id] = e.target.checked;
 				}
 
-				localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
-				await parse_sentence(false, must_parse_again);
+				sessionStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+
+				if (must_parse_again) {
+					await parse_sentence(false, true);
+				}
+				else {
+					let extractions_info = JSON.parse(sessionStorage.getItem(EXTRACTIONS_KEY));
+					update_relevant_mentions(extractions_info, options);
+					sessionStorage.setItem(EXTRACTIONS_KEY, JSON.stringify(extractions_info));
+					display_all_trees(extractions_info, EXTRACTIONS_KEY, "extractions-container", options, false);
+				}
 			});
 		});
 
@@ -390,17 +480,17 @@ define([
 			if ((slash_idx + 1) !== window.location.href.length) {
 				const sliced = decodeURI(window.location.href.slice(slash_idx + 1));
 
-				const last_sentence = localStorage.getItem(SENTENCE_KEY);
+				const last_sentence = sessionStorage.getItem(SENTENCE_KEY);
 				if (last_sentence !== sliced) {
 					// The sentence should be parsed from skretch
-					localStorage.setItem(SENTENCE_KEY, sliced);
-					localStorage.removeItem(DATA_KEY);
+					sessionStorage.setItem(SENTENCE_KEY, sliced);
+					sessionStorage.removeItem(EXTRACTIONS_KEY);
 				}
 			}
 
 			// Update the written input sentence, based on the last saved sentence
-			if (localStorage.getItem(SENTENCE_KEY) != null) {
-				$sentence_input[0].value = localStorage.getItem(SENTENCE_KEY);
+			if (sessionStorage.getItem(SENTENCE_KEY) != null) {
+				$sentence_input[0].value = sessionStorage.getItem(SENTENCE_KEY);
 			}
 
 			// The deafult theme is based on the system preferences
@@ -409,14 +499,13 @@ define([
 			}
 
 			// The default chosen options will be- all checkboxes are checked
-			let options = localStorage.getItem(OPTIONS_KEY);
-			const default_options = {"extraction-based": "rule-based", "verbs-cb": true, "noms-cb": true, "ud-cb": true, "postag-cb": true};
-			if (options == null || JSON.stringify(Object.keys(JSON.parse(options))) !== JSON.stringify(Object.keys(default_options))) {
-				localStorage.setItem(OPTIONS_KEY, JSON.stringify(default_options));
+			let options = sessionStorage.getItem(OPTIONS_KEY);
+			if (options == null || JSON.stringify(Object.keys(JSON.parse(options))) !== JSON.stringify(Object.keys(DEFAULT_OPTIONS))) {
+				sessionStorage.setItem(OPTIONS_KEY, JSON.stringify(DEFAULT_OPTIONS));
 			}
 
 			// Update the chosen options based on the last saved options
-			options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
+			options = JSON.parse(sessionStorage.getItem(OPTIONS_KEY));
 			$('#verbs-cb').prop('checked', options["verbs-cb"]);
 			$('#noms-cb').prop('checked', options["noms-cb"]);
 			$('#ud-cb').prop('checked', options["ud-cb"]);

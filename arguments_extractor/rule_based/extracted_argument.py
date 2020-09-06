@@ -26,11 +26,21 @@ class ExtractedArgument:
 		else:
 			self.argument_name = complement_type
 
-	def get_real_complement_type(self):
+	def get_real_type(self):
 		return self.lexical_argument.get_complement_type()
 
-	def get_argument_idx(self):
+	def get_head_idx(self):
 		return self.argument_token.i
+
+	def get_range_idxs(self):
+		subtree_indices = self.argument_token._.subtree_indices
+		return subtree_indices[0], subtree_indices[-1]
+
+	def get_name(self):
+		return self.argument_name
+
+	def get_token(self):
+		return self.argument_token
 
 	def get_properties(self):
 		return self.argument_token, self.lexical_argument, self.matched_position, self.linked_arg, self.argument_name
@@ -38,7 +48,7 @@ class ExtractedArgument:
 	def set_matched_position(self, matched_position):
 		self.matched_position = matched_position
 
-	def set_argument_name(self, argument_name):
+	def set_name(self, argument_name):
 		self.argument_name = argument_name
 
 
@@ -46,11 +56,11 @@ class ExtractedArgument:
 	def is_more_informative(self, other_argument):
 		# Wether the given argument is more iformative than this argument
 
-		complement_type = self.get_real_complement_type()
+		complement_type = self.get_real_type()
 		argument_name = self.argument_name
 		matched_position = self.matched_position
 
-		other_complement_type = other_argument.get_real_complement_type()
+		other_complement_type = other_argument.get_real_type()
 		other_argument_name = other_argument.argument_name
 		other_matched_position = other_argument.matched_position
 
@@ -133,7 +143,8 @@ class ExtractedArgument:
 		argument_span = dependency_tree[start_span_index: end_span_index]
 
 		# Remove possessive suffixes
-		if argument_span[-1].pos_ == UPOS_PUNCT or (argument_span[-1].orth_.lower() in ["'s", "s'", "’s", "s’"] and self.matched_position in [POS_DET_POSS, POS_NSUBJ, POS_N_N_MOD]):
+		if argument_span[-1].pos_ == UPOS_PUNCT or \
+				(argument_span[-1].orth_.lower() in ["'s", "s'", "’s", "s’"] and self.matched_position in [POS_DET_POSS, POS_NSUBJ, POS_N_N_MOD]):
 			argument_span = argument_span[:-1]
 
 		# Remove prepositionsal prefixes

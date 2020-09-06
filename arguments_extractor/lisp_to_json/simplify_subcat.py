@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from arguments_extractor.lisp_to_json.lexicon_modifications import lexicon_fixes_dict, complex_argument_positions, nom_types_to_args_dict
-from arguments_extractor.lisp_to_json.utils import get_right_value, get_current_specs, without_part, curr_specs
+from arguments_extractor.lisp_to_json.utils import get_right_value, get_current_specs, without_part, curr_specs, get_verb_type
 from arguments_extractor.utils import difference_list
 from arguments_extractor.constants.lexicon_constants import *
 
@@ -544,19 +544,27 @@ def perform_alternation(subcat, subcat_type):
 		return
 
 	# SUBJ-IND-OBJ-ALT (transitive -> ditransitive)
-	if without_part(subcat_type).startswith("NOM-NP"):
+	if get_verb_type(subcat_type) == VERB_TYPE_TRANS:
 		if COMP_IND_OBJ in subcat.keys() or COMP_SUBJ not in subcat.keys():
 			raise Exception(f"A conflict of SUBJ-IND-OBJ-ALT feature- OBJECT must appear and IND-OBJECT must not ({get_current_specs()}).")
 
 		replace_complement = COMP_SUBJ
 		new_complement = COMP_IND_OBJ
 
-	else: # SUBJ-OBJ-ALT (intransitive -> transitive)
+	elif get_verb_type(subcat_type) == VERB_TYPE_INTRANS: # SUBJ-OBJ-ALT (intransitive -> transitive)
 		if COMP_OBJ in subcat.keys() or COMP_SUBJ not in subcat.keys():
 			raise Exception(f"A conflict of SUBJ-OBJ-ALT feature- SUBJECT must appear and OBJECT must not ({get_current_specs()}).")
 
 		replace_complement = COMP_SUBJ
 		new_complement = COMP_OBJ
+	else:
+		raise Exception(f"Illegal subcat-type for alternation ({get_current_specs()}).")
+
+	# Avoid alternation in case the argument can be the nominalization
+	# In such cases (like renter or boiler) the nom has a purpose and ALTERNATES don't affect it
+	# It only affects the suitable verb
+	if POS_NOM in subcat[replace_complement]:
+		return
 
 	# Performing the alternation
 	subcat[new_complement] = deepcopy(subcat[replace_complement])
@@ -619,5 +627,5 @@ def simplify_subcat(entry, subcat, subcat_type, is_verb=False):
 	use_defaults(subcat, complex_defaults)
 	add_extensions(subcat, is_verb=is_verb)
 	rearrange_not(subcat, is_verb=is_verb)
-	perform_alternation(subcat, subcat_type)
 	use_nom_type(subcat, entry[ENT_NOM_TYPE], is_verb=is_verb)
+	perform_alternation(subcat, subcat_type)

@@ -14,7 +14,7 @@ def get_right_value(table, subcat_type, default=None, is_verb=False):
 
 	return deepcopy(table[subcat_type][1])
 
-def get_argument_candidates(referenced_token: Token, limited_relations=None, is_verb=False):
+def get_argument_candidates(referenced_token: Token, limited_relations=None, include_nom=False):
 	argument_candidates = []
 
 	for sub_token in referenced_token.subtree:
@@ -24,7 +24,7 @@ def get_argument_candidates(referenced_token: Token, limited_relations=None, is_
 		if sub_token.dep_ in LINK_TO_POS.keys() and sub_token.head.i == referenced_token.i:
 			argument_candidates.append(sub_token)
 
-	if not is_verb:
+	if include_nom:
 		argument_candidates.append(referenced_token)
 
 	return argument_candidates

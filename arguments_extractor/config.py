@@ -1,27 +1,33 @@
 import os
+from os.path import join
+
+NOMLEX_NAME = "NOMLEX-2001"
+NOMLEX_PLUS_NAME = "NOMLEX-plus.1.0"
 
 # The lexicons will be in the next paths
 ABSOLUTE_PATH = os.path.dirname(__file__) # The absolute path of the root module
-LISP_DIR = ABSOLUTE_PATH + "/lexicons/lisp_lexicons/"
-JSON_DIR = ABSOLUTE_PATH + "/lexicons/json_lexicons/"
-PKL_DIR = ABSOLUTE_PATH + "/lexicons/pkl_lexicons/"
+LISP_DIR = join(ABSOLUTE_PATH, "lexicons/lisp_lexicons/")
+JSON_DIR = join(ABSOLUTE_PATH, "lexicons/json_lexicons/")
+PKL_DIR = join(ABSOLUTE_PATH, "lexicons/pkl_lexicons/")
 
 # The test files will be in the next paths
-TEST_DIR = ABSOLUTE_PATH + "/test"
-TEST_SENTENCES_PATH = TEST_DIR + "/test_sentences.txt"
-TEST_VERB_EXTRACTIONS = TEST_DIR + "/test_sentences.verb"
-TEST_NOM_EXTRACTIONS = TEST_DIR + "/test_sentences.nom"
+TEST_DIR = join(ABSOLUTE_PATH, "test")
+TEST_SENTENCES_PATH = join(TEST_DIR, "test_sentences.txt")
+TEST_VERB_EXTRACTIONS = join(TEST_DIR, "test_sentences.verb")
+TEST_NOM_EXTRACTIONS = join(TEST_DIR, "test_sentences.nom")
 
 # The Wikipedia data (parsed) files will be in the next paths
-DATA_DIR = ABSOLUTE_PATH + "/learning_process/data"
-WIKI_SENTENCES_PATH = DATA_DIR + "/shuffled_wiki_sentences.txt"
-EXAMPLE_SENTENCES_PATH = DATA_DIR + "/example_sentences.txt"	# sentences that are used as examples in the demo
+DATA_DIR = join(ABSOLUTE_PATH, "model_based/data")
+WIKI_SENTENCES_PATH = join(DATA_DIR, "shuffled_wiki_sentences.txt")
+EXAMPLE_SENTENCES_PATH = join(DATA_DIR, "example_sentences.txt")	# sentences that are used as examples in the demo
 
 # The dataset files will be in the next paths
-ARG_DATASET_PATH = ABSOLUTE_PATH + "/model_based/datasets/arguments_dataset.csv"
+DATASETS_PATH = join(ABSOLUTE_PATH, "model_based/datasets")
+ARG_DATASET_PATH = join(DATASETS_PATH, "arguments_dataset.csv")
+NOUN_DATASET_PATH = join(DATASETS_PATH, "nouns_dataset.csv")
 
 # More configuration constants
-LEXICON_FILE_NAME = "NOMLEX-plus.1.0.txt"	# "NOMLEX-2001.txt"
+LEXICON_FILE_NAME = NOMLEX_PLUS_NAME + ".txt"
 LOAD_LEXICON = True
 LOAD_DATASET = True
 REWRITE_TEST = False

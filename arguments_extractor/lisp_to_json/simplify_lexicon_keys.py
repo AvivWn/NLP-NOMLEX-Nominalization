@@ -1,4 +1,4 @@
-from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs
+from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, get_verb_type
 from arguments_extractor.constants.lexicon_constants import *
 
 from copy import deepcopy
@@ -60,6 +60,7 @@ def split_alternates_opt(lexicon, nom):
 
 	new_nom = duplicate_entry(lexicon, nom_entry)
 	new_nom_entry = lexicon[new_nom]
+	new_nom_entry[ENT_FEATURES].pop(FEATURE_SUBJ_IND_OBJ_ALT, None).pop(FEATURE_SUBJ_OBJ_ALT, None)
 
 	# The new nom will include only the subcats that included ALTERNATES-OPT, but now they won't include any alternation
 	new_nom_entry[ENT_VERB_SUBC] = {}
@@ -327,10 +328,29 @@ def remove_entries(lexicon):
 	"""
 
 	removed_noms = []
+	tmp_lexicon = deepcopy(lexicon)
 
-	for nom in tqdm(deepcopy(lexicon).keys(), "Removing mistaken entries", leave=False):
+	for nom in tqdm(tmp_lexicon.keys(), "Removing mistaken entries", leave=False):
+		if nom not in lexicon:
+			continue
+
 		nom_entry = lexicon[nom]
 
+		# Remove all the entries of a nom that have multiple appropriated verbs
+		found_another_verb = False
+		for other_nom in tmp_lexicon.keys():
+			other_verb = tmp_lexicon[other_nom][ENT_VERB]
+			if other_nom.split("#")[0] == nom.split("#")[0] and other_verb != nom_entry[ENT_VERB]:
+				found_another_verb = True
+				removed_noms.append(other_nom)
+				lexicon.pop(other_nom)
+
+		if found_another_verb:
+			removed_noms.append(nom)
+			lexicon.pop(nom)
+			continue
+
+		# The entry must include the ORTH tag
 		if ENT_ORTH not in nom_entry.keys():
 			raise Exception(f"Any nom entry should specify the orth under ORTH (nom={nom})")
 
@@ -346,14 +366,12 @@ def remove_entries(lexicon):
 
 		# ALTERNATES(-OPT) tags goes together with one of the features SUBJ-OBJ-ALT or SUBJ-IND-OBJ-ALT
 		# Check whether or not these features and the ALTERNATES(-OPT) tag appears for this nominalization
-		is_feature_appear = FEATURE_SUBJ_OBJ_ALT in nom_features or FEATURE_SUBJ_IND_OBJ_ALT in nom_features
-		is_alternates_appear = any([SUBCAT_CONSTRAINT_ALTERNATES in subcat.keys() or OLD_SUBCAT_CONSTRAINT_ALTERNATES_OPT in subcat.keys() for subcat in nom_subcats])
+		alt_feature_appear = FEATURE_SUBJ_OBJ_ALT in nom_features or FEATURE_SUBJ_IND_OBJ_ALT in nom_features
+		any_alternates_appear = any([SUBCAT_CONSTRAINT_ALTERNATES in subcat.keys() or OLD_SUBCAT_CONSTRAINT_ALTERNATES_OPT in subcat.keys() for subcat in nom_subcats])
 
 		# Assuming that nominalizations with ALTERNATES tags and without any of those features aren't correct
-		# Similarly nominalizations with any of the features and wihout any ALTERNATES tag are probably wrong
-		if is_alternates_appear ^ is_feature_appear:
+		if not alt_feature_appear and any_alternates_appear:
 			removed_noms.append(nom)
 			lexicon.pop(nom)
-			continue
 
 	return removed_noms

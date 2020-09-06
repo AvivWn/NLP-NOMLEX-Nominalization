@@ -32,6 +32,9 @@ class LexicalSubcat:
 		self.constraints = subcat_info.get(SUBCAT_CONSTRAINTS, [])
 		self.is_verb = is_verb
 
+	def get_args_types(self):
+		return self.arguments.keys()
+
 	# Subcat constraints
 
 	def _check_ordering(self, match: dict, referenced_token: Token):
@@ -218,7 +221,7 @@ class LexicalSubcat:
 		for complement_type, extracted_argument in extraction.match.items():
 			argument_token = extracted_argument.argument_token
 			linked_argument = extracted_argument.linked_arg
-			if not self.arguments[extracted_argument.get_real_complement_type()].check_plurality(argument_token, complement_types, linked_argument):
+			if not self.arguments[extracted_argument.get_real_type()].check_plurality(argument_token, complement_types, linked_argument):
 				return False
 
 		return True
@@ -278,7 +281,7 @@ class LexicalSubcat:
 				if linked_arg not in extraction.get_complements():
 					continue
 
-				candidates = get_argument_candidates(extraction.get_argument(linked_arg).argument_token, is_verb=self.is_verb)
+				candidates = get_argument_candidates(extraction.get_argument(linked_arg).argument_token, include_nom=False)
 
 				for candidate_token in candidates:
 					matched_argument = arg_that_linked_to_args.check_match(candidate_token, linked_arg, extraction.get_argument(linked_arg).argument_token)

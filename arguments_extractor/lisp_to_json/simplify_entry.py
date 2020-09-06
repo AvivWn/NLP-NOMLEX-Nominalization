@@ -2,8 +2,9 @@ from copy import deepcopy
 
 from arguments_extractor.lisp_to_json.simplify_subcat import simplify_subcat
 from arguments_extractor.lisp_to_json.simplify_representation import simplify_representation
-from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, unknown_values_dict, known_values_dict
+from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, unknown_values_dict, known_values_dict, get_verb_type
 from arguments_extractor.lisp_to_json.lexicon_modifications import lexicon_fixes_dict, subcat_typos_dict
+from arguments_extractor.utils import engine
 from arguments_extractor.constants.lexicon_constants import *
 
 # For debug
@@ -86,6 +87,10 @@ def rearrange_entry_properties(entry):
 	entry[ENT_NOUN] = list(entry.get(ENT_NOUN, {}).keys())
 	entry[ENT_SEMI_AUTOMATIC] = entry.get(ENT_SEMI_AUTOMATIC, False)
 
+	# Add plural form if no such is given
+	if ENT_PLURAL not in entry:
+		entry[ENT_PLURAL] = engine.plural(entry[ENT_ORTH])
+
 	# Avoiding NONE and T values as strings
 	for subentry in deepcopy(entry).keys():
 		if type(entry[subentry]) == str:
@@ -96,6 +101,10 @@ def rearrange_entry_properties(entry):
 
 		if not is_known(subentry, ["ENT"], "ENT"):
 			entry.pop(subentry)
+
+		for noun_property in entry[ENT_NOUN]:
+			if not is_known(noun_property, ["NOUN"], "NOUN"):
+				entry.pop(noun_property)
 
 	# Extract some constraints for the nominalization as a whole
 	det_poss_no_other_obj = list(entry.get(ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ, {}).keys())
@@ -114,6 +123,9 @@ def rearrange_entry_properties(entry):
 	# A nominalization that get particle must get exactly one possible particle
 	if "PART" in nom_type and len(entry[ENT_NOM_TYPE][TYPE_PART]) != 1:
 		raise Exception(f"One particle should be specified for PART-typed nominalization ({get_current_specs()}).")
+
+	subcats = entry.get(ENT_VERB_SUBC, {}).values()
+	any_alternates_appear = any([SUBCAT_CONSTRAINT_ALTERNATES in subcat.keys() or OLD_SUBCAT_CONSTRAINT_ALTERNATES_OPT in subcat.keys() for subcat in subcats])
 
 	# Correct typos in subcategorization types
 	for subcat_type in deepcopy(entry).get(ENT_VERB_SUBC, {}).keys():
@@ -134,14 +146,20 @@ def rearrange_entry_properties(entry):
 		if "PART" in nom_type and "PART" in subcat_type:
 			subcat_info[OLD_COMP_ADVAL] = list(set(subcat_info.get(OLD_COMP_ADVAL, []) + entry[ENT_NOM_TYPE][TYPE_PART]))
 
-		# Removed ALTERNATES tag from illegal subcats (based on the features)
+		# Add the ALTERNATES constraint for any subcat if the entry don't contain any ALTERNATES tag
+		# Tags that were written in illegal subcats will be remove afterwards
+		if not any_alternates_appear:
+			if FEATURE_SUBJ_OBJ_ALT in nom_features or FEATURE_SUBJ_IND_OBJ_ALT in nom_features:
+				entry[ENT_VERB_SUBC][subcat_type][SUBCAT_CONSTRAINT_ALTERNATES] = "T"
+
+		# Remove ALTERNATES tag from illegal subcats (based on the features)
 		if SUBCAT_CONSTRAINT_ALTERNATES in subcat_info.keys():
-			# SUBJ-OBJ-ALT can only appear for subcats that don't start with NOM-NP (intransitive -> transitive)
-			if FEATURE_SUBJ_OBJ_ALT in nom_features and subcat_type.startswith("NOM-NP"):
+			# SUBJ-OBJ-ALT can only appear for intransitive subcats (intransitive -> transitive)
+			if FEATURE_SUBJ_OBJ_ALT in nom_features and get_verb_type(subcat_type) != VERB_TYPE_INTRANS:
 				entry[ENT_VERB_SUBC][subcat_type].pop(SUBCAT_CONSTRAINT_ALTERNATES)
 
-			# SUBJ-IND-OBJ-ALT can only appear for subcats that start with NOM-NP (transitive -> ditransitive)
-			elif FEATURE_SUBJ_IND_OBJ_ALT in nom_features and not subcat_type.startswith("NOM-NP"):
+			# SUBJ-IND-OBJ-ALT can only appear for transitive subcats (transitive -> ditransitive)
+			elif FEATURE_SUBJ_IND_OBJ_ALT in nom_features and get_verb_type(subcat_type) != VERB_TYPE_TRANS:
 				entry[ENT_VERB_SUBC][subcat_type].pop(SUBCAT_CONSTRAINT_ALTERNATES)
 
 			elif FEATURE_SUBJ_OBJ_ALT in nom_features:
@@ -205,7 +223,7 @@ def rearrange_entry(entry):
 	else:
 		plural_entry = None
 
-	# If the nominalization entry can't appear singular
+	# If the nominalization entry can't be written in singular form
 	if nom_entry.get(ENT_SINGULAR_FALSE, False):
 		nom_entry = None
 

@@ -181,11 +181,11 @@ class LexicalArgument:
 
 			# Possessive should be included
 			if founded_possessive and "POSSING" not in self.complement_type:
-				matched_argument.set_argument_name(self.complement_type.replace("ING", "POSSING"))
+				matched_argument.set_name(self.complement_type.replace("ING", "POSSING"))
 
 			# Possessive should be excluded
 			elif not founded_possessive and "POSSING" in self.complement_type:
-				matched_argument.set_argument_name(self.complement_type.replace("POSSING", "ING-ARBC"))
+				matched_argument.set_name(self.complement_type.replace("POSSING", "ING-ARBC"))
 
 		return True
 

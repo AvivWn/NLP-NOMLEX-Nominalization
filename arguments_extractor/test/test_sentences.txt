@@ -191,8 +191,8 @@ She appealed to him to leave the compound.
 Her appeal to him to leave the compound.
 
 # NOM-P-NP-TO-INF-OC
-Alice motioned to John to eat the spinach.
-Alice's motion to John to eat the spinach.
+I imposed on him to go to school.
+My imposition on him to go to school.
 
 # NOM-NP-TO-INF-VC
 She solicited Mayor Koch to lead the parade.

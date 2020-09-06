@@ -1,3 +1,4 @@
+import random
 import zlib
 from os.path import isfile
 from collections import defaultdict
@@ -8,7 +9,9 @@ import pandas as pd
 
 from arguments_extractor.arguments_extractor import ArgumentsExtractor
 from arguments_extractor.constants.lexicon_constants import *
+from arguments_extractor.constants.ud_constants import *
 from arguments_extractor.utils import flatten, difference_list, get_dependency_tree, ud_parser
+from arguments_extractor.lisp_to_json.utils import without_part
 from arguments_extractor import config
 
 # Arguments dataset properties
@@ -152,7 +155,7 @@ def create_args_dataset(dataset_path, arguments_extractor: ArgumentsExtractor):
 
 	# Find the limited verbs for each complement type
 	for complement_type in limited_complement_types:
-		verbs_per_complement_types[complement_type] = arguments_extractor.nom_lexicon.find_verbs(complement_type)
+		verbs_per_complement_types[complement_type] = arguments_extractor.nom_lexicon.get_verbs_by_arg(complement_type)
 
 	verbs_per_complement_types["TOTAL"] = list(set(flatten(verbs_per_complement_types.values())))
 
@@ -205,6 +208,117 @@ def create_parsed_dataset(sentences_path):
 
 	with open(sentences_path.replace(".txt", ".parsed"), "wb") as parsed_file:
 		parsed_file.write(parsed_dataset.to_bytes())
+
+def check_label(labels_count, label):
+	# Returns whether
+
+	if label not in labels_count:
+		return False
+
+	if labels_count[label] > ARG_DATASET_SIZE / len(labels_count):
+		return False
+
+	return True
+
+def doc_to_text(doc):
+	return " ".join([token.orth_ for token in doc])
+
+
+def get_nouns_examples(doc, arguments_extractor, labels_count):
+	common_nouns = []
+	noun_samples = []
+
+	verb_noun_matcher = arguments_extractor.verb_noun_matcher
+	sent = doc_to_text(doc)
+
+	for word in doc:
+		# Ignore proper nouns and words from other part of speech
+		if word.pos_ != UPOS_NOUN or word.tag_ in [TAG_NNPS, TAG_NNS]:
+			continue
+
+		# Try to find the noun in the lexicon
+		nom_entry, verb = arguments_extractor.nom_lexicon.find(word, verb_noun_matcher=verb_noun_matcher, be_certain=True)
+
+		# We found a noun that isn't even an estimated nom
+		if verb is None:
+			common_nouns.append(word)
+			continue
+
+		# We can only use noms with one type
+		nom_types = nom_entry.get_nom_types(ignore_part=True)
+		if len(nom_types) != 1:
+			continue
+
+		nom_type = nom_types[0]
+
+		if check_label(labels_count, nom_type):
+			noun_samples.append((sent, word.i, nom_entry.orth, verb, nom_type))
+			labels_count[nom_type] += 1
+
+	# Choose one random noun from the sentence
+	if common_nouns != [] and check_label(labels_count, "NONE"):
+		noun = random.choice(common_nouns)
+		noun_samples.append((sent, noun.i, noun.orth, "NONE", "NONE"))
+		labels_count["NONE"] += 1
+
+	return noun_samples
+
+def load_dataset(input_path, output_path, binary=False):
+	# Load the dataset in the given path, and ignore it if the given output exists
+	dataset = None
+
+	if config.IGNORE_PROCESSED_DATASET and isfile(output_path):
+		return None
+
+	try:
+		if not binary:
+			return open(input_path, "r")
+
+		with open(input_path, "rb") as parsed_dataset_file:
+			dataset_bytes = parsed_dataset_file.read()
+			doc_bin = DocBin().from_bytes(dataset_bytes)
+			dataset = doc_bin.get_docs(ud_parser.vocab)
+	except zlib.error:
+		pass
+
+	return dataset
+
+def print_status(samples, dataset_path, labels_count):
+	n_samples = len(samples)
+
+	if float(int(n_samples / STATUS_PERIOD)) == n_samples / STATUS_PERIOD:
+		print(dataset_path.split('/')[-1] + f" (Total: {n_samples}- {list(labels_count.items())})")
+
+def create_nouns_dataset(dataset_path, args_extractor: ArgumentsExtractor):
+	output_dataset_path = dataset_path.replace(".parsed", "_nouns.csv")
+	parsed_dataset = load_dataset(dataset_path, output_dataset_path)
+
+	if parsed_dataset is None:
+		return None
+
+	noun_samples = []
+	labels_count = {NOM_TYPE_SUBJ: 0, NOM_TYPE_OBJ: 0, NOM_TYPE_IND_OBJ: 0, NOM_TYPE_VERB_NOM: 0, "NONE": 0}
+
+	try:
+		for doc in parsed_dataset:
+			new_samples = get_nouns_examples(doc, args_extractor, labels_count)
+			noun_samples += new_samples
+
+			if new_samples == []:
+				continue
+
+			print_status(noun_samples, dataset_path, labels_count)
+
+			if len(noun_samples) >= ARG_DATASET_SIZE:
+				break
+
+	except KeyboardInterrupt:
+		print("The dataset creation was paused, but saved!")
+
+	print(f"The dataset contains {len(noun_samples)} nouns")
+
+	nouns_dataset = pd.DataFrame(noun_samples)
+	nouns_dataset.to_csv(output_dataset_path, sep="\t", index=False, header=None)
 
 
 

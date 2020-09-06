@@ -1,19 +1,24 @@
 import os
+import re
 from collections import defaultdict
+
+from tqdm import tqdm
 
 from arguments_extractor.rule_based.lexicon import Lexicon
 from arguments_extractor.lisp_to_json.lisp_to_json import lisp_to_json
-from arguments_extractor.model_based.arguments_predictor import ArgumentsPredictor
-from arguments_extractor.nom_dictionary.nom_dictionary import NomDictionary
+from arguments_extractor.model_based.types_predictor import TypesPredictor
+from arguments_extractor.verb_noun_matcher.verb_noun_matcher import VerbNounMatcher
 from arguments_extractor.constants.ud_constants import *
-from arguments_extractor.utils import get_lexicon_path, get_dependency_tree
+from arguments_extractor.utils import get_lexicon_path, get_dependency_tree, flatten, filter_list
 from arguments_extractor import config
 
 class ArgumentsExtractor:
+	PREDICATE = "#"
+
 	verb_lexicon: Lexicon
 	nom_lexicon: Lexicon
-	arguments_predictor: ArgumentsPredictor
-	nom_dictionary: NomDictionary
+	arguments_predictor: TypesPredictor
+	verb_noun_matcher: VerbNounMatcher
 
 	def __init__(self, lexicon_file_name=config.LEXICON_FILE_NAME):
 		verb_json_file_path = get_lexicon_path(lexicon_file_name, "json", is_verb=True)
@@ -28,17 +33,17 @@ class ArgumentsExtractor:
 		self.nom_lexicon = Lexicon(lexicon_file_name, is_verb=False)
 
 		# Load the predicator of arguments
-		self.arguments_predictor = ArgumentsPredictor()
-		# self.arguments_predictor.load_model()
+		self.arguments_predictor = TypesPredictor()
+		self.arguments_predictor.load_model()
 
 		# Load the dictionary of all possible known nominalization
-		self.nom_dictionary = NomDictionary()
+		self.verb_noun_matcher = VerbNounMatcher(self.verb_lexicon, self.nom_lexicon)
 
 
 
-	@staticmethod
-	def extractions_as_mentions(extractions_per_predicate, document_id, sentence_id, first_word_index):
+	def extractions_as_mentions(self, extractions_per_predicate, document_id, sentence_id, first_word_index, left_shift=0):
 		mentions = []
+		first_word_index += left_shift
 
 		event_id = 0
 		argument_id = 0
@@ -52,8 +57,15 @@ class ArgumentsExtractor:
 
 			# Check whether the current extractions are of a verb or a nominalization
 			is_verb_related = predicate_token.pos_ == UPOS_VERB
+			suitable_verb = predicate_token.lemma_
 
-			all_argument_indexes = [predicate_token.i]
+			if not is_verb_related:
+				_, suitable_verb = self.nom_lexicon.find(predicate_token, using_default=True, verb_noun_matcher=self.verb_noun_matcher)
+
+			if len(extractions) > 1:
+				suitable_verb += f" ({len(extractions)})"
+
+			all_argument_indexes = [left_shift + predicate_token.i]
 			arguments_dict = defaultdict(list)
 
 			if extractions != []:
@@ -61,8 +73,8 @@ class ArgumentsExtractor:
 
 				# Create a text mention for each argument of the predicate
 				for argument_type, argument_span in extraction.items():
-					start_index = argument_span[0].i
-					end_index = argument_span[-1].i
+					start_index = left_shift + argument_span[0].i
+					end_index = left_shift + argument_span[-1].i
 
 					argument_mention = {
 						"type": "TextBoundMention",
@@ -93,7 +105,7 @@ class ArgumentsExtractor:
 				"type": "EventMention",
 				"id": f"R:{sentence_id},{event_id}",
 				"text": sentence_tokens[start_index: end_index + 1].orth_,
-				"labels": [predicate_token.orth_],
+				"labels": [suitable_verb],
 				"sentence": sentence_id,
 				"document": document_id,
 				"event": event_id,
@@ -104,8 +116,8 @@ class ArgumentsExtractor:
 					"text": predicate_token.orth_,
 					"labels": ["\xa0"],
 					"tokenInterval": {
-						"start": predicate_token.i,
-						"end": predicate_token.i + 1
+						"start": left_shift + predicate_token.i,
+						"end": left_shift + predicate_token.i + 1
 					},
 					"realIndex": first_word_index + predicate_token.i,
 					"sentence": sentence_id,
@@ -121,8 +133,8 @@ class ArgumentsExtractor:
 				event_mention["type"] = "TextBoundMention"
 				event_mention["id"] = f"T:{sentence_id},{event_id}"
 				event_mention["tokenInterval"] = {
-					"start": predicate_token.i,
-					"end": predicate_token.i + 1
+					"start": left_shift + predicate_token.i,
+					"end": left_shift + predicate_token.i + 1
 				}
 
 			argument_id += 1
@@ -218,7 +230,8 @@ class ArgumentsExtractor:
 
 
 
-	def extract_arguments(self, sentence, return_dependency_tree=False, min_arguments=0, using_default=False, arguments_predictor=None, specify_none=False, trim_arguments=True, nom_dictionary=None, limited_verbs=None):
+	def extract_arguments(self, sentence, return_dependency_tree=False, min_arguments=0, using_default=False, arguments_predictor=None,
+						  specify_none=False, trim_arguments=True, verb_noun_matcher=None, limited_verbs=None, predicate_indexes=None, return_single=False):
 		"""
 		Extracts arguments of nominalizations and verbs in the given sentence, using NOMLEX lexicon
 		:param sentence: a string text or a dependency tree parsing of a sentence
@@ -226,36 +239,186 @@ class ArgumentsExtractor:
 		:param min_arguments: the minimum number of arguments for any founed extraction (0 is deafult)
 		:param using_default: whether to use the default entry in the lexicon all of the time, otherwise only whenever it is needed
 		:param arguments_predictor: the model-based extractor object to determine the argument type of a span (optional)
-		:param specify_none: wether to specify in the resulted extractions about the unused arguments
-		:param trim_arguments: wether to trim the argument spans in the resulted extractions
-		:param nom_dictionary: a dictionary object of all the known nominalizations (optional)
+		:param specify_none: whether to specify in the resulted extractions about the unused arguments
+		:param trim_arguments: whether to trim the argument spans in the resulted extractions
+		:param verb_noun_matcher: a object that matches a verb with nouns whitin its word family using CATVAR (optional)
 		:param limited_verbs: a list of limited verbs, which limits the predicates that their arguments will be extracted (optional)
+		:param predicate_indexes: a list of specific indexes of the predicated that should be extracted
+		:param return_single: whether to return only a single dictionary of the extracted arguments, together
 		:return: Two dictionaries (and an optional dependency tree):
 				 - The founded extractions for each relevant verbs in the given sentence ({verb_Token: [extraction_Span]})
 				 - The founded extractions for each relevant nominalizations in the given sentence ({nom_Token: [extraction_Span]})
+				 The two dictionaries may return as a single dictionary
 		"""
 
-		if type(sentence) == str:
-			dependency_tree = get_dependency_tree(sentence)
-		else:
-			dependency_tree = sentence
+		dependency_tree = get_dependency_tree(sentence)
 
 		# Extract arguments based on the verbal lexicon
-		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, min_arguments, using_default, arguments_predictor, specify_none, trim_arguments, nom_dictionary, limited_verbs)
+		extractions_per_verb = self.verb_lexicon.extract_arguments(dependency_tree, min_arguments, using_default, arguments_predictor,
+																   specify_none, trim_arguments, verb_noun_matcher, limited_verbs, predicate_indexes)
 
 		# Extract arguments based on the nominal lexicon
-		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, min_arguments, using_default, arguments_predictor, specify_none, trim_arguments, nom_dictionary, limited_verbs)
+		extractions_per_nom = self.nom_lexicon.extract_arguments(dependency_tree, min_arguments, using_default, arguments_predictor,
+																 specify_none, trim_arguments, verb_noun_matcher, limited_verbs, predicate_indexes)
+
+		if return_single:
+			extractions_per_word = extractions_per_verb
+			extractions_per_word.update(extractions_per_nom)
+
+			if return_dependency_tree:
+				return extractions_per_word, dependency_tree
+			else:
+				return extractions_per_word
 
 		if return_dependency_tree:
 			return extractions_per_verb, extractions_per_nom, dependency_tree
 		else:
 			return extractions_per_verb, extractions_per_nom
 
-	def rule_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
-		return self.extract_arguments(sentence, return_dependency_tree, min_arguments)
+	def rule_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0, limited_verbs=None, predicate_indexes=None, return_single=False):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, limited_verbs=limited_verbs, predicate_indexes=predicate_indexes, return_single=return_single)
 
-	def hybrid_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
-		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, arguments_predictor=self.arguments_predictor, nom_dictionary=self.nom_dictionary)
+	def hybrid_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0, limited_verbs=None, predicate_indexes=None, return_single=False):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, arguments_predictor=self.arguments_predictor,
+									  verb_noun_matcher=self.verb_noun_matcher, limited_verbs=limited_verbs, predicate_indexes=predicate_indexes, return_single=return_single)
 
-	def model_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0):
-		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, using_default=True, arguments_predictor=self.arguments_predictor, nom_dictionary=self.nom_dictionary)
+	def model_based_extraction(self, sentence, return_dependency_tree=False, min_arguments=0, limited_verbs=None, predicate_indexes=None, return_single=False):
+		return self.extract_arguments(sentence, return_dependency_tree, min_arguments, using_default=True, arguments_predictor=self.arguments_predictor,
+									  verb_noun_matcher=self.verb_noun_matcher, limited_verbs=limited_verbs, predicate_indexes=predicate_indexes, return_single=return_single)
+
+
+
+	def _extract_specified_info(self, sentence):
+		# Extracts the specified information in the given sentence, including argument names and chosen predicats
+
+		get_first_tag = lambda s: re.search(r"\[([^\[\]]*)\]", s)
+		specified_arguments = {}
+		predicate_indexes = []
+
+		match = get_first_tag(sentence)
+		while match:
+			span = match.span()
+			specified_value = match.group(1).split()
+
+			# Save the founded tag
+			if len(specified_value) != 1:
+				tag = specified_value[0]
+				span_indexes = (len(sentence[:span[0]].split()), len(sentence[:span[1]].split())-2)
+				if tag == self.PREDICATE and span_indexes[0] == span_indexes[1]:
+					predicate_indexes.append(span_indexes[0])
+				else:
+					specified_arguments[span_indexes] = tag
+
+			# Remove the founded tag from the sentence
+			sentence = str(sentence[0:span[0]] + " ".join(specified_value[1:]) + sentence[span[1]:])
+
+			# Searching for another one
+			match = get_first_tag(sentence)
+
+		return sentence, predicate_indexes, specified_arguments
+
+	def get_searched_args(self, example_sentence, extractor_function, specified_args=None, predicate_index=None):
+		if type(example_sentence) != list:
+			example_sentence = [example_sentence]
+			specified_args = [specified_args]
+			predicate_index = [predicate_index]
+
+		searched_args_per_verb = {}
+		triplets = zip(example_sentence, predicate_index, specified_args)
+		for sent, predicate_index, specified_args in triplets:
+			if specified_args is None or predicate_index is None:
+				sent, predicate_indexes, specified_args = self._extract_specified_info(sent)
+
+				if len(predicate_indexes) >= 1:
+					predicate_index = predicate_indexes[0]
+
+			if predicate_index is None:
+				continue
+
+			extractions_per_word = extractor_function(self, sent, predicate_indexes=[predicate_index], return_single=True)
+
+			if extractions_per_word is {}:
+				continue
+
+			# At most only one word was found
+			word = list(extractions_per_word.keys())[0]
+			suitable_verb = self.verb_noun_matcher.get_suitable_verb(word)
+			extractions = extractions_per_word[word]
+
+			# Generate the arguments translator based on the arguments whithin the extractions
+			searched_args = defaultdict(list)
+			for arg_type, arg_span in flatten([list(extraction.items()) for extraction in extractions]):
+				span_indexes = (arg_span[0].i, arg_span[-1].i)
+				if span_indexes in specified_args:
+					searched_args[arg_type] = specified_args[span_indexes]
+
+			searched_args_per_verb[suitable_verb] = searched_args
+
+		return searched_args_per_verb
+
+	def _translate_extractions(self, extractions_per_word, searched_args):
+		# Translates the given extractions, according to the chosen arguments
+		trans_extractions_per_word = defaultdict(list)
+
+		for predicate, extractions in extractions_per_word.items():
+			suitable_verb = self.verb_noun_matcher.get_suitable_verb(predicate)
+			trans_extractions = []
+
+			if suitable_verb not in searched_args:
+				continue
+
+			# Translate the extraction
+			for extraction in extractions:
+				joint_args = set(searched_args[suitable_verb].keys()).intersection(extraction.keys())
+				trans_extrct = {searched_args[suitable_verb][arg]: extraction[arg] for arg in joint_args}
+				trans_extractions.append(trans_extrct)
+
+			# Filter out repeated extractions
+			filtered_extractions = filter_list(trans_extractions, lambda d1,d2: d1.items()<=d2.items(), lambda d: d.keys())
+			trans_extractions_per_word[predicate] = filtered_extractions
+
+		return trans_extractions_per_word
+
+	def search_matching_extractions(self, searched_args, sentences, extractor_function, limited_results=None):
+		limited_words, limited_verbs = set(), set()
+		for suitable_verb in searched_args.keys():
+			limited_words.update(self.verb_noun_matcher.get_all_forms(suitable_verb))
+			limited_verbs.update([suitable_verb])
+
+		if limited_words == set():
+			return {}
+
+		# Extract the same arguments for every nominalization or verb in the given list of sentences
+		count_sents = 0
+		matching_extractions = defaultdict(list)
+		for sentence in tqdm(sentences):
+			doc = get_dependency_tree(sentence, disable=['ner', 'parser', 'tagger'])
+			lemmas = [w.lemma_ for w in doc]
+
+			# Does any of the searched words (verbs and noms) appear in the sentence?
+			if limited_words.isdisjoint(lemmas):
+				continue
+
+			# Get the extractions of the sentence
+			extractions_per_word = extractor_function(self, sentence, limited_verbs=list(limited_verbs), return_single=True)
+
+			# Replace arguments with the searched arguments names
+			trans_extractions_per_word = self._translate_extractions(extractions_per_word, searched_args)
+			matching_extractions.update(trans_extractions_per_word)
+
+			if len(trans_extractions_per_word) >= 1:
+				count_sents += 1
+
+			if limited_results and count_sents >= limited_results:
+				break
+
+		return matching_extractions
+
+	def rule_based_search(self, searched_args, sentences, limited_results=None):
+		return self.search_matching_extractions(searched_args, sentences, self.rule_based_extraction, limited_results=limited_results)
+
+	def hybrid_based_search(self, searched_args, sentences, limited_results=None):
+		return self.search_matching_extractions(searched_args, sentences, self.hybrid_based_extraction, limited_results=limited_results)
+
+	def model_based_search(self, searched_args, sentences, limited_results=None):
+		return self.search_matching_extractions(searched_args, sentences, self.model_based_extraction, limited_results=limited_results)

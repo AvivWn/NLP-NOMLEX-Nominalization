@@ -234,6 +234,11 @@ def translate(lines):
 				if count_founded_entries[not_numbered_orth] != 1:
 					entry["numbered_orth"] = not_numbered_orth + "#" + str(count_founded_entries[not_numbered_orth])
 
+				# Two worded verbs include also a particle (like "sponge off")
+				# In such cases the particle should be removed from the verb form
+				if " " in entry[ENT_VERB]:
+					entry[ENT_VERB] = entry[ENT_VERB].split(" ")[0]
+
 				entries.append(entry)
 
 		pbar.update(new_index - index + 1)

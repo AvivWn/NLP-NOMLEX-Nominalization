@@ -43,6 +43,47 @@ def difference_list(first, second):
 def reverse_dict(dictionary):
 	return {value:key for key, value in dictionary.items()}
 
+def filter_list(l, is_more_general, keys_func, largest=True, greedy=False):
+	# Finds the objects in the given list with the highest number of keys
+	# The resulted list shouldn't contain two objects that mean same thing
+
+	if greedy:
+		l.sort(key=lambda x: len(keys_func(x)), reverse=True)
+
+	general_list = []
+
+	for x in l:
+		found_more_general = False
+
+		if largest and len(keys_func(x)) != len(keys_func(l[0])):
+			continue
+
+		compared_list = general_list if greedy else l
+
+		for other_x in compared_list:
+			# Whether the other item is more general than the current one
+			if is_more_general(x, other_x):
+				found_more_general = True
+				break
+
+		if not found_more_general:
+			general_list.append(x)
+
+	return general_list
+
+def aggregate_to_dict(list_of_dicts):
+	# Transforms a list of dictionaries, into dictionary of lists
+	total_dict = defaultdict(list)
+
+	for dic in list_of_dicts:
+		for k in dic:
+			if type(dic[k]) == list:
+				total_dict[k] += dic[k]
+			else:
+				total_dict[k].append(dic[k])
+
+	return total_dict
+
 def flatten(l):
 	return [item for sublist in l for item in sublist]
 
@@ -71,14 +112,23 @@ def list_to_regex(list_of_options, delimiter, start_constraint="", end_constrain
 
 	return regex_pattern
 
-def get_dependency_tree(sentence):
+def get_dependency_tree(sentence, disable=None):
 	"""
 	Returns the dependency tree of a given sentence
-	:param sentence: a string sentence
-	:return: the dependency tree of the sentence (a list of doc = sequence of Spacy tokens)
+	:param sentence: a string sentence, or an already parsed sentence (Doc object)
+	:param disable: names of pipes that should be disabled in the parsing process
+	:return: the dependency tree of the sentence (a sequence of Spacy tokens = Doc)
 	"""
 
-	return ud_parser(sentence)
+	if type(sentence) != str:
+		return sentence
+
+	sentence = sentence.strip(" \t\r\n")
+
+	if disable is None:
+		disable = []
+
+	return ud_parser(sentence, disable=disable)
 
 def get_lexicon_path(file_name, type_of_file, is_verb=False, is_nom=False):
 	file_name = file_name.replace(".txt", "")

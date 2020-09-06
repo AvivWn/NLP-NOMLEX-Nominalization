@@ -6,7 +6,7 @@ from collections import defaultdict
 from tqdm import tqdm
 
 from arguments_extractor.lisp_to_json.simplify_lexicon_keys import remove_entries, split_entries
-from arguments_extractor.lisp_to_json.simplify_entry import rearrange_entry
+from arguments_extractor.lisp_to_json.simplify_entry import rearrange_entry, alt_subcats
 from arguments_extractor.lisp_to_json.simplify_subcat import nom_roles_for_pval
 from arguments_extractor.lisp_to_json.simplify_representation import argument_constraints, missing_required, args_without_pos
 from arguments_extractor.lisp_to_json.utils import get_current_specs, curr_specs, is_known, without_part, get_right_value, unknown_values_dict, known_values_dict
@@ -83,7 +83,7 @@ def sanity_checks(lexicon, is_verb=False):
 					for constraint in complement_info[ARG_CONSTRAINTS]:
 						is_known(constraint, ["ARG_CONSTRAINT"], "ARG CONSTRAINTS")
 
-					if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_POSITIONS]) or\
+					if (ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_DET_POSS not in complement_info[ARG_POSITIONS]) or \
 					   (ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ in complement_info[ARG_CONSTRAINTS] and POS_N_N_MOD not in complement_info[ARG_POSITIONS]):
 						noms_with_missing_positions.append(word)
 
@@ -236,20 +236,28 @@ def add_default_entry(lexicon):
 					default_subcat[clean_complement_type] = {}
 
 				for linked_arg in complement_info.keys():
-
 					if linked_arg not in default_subcat[clean_complement_type]:
 						default_subcat[clean_complement_type][linked_arg] = defaultdict(list)
 
 					default_arg = default_subcat[clean_complement_type][linked_arg]
 
+					default_arg[ARG_PREFIXES] += complement_info[linked_arg].get(ARG_PREFIXES, [])
 					default_arg[ARG_POSITIONS] = list(set(default_arg[ARG_POSITIONS] + complement_info[linked_arg].get(ARG_POSITIONS, [])))
-					default_arg[ARG_PREFIXES] = list(set(default_arg[ARG_PREFIXES] + complement_info[linked_arg].get(ARG_PREFIXES, [])))
 					default_arg[ARG_ROOT_UPOSTAGS] = list(set(default_arg[ARG_ROOT_UPOSTAGS] + complement_info[linked_arg].get(ARG_ROOT_UPOSTAGS, [])))
 					default_arg[ARG_ROOT_URELATIONS] = list(set(default_arg[ARG_ROOT_URELATIONS] + complement_info[linked_arg].get(ARG_ROOT_URELATIONS, [])))
 					default_arg[ARG_ROOT_PATTERNS] = list(set(default_arg[ARG_ROOT_PATTERNS] + complement_info[linked_arg].get(ARG_ROOT_PATTERNS, [])))
 
 					constraints = difference_list(complement_info[linked_arg].get(ARG_CONSTRAINTS, []), [ARG_CONSTRAINT_PLURAL, ARG_CONSTRAINT_N_N_MOD_NO_OTHER_OBJ, ARG_CONSTRAINT_DET_POSS_NO_OTHER_OBJ])
 					default_arg[ARG_CONSTRAINTS] = list(set(default_arg[ARG_CONSTRAINTS] + constraints))
+
+	# Most common prepositionnal positions for each NP or PP arguments
+	for complement_type, complement_info in default_subcat.items():
+		for linked_arg in complement_info.keys():
+			# if complement_type in [COMP_SUBJ, COMP_OBJ, COMP_IND_OBJ, COMP_PP]:
+			# 	print(complement_type)
+			# 	print(np.unique(complement_info[linked_arg][ARG_PREFIXES], return_counts=True))
+
+			complement_info[linked_arg][ARG_PREFIXES] = list(set(complement_info[linked_arg][ARG_PREFIXES]))
 
 	default_subcat[SUBCAT_OPTIONAL] = list(default_subcat.keys())
 	default_entry[ENT_ORTH] = DEFAULT_ENTRY

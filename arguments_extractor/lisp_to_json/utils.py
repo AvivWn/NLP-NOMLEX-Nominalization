@@ -33,13 +33,31 @@ def get_current_specs():
 
 	return ", ".join(curr_specs_list)
 
-def without_part(a_type):
-	a_type = a_type.replace("VERB-PART", "VERB-NOM").replace("-PART-", "-")
+def without_part(tag:str):
+	# Returns the given tag without the "PART" property
+	# The given tag might be a nom-type or a subcat-type
 
-	if a_type.startswith("NOM"):
-		return a_type.replace("-PART", "-INTRANS")
+	tag = tag.replace("VERB-PART", "VERB-NOM")
+	tag = tag.replace("-PART-", "-")
 
-	return a_type.replace("-PART", "")
+	# For subcat-type
+	if tag.startswith("NOM"):
+		return tag.replace("-PART", "-INTRANS")
+
+	# For nom-type
+	return tag.replace("-PART", "")
+
+def get_verb_type(subcat:str):
+	# Returns the verb-type of a verb that has the given subcat structure
+	subcat = without_part(subcat)
+
+	if subcat in ["NOM-NP-NP", "NOM-NP-TO-NP", "NOM-NP-FOR-NP"]:
+		return VERB_TYPE_DITRANS
+
+	if subcat.startswith("NOM-NP"):
+		return VERB_TYPE_TRANS
+
+	return VERB_TYPE_INTRANS
 
 def get_right_value(table, subcat_type, default=None, is_verb=False):
 	if subcat_type not in table.keys():

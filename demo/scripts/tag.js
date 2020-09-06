@@ -40878,7 +40878,11 @@ function () {
       if (nextWord) {
         var nextWordPadding = nextWord.isPunct ? this.config.wordPunctPadding : this.config.wordPadding;
 
-        if (nextWord.x - nextWordPadding < newX + word.minWidth) {
+        if (word.text === ".") {
+		  nextWordPadding = this.config.wordAfterSentencePadding;
+		}
+
+        if (nextWord.x - nextWordPadding <= newX + word.minWidth) {
           overflowIndex = this.positionWord(nextWord, newX + word.minWidth + nextWordPadding);
         }
       } // We have moved the next Word on the Row, or marked it as part of the
@@ -42905,7 +42909,7 @@ function Config() {
   this.wordPadding = 10; // Left-padding for punctuation Words
 
   this.wordPunctPadding = 2; // Vertical padding between Words and WordTags drawn above them
-  this.wordAfterSentencePadding = 10; // Vertical padding after the end of a sentence
+  this.wordAfterSentencePadding = 10; // Vertical padding after the end of a sentence - Custom change
 
   this.wordTopTagPadding = 10; // Vertical padding between Words and WordTags drawn below them
 
@@ -42932,7 +42936,8 @@ function Config() {
   // queue). When this array is exhausted, we will switch to using
   // randomColor.
 
-  this.custom_theme = "Light";
+  this.custom_theme = "Light"; // Custom change- determinig the color
+  this.separateLinesSentences = false; // Custom change- determining whether each sentence will be in different row or not
 
   this.tagDefaultColours = ["#3fa1d1", "#ed852a", "#2ca02c", "#c34a1d", "#a048b3", "#e377c2", "#bcbd22", "#17becf", "#e7298a", "#e6ab02", "#7570b3", "#a6761d", "#7f7f7f"];
 };
@@ -44068,6 +44073,11 @@ function () {
 
       var overflow = row.addWord(word, i, forceX);
 
+      // Custom change- multi sentences will start in a new line, if specified
+      if (i !== 0 && row.words[i - 1].text === "." && word.config.separateLinesSentences) {
+      	this.moveLastWordDown(row.idx);
+	  }
+
       while (overflow < row.words.length) {
         this.moveLastWordDown(row.idx);
       } // Now that the Words are settled, make sure that the Row is high enough
@@ -44143,6 +44153,17 @@ function () {
 
 
       if (!nextWord) {
+      	// Custom change- the entire next sentence goes down
+      	// if (row.idx !== word.main.rowManager._rows.length - 1 && this.config.separateLinesSentences && word.main.rowManager._rows[row.idx + 1].words.length > 0 && word.main.rowManager._rows[row.idx + 1].words[0].text.endsWith(")")) {
+      	// 	for (let row_index = word.main.rowManager._rows.length - 1; row_index > row.idx; row_index--) {
+      	// 		for (let num_of_words = word.main.rowManager._rows[row_index].words.length - 1; num_of_words >= 0; num_of_words--) {
+      	// 			this.moveLastWordDown(row_index);
+		// 		}
+		// 	}
+		//
+      	// 	this.fitWords();
+		// }
+
         // Last word on this row
         this.moveLastWordDown(row.idx);
       } else {
@@ -44152,6 +44173,7 @@ function () {
           wordIndex: wordIndex + 1,
           dx: dx
         });
+
         this.moveWordRight(params);
       }
     }
@@ -44203,12 +44225,20 @@ function () {
           return false;
         } // Fits on the previous Row?
 
+	    // Custom cahnge- Does the last row ends with "."
+	    if (prevRow.words.length >= 1 && prevRow.words[prevRow.words.length - 1].text === ".") {
+		  if (this.config.separateLinesSentences) {
+		    return false;
+		  }
+		  else {
+		  	leftPadding += this.config.wordAfterSentencePadding;
+		  }
+	  	}
 
         if (prevRow.availableSpace >= word.minWidth + leftPadding) {
           this.moveFirstWordUp(row.idx);
           return true;
         } // Can we shift the Words on the previous Row?
-
 
         var prevRowShift = word.minWidth + leftPadding - prevRow.availableSpace;
 
