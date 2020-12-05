@@ -20,7 +20,7 @@ import pybart.conllu_wrapper as cw
 
 #@TODO- change import of module when it will become a web package
 sys.path.append("../")
-from arguments_extractor import *
+from noun_as_verb import *
 
 MIN_RESPONSE_TIME = 1 # seconds
 
@@ -167,7 +167,8 @@ def _extract_arguments(sentence, extractor_function, specified_arguments, predic
 		predicate_index_list.append(relevant_predicate_indexes[0])
 
 	# Find the total arguments that we want to search for each verb, and their updated names
-	searched_args = test_extractor.get_searched_args(extractions_per_word_list, extractor_function, specified_arguments=relevant_specified_arguments_list, predicate_index=predicate_index_list)
+	searched_args = test_extractor.get_searched_args(extractions_per_word_list, extractor_function,
+													 specified_args=relevant_specified_arguments_list, predicate_index=predicate_index_list)
 
 	extractions_info = {
 		"parsed-data": odin_formated_doc,
@@ -331,7 +332,7 @@ if __name__ == '__main__':
 	parser = nlp.get_pipe('parser')
 
 	# Load the example sentences
-	DATA_PATH = "data/example_sentences.txt"
+	DATA_PATH = "data/too_clean_wiki/example.txt"
 	with open(DATA_PATH, "r") as example_sentence_file:
 		example_sentences = example_sentence_file.readlines()
 
@@ -339,6 +340,7 @@ if __name__ == '__main__':
 	with open(DATA_PATH.replace(".txt", ".parsed"), "rb") as parsed_dataset_file:
 		dataset_bytes = parsed_dataset_file.read()
 		doc_bin = DocBin().from_bytes(dataset_bytes)
+		docs = doc_bin.get_docs(nlp.vocab)
 		parsed_example_sentences = list(doc_bin.get_docs(nlp.vocab))
 
 	# Start the server
