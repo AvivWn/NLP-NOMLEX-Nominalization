@@ -1,0 +1,2 @@
+from nomlex_config import NOMLEX_CONFIG
+from parsing_config import PARSING_CONFIG
