@@ -26,7 +26,7 @@ def add_to_lexicon(lexicon: Lexicon, entry: Optional[LexicalEntry]):
 		if subcat_type not in exist_entry.subcats:
 			exist_entry.subcats[subcat_type] = []
 
-		exist_entry.subcats[subcat_type] += subcat
+		exist_entry.subcats[subcat_type] = list(set(exist_entry.subcats[subcat_type] + subcat))
 
 
 def create_entry_from_dict(entry: dict, related_orths: List[str]) -> LexicalEntry:
@@ -47,11 +47,12 @@ def create_verb_entry(entry: dict) -> Optional[LexicalEntry]:
 
 
 def create_nom_entry(entry: dict) -> Optional[LexicalEntry]:
-	if EntryType.NOM not in entry[EntryProperty.TYPE]:
+	if entry[EntryProperty.TYPE] not in [EntryType.NOM]:
 		return None
 
-	dict_nom_entry = deepcopy(entry)
-	return adapt_entry(dict_nom_entry, LexiconType.NOUN)
+	nom_entry = deepcopy(entry)
+	adapt_entry(nom_entry, LexiconType.NOUN)
+	return create_entry_from_dict(nom_entry, [entry[EntryProperty.VERB]])
 
 
 def adapt_entry_and_insert(lexicon: Lexicon, entry: dict):

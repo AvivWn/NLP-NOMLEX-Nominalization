@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
@@ -6,10 +6,13 @@ from dataclasses_json import dataclass_json
 from yet_another_verb.nomlex.constants import ArgumentType, WordRelation, POSTag
 
 
+# class OnRequiredValue()
+
+
 @dataclass_json
 @dataclass
 class ConstraintsMap:
-	arg_type: ArgumentType = field(default=None)
+	arg_type: Optional[ArgumentType] = field(default=None)
 	controlled: List[ArgumentType] = field(default_factory=list)
 
 	word_relations: List[WordRelation] = field(default_factory=list)
@@ -20,4 +23,7 @@ class ConstraintsMap:
 	plural: bool = field(default=False)
 	subjunct: bool = field(default=False)
 
-	sub_constraints: List['ConstraintsMap'] = field(default_factory=list)
+	relatives_constraints: List['ConstraintsMap'] = field(default_factory=list)
+
+	def __hash__(self):
+		return hash(str(self))

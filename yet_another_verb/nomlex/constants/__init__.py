@@ -10,5 +10,4 @@ from yet_another_verb.nomlex.constants.argument_type import ArgumentType
 from yet_another_verb.nomlex.constants.argument_value import ArgumentValue
 from yet_another_verb.nomlex.constants.argument_property import ArgumentProperty
 from yet_another_verb.nomlex.constants.word_relation import WordRelation
-from yet_another_verb.nomlex.constants.u_postag import UPOSTag
 from yet_another_verb.nomlex.constants.word_postag import POSTag

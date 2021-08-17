@@ -11,32 +11,47 @@ from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMa
 from yet_another_verb.nomlex.adaptation.modifications.arg_properties import get_plural_property, \
 	get_subjunct_property, get_controlled_args, get_arg_attributes_property
 
-ConstraintMaps = List[ConstraintsMap]
+ConstraintsMaps = List[ConstraintsMap]  # (constraint 1) OR (constraint 2) OR (...)
 
 
-def _get_mark_maps(values: List[str], postags: List[POSTag] = None) -> ConstraintMaps:
+def _exapnd_constraint(constraint_map: ConstraintsMap, relatives_constraints: ConstraintsMaps) -> ConstraintsMaps:
+	if len(relatives_constraints) == 0:
+		return [constraint_map]
+
+	resulted_maps = []
+	for relative_constraints in relatives_constraints:
+		expanded_consrtaint = deepcopy(constraint_map)
+		expanded_consrtaint.relatives_constraints.append(relative_constraints)
+		resulted_maps.append(expanded_consrtaint)
+
+	return resulted_maps
+
+
+def _get_mark_map(values: List[str], postags: List[POSTag] = None) -> ConstraintsMap:
 	postags = [] if postags is None else postags
-	return [ConstraintsMap(word_relations=[WordRelation.MARK], values=values, postags=postags)]
+	return ConstraintsMap(word_relations=[WordRelation.MARK], values=values, postags=postags)
 
 
-def _get_advmod_maps(values: List[str]) -> ConstraintMaps:
-	return [ConstraintsMap(word_relations=[WordRelation.ADVMOD], values=values)]
+def _get_advmod_map(values: List[str], postags: List[POSTag] = None) -> ConstraintsMap:
+	postags = [] if postags is None else postags
+	return ConstraintsMap(word_relations=[WordRelation.ADVMOD], values=values, postags=postags)
 
 
-def _get_np_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
+def _get_np_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
 	return [ConstraintsMap(word_relations=word_relations, postags=NOUN_POSTAGS)]
 
 
-def _get_possessive_maps():
-	return _get_np_maps([WordRelation.NMOD_POSS]) + [
+def _get_possessive_maps() -> ConstraintsMaps:
+	return [
+		ConstraintsMap(word_relations=[WordRelation.NMOD_POSS], postags=NOUN_POSTAGS),
 		ConstraintsMap(word_relations=[WordRelation.NSUBJ], postags=[POSTag.PRP_POSS]),
-		ConstraintsMap(word_relations=[WordRelation.NSUBJ], postags=NOUN_POSTAGS, sub_constraints=[
+		ConstraintsMap(word_relations=[WordRelation.NSUBJ], postags=NOUN_POSTAGS, relatives_constraints=[
 			ConstraintsMap(values=["'s"], postags=[POSTag.POS])
 		])
 	]
 
 
-def _get_adjective_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
+def _get_adjective_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
 	return [ConstraintsMap(word_relations=word_relations, postags=ADJECTIVE_POSTAGS)]
 
 
@@ -44,14 +59,15 @@ def _get_adverb_maps():
 	return [ConstraintsMap(word_relations=[WordRelation.ADVMOD], postags=ADVERB_POSTAGS)]
 
 
-def _get_to_inf_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
+def _get_to_inf_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
 	return [ConstraintsMap(
 		word_relations=word_relations,
 		postags=[POSTag.VB],
-		sub_constraints=_get_mark_maps(["to"], [POSTag.TO])
+		relatives_constraints=[_get_mark_map(["to"], [POSTag.TO])]
 	), ConstraintsMap(
 		word_relations=word_relations,
-		sub_constraints=_get_mark_maps(["to"], [POSTag.TO]) + [
+		relatives_constraints=[
+			_get_mark_map(["to"], [POSTag.TO]),
 			ConstraintsMap(
 				word_relations=[WordRelation.COP],
 				postags=[POSTag.VB],
@@ -61,106 +77,118 @@ def _get_to_inf_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
 	)]
 
 
-def _get_ing_maps(word_relations: List[WordRelation], possessive: bool = False) -> ConstraintMaps:
-	return [ConstraintsMap(
-		word_relations=word_relations,
-		postags=[POSTag.VBG],
-		sub_constraints=[] if not possessive else _get_possessive_maps()
-	), ConstraintsMap(
-		word_relations=word_relations,
-		sub_constraints=([] if not possessive else _get_possessive_maps()) + [
-			ConstraintsMap(
-				word_relations=[WordRelation.COP],
-				postags=[POSTag.VBG],
-				values=["being"]
-			)
-		]
-	)]
+def _get_ing_maps(word_relations: List[WordRelation], possessive: bool = False) -> ConstraintsMaps:
+	possessive_constraints = [] if not possessive else _get_possessive_maps()
+
+	return _exapnd_constraint(
+		ConstraintsMap(
+			word_relations=word_relations,
+			postags=[POSTag.VBG],
+		), possessive_constraints
+	) + _exapnd_constraint(
+		ConstraintsMap(
+			word_relations=word_relations,
+			relatives_constraints=[
+				ConstraintsMap(
+					word_relations=[WordRelation.COP],
+					postags=[POSTag.VBG],
+					values=["being"]
+				)
+			]
+		), possessive_constraints
+	)
 
 
 def _get_sbar_maps(
 		word_relations: List[WordRelation],
-		sub_constraints: ConstraintMaps = None,
+		relatives_constraints: ConstraintsMaps = None,
 		tensed_only: bool = False,
 		untensed_only: bool = False
-) -> ConstraintMaps:
+) -> ConstraintsMaps:
 	assert tensed_only ^ untensed_only or (not tensed_only and not untensed_only)
 
-	sub_constraints = [] if sub_constraints is None else sub_constraints
-	sub_constraints += _get_np_maps([WordRelation.NSUBJ, WordRelation.NSUBJPASS]) if tensed_only else []
-	sub_constraints += _get_mark_maps(["to"], [POSTag.TO]) if untensed_only else []
+	relatives_constraints = [] if relatives_constraints is None else relatives_constraints
+
+	if tensed_only:
+		relatives_constraints += [ConstraintsMap(word_relations=[WordRelation.NMOD_POSS], postags=NOUN_POSTAGS)]
+
+	if untensed_only:
+		relatives_constraints += [_get_mark_map(["to"], [POSTag.TO])]
 
 	return [ConstraintsMap(
 		word_relations=word_relations,
 		postags=[POSTag.VB] if untensed_only else VERB_POSTAGS,
-		sub_constraints=sub_constraints
+		relatives_constraints=relatives_constraints
 	)]
 
 
-def _get_that_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_mark_maps(["that"]), tensed_only=True)
+def _get_that_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_mark_map(["that"])], tensed_only=True)
 
 
-def _get_whether_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_mark_maps(["whether"]))
+def _get_whether_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_mark_map(["whether"])])
 
 
-def _get_what_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, [ConstraintsMap(values=["what"], word_relations=[WordRelation.NSUBJ, WordRelation.DOBJ])])
+def _get_what_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [ConstraintsMap(
+		values=["what"],
+		word_relations=[WordRelation.NSUBJ, WordRelation.DOBJ]
+	)])
 
 
-def _get_if_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_mark_maps(["if"]))
+def _get_if_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_mark_map(["if"])])
 
 
-def _get_where_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_advmod_maps(["where"]))
+def _get_where_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_advmod_map(["where"])])
 
 
-def _get_when_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_advmod_maps(["when"]))
+def _get_when_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_advmod_map(["when"])])
 
 
-def _get_how_much_or_many_s_maps(word_relations: List[WordRelation], much_or_many: str) -> ConstraintMaps:
+def _get_how_much_or_many_s_maps(word_relations: List[WordRelation], much_or_many: str) -> ConstraintsMaps:
 	how_much_or_many_s_map = ConstraintsMap(
 		word_relations=[WordRelation.ADVMOD],
 		values=[much_or_many],
-		sub_constraints=_get_advmod_maps(["how"])
+		relatives_constraints=[_get_advmod_map(["how"])]
 	)
 	return _get_sbar_maps(
 		word_relations,
 		[ConstraintsMap(
 			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
-			sub_constraints=[how_much_or_many_s_map]
+			relatives_constraints=[how_much_or_many_s_map]
 		)]
 	) + _get_sbar_maps(word_relations, [how_much_or_many_s_map])
 
 
-def _get_how_much_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
+def _get_how_much_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
 	return _get_how_much_or_many_s_maps(word_relations, "much")
 
 
-def _get_how_many_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
-	return _get_how_much_or_many_s_maps(word_relations , "many")
+def _get_how_many_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
+	return _get_how_much_or_many_s_maps(word_relations, "many")
 
 
-def _get_how_s_maps(word_relations: List[WordRelation], untensed_only: bool = False) -> ConstraintMaps:
-	return _get_sbar_maps(word_relations, _get_advmod_maps(["how"]), untensed_only=untensed_only)
+def _get_how_s_maps(word_relations: List[WordRelation], untensed_only: bool = False) -> ConstraintsMaps:
+	return _get_sbar_maps(word_relations, [_get_advmod_map(["how"])], untensed_only=untensed_only)
 
 
-def _get_as_if_s_maps(word_relations: List[WordRelation]) -> ConstraintMaps:
+def _get_as_if_s_maps(word_relations: List[WordRelation]) -> ConstraintsMaps:
 	if_map = ConstraintsMap(word_relations=[WordRelation.MWE], values=["if"])
 	return _get_sbar_maps(
 		word_relations,
 		[ConstraintsMap(
 			word_relations=[WordRelation.MARK],
 			values=["as"],
-			sub_constraints=[if_map]
+			relatives_constraints=[if_map]
 		)]
 	)
 
 
-def _get_particle_maps(values: List[str]) -> ConstraintMaps:
+def _get_particle_maps(values: List[str]) -> ConstraintsMaps:
 	return [ConstraintsMap(word_relations=[WordRelation.PRT, WordRelation.COMPOUND_PRT], values=values, postags=[POSTag.RP])]
 
 
@@ -204,8 +232,6 @@ ARG_CONSTRAINTS = {
 		ArgumentValue.SBAR: _get_that_s_maps([WordRelation.CCOMP]),
 		ArgumentValue.THAT_S: _get_that_s_maps([WordRelation.CCOMP]),
 		ArgumentValue.AS_IF_S: _get_as_if_s_maps([WordRelation.ADVCL]),
-
-		ArgumentValue.NOM: [ConstraintsMap()]
 	}
 }
 
@@ -267,7 +293,7 @@ def _get_constraints_with_one_worded_preps(
 	one_worded_map = deepcopy(constraints_map)
 	word_relations = word_relations if word_relations is not None else PREP_RELATIONS[arg_type]
 	postags = postags if postags is not None else []
-	one_worded_map.sub_constraints += [ConstraintsMap(word_relations=word_relations, values=preps, postags=postags)]
+	one_worded_map.relatives_constraints += [ConstraintsMap(word_relations=word_relations, values=preps, postags=postags)]
 	return one_worded_map
 
 
@@ -281,7 +307,7 @@ def _get_constraints_with_two_words_prep(
 		ConstraintsMap(
 			word_relations=[WordRelation.ADVMOD],
 			values=[words[0]],
-			sub_constraints=[deepcopy(second_word_constraint)]
+			relatives_constraints=[deepcopy(second_word_constraint)]
 		),
 		_get_constraints_with_one_worded_preps(
 			constraints_map=deepcopy(second_word_constraint),
@@ -291,9 +317,9 @@ def _get_constraints_with_two_words_prep(
 		),
 		_get_with_more_constraints(
 			constraints_map,
-			sub_constraints=[ConstraintsMap(
+			relatives_constraints=[ConstraintsMap(
 				word_relations=[WordRelation.CASE, WordRelation.MARK],
-				sub_constraints=[ConstraintsMap(word_relations=[WordRelation.MWE], values=[words[1]])],
+				relatives_constraints=[ConstraintsMap(word_relations=[WordRelation.MWE], values=[words[1]])],
 				values=[words[0]]
 			)]
 		)
@@ -308,7 +334,7 @@ def _get_constraints_with_three_words_prep(
 		ConstraintsMap(
 			word_relations=[WordRelation.NMOD],
 			values=[words[1]],
-			sub_constraints=[
+			relatives_constraints=[
 				_get_constraints_with_one_worded_preps(constraints_map, arg_type, [words[2]]),
 				ConstraintsMap(word_relations=[WordRelation.CASE, WordRelation.MARK], values=[words[0]])
 			]
@@ -316,9 +342,9 @@ def _get_constraints_with_three_words_prep(
 	]
 
 
-def _get_with_more_constraints(constraints_map: ConstraintsMap, sub_constraints: ConstraintMaps) -> ConstraintsMap:
+def _get_with_more_constraints(constraints_map: ConstraintsMap, relatives_constraints: ConstraintsMaps) -> ConstraintsMap:
 	constraints_map = deepcopy(constraints_map)
-	constraints_map.sub_constraints += sub_constraints
+	constraints_map.relatives_constraints += relatives_constraints
 	return constraints_map
 
 
@@ -337,7 +363,7 @@ def _get_preps_by_n_words(preps: List[str]) -> Dict[int, List[str]]:
 
 def _get_constraints_with_preps(
 		constraints_map: ConstraintsMap, arg_type: ArgumentType, preps: List[str]
-) -> ConstraintMaps:
+) -> ConstraintsMaps:
 	if len(preps) == 0:
 		return [constraints_map]
 
@@ -369,14 +395,11 @@ def _get_constraints_with_preps(
 def _update_requirement(constraint_map: ConstraintsMap, is_required: bool):
 	constraint_map.required = is_required
 
-	for sub_constraint in constraint_map.sub_constraints:
-		_update_requirement(sub_constraint, is_required)
-
 
 def get_arg_constraints_maps(
 		subcat_type: SubcatType, arg_type: ArgumentType, arg_value: ArgumentValue, lexicon_type: LexiconType,
 		preps: List[str], is_required: bool
-) -> ConstraintMaps:
+) -> ConstraintsMaps:
 	attributes_property = get_arg_attributes_property(arg_type)
 	attributes = [] if attributes_property is None else attributes_property
 	is_plural = get_plural_property(subcat_type, arg_type)

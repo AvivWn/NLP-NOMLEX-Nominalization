@@ -1,4 +1,5 @@
 from os import makedirs
+from os.path import dirname
 
 import pandas as pd
 
@@ -15,6 +16,6 @@ class CSVFileHandler(FileHandler):
 
 	@staticmethod
 	def save(file_path, data):
-		makedirs(file_path, exist_ok=True)
+		makedirs(dirname(file_path), exist_ok=True)
 		df = pd.DataFrame(data)
 		df.to_csv(file_path, sep="\t", index=False, header=False)

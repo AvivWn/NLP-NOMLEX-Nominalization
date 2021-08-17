@@ -139,30 +139,39 @@ def _get_subcat_as_constraint_maps(
 				value_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
 			)
 
-		arg_constraints = []
+		nom_arg_type = None
+		constraints_by_arg = {}
 		for arg_type, arg_value in value_by_arg.items():
 			if _is_value_required_by_other_arg(subcat, arg_type, arg_value):
 				continue
 
+			if arg_value is ArgumentValue.NOM:
+				nom_arg_type = arg_type
+
 			# TODO: handle specific ING subcats differently
-			arg_constraints += get_arg_constraints_maps(
+			constraints_by_arg[arg_type] = get_arg_constraints_maps(
 				subcat_type=subcat_type, arg_type=arg_type, arg_value=arg_value, lexicon_type=lexicon_type,
 				preps=subcat[SubcatProperty.ARGUMENTS][arg_type][arg_value],
 				is_required=arg_type in subcat[SubcatProperty.REQUIRED]
 			)
 
 		extra_constraints = [ConstraintsMap(word_relations=[WordRelation.AUXPASS])] if passive_voice else []
-
 		predicate_values = []
 		if lexicon_type == LexiconType.NOUN:
 			predicate_values += [entry[EntryProperty.ORTH]] if not is_plural_only else []
 			predicate_values += [entry[EntryProperty.PLURAL]] if not is_singular_only else []
 
-		subcat_maps.append(ConstraintsMap(
+		predicate_map = ConstraintsMap(
+			arg_type=nom_arg_type,
 			postags=VERB_POSTAGS if lexicon_type == LexiconType.VERB else NOUN_POSTAGS,
 			values=predicate_values,
-			sub_constraints=arg_constraints + extra_constraints)
+			relatives_constraints=extra_constraints
 		)
+
+		for combined_constraints in product(*constraints_by_arg.values()):
+			expanded_map = deepcopy(predicate_map)
+			expanded_map.relatives_constraints += list(combined_constraints)
+			subcat_maps.append(expanded_map)
 
 	return subcat_maps
 

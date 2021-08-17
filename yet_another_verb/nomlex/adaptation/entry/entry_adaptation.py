@@ -16,7 +16,7 @@ def remove_irrelevant_properties(entry: dict):
 		EntryProperty.SUBJ_ATTRIBUTE, EntryProperty.OBJ_ATTRIBUTE, EntryProperty.IND_OBJ_ATTRIBUTE,
 		EntryProperty.PLURAL_FREQ, EntryProperty.SINGULAR_FALSE,
 		EntryProperty.NOM_TYPE, EntryProperty.TYPE, EntryProperty.SEMI_AUTOMATIC,
-		EntryProperty.NOUN, EntryProperty.VERB, EntryProperty.PLURAL
+		EntryProperty.NOUN, EntryProperty.PLURAL
 	]
 
 	for p in entry.keys():

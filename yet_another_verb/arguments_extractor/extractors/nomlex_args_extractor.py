@@ -1,4 +1,4 @@
-from itertools import chain
+from itertools import chain, permutations, product
 from typing import List, Optional
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
@@ -31,44 +31,83 @@ class NomlexArgsExtractor(ArgsExtractor):
 	def _is_empty_or_contain(values: list, v):
 		return len(values) == 0 or v in values
 
-	def _is_token_match_constraints(self, token: ParsedWord, constraint_map: ConstraintsMap) -> bool:
+	def _is_word_match_constraints(self, word: ParsedWord, constraint_map: ConstraintsMap) -> bool:
 		required_contraints = [
-			lambda: self._is_empty_or_contain(constraint_map.values, token.text),
-			lambda: self._is_empty_or_contain(constraint_map.postags, token.tag),
-			lambda: self._is_empty_or_contain(constraint_map.word_relations, token.dep)
+			lambda: self._is_empty_or_contain(constraint_map.values, word.text),
+			lambda: self._is_empty_or_contain(constraint_map.postags, word.tag),
+			lambda: self._is_empty_or_contain(constraint_map.word_relations, word.dep)
 		]
 
 		return all(constraint() is True for constraint in required_contraints)
 
+	def _get_relatives_matched_args(
+			self, relatives: List[Optional[ParsedWord]], constraints_maps: List[ConstraintsMap], cached_results: dict
+	) -> Optional[List[List[ExtractedArgument]]]:
+		relatives_matched_args = []
+		for i, relative in enumerate(relatives):
+			if i >= len(constraints_maps):
+				break
+
+			constraints_map = constraints_maps[i]
+			if relative is None:
+				if constraints_map.required:
+					return None
+
+				continue
+
+			relative_matched_args = self._get_matched_arguments(relative, constraints_map, cached_results)
+			if relative_matched_args is None:
+				return None
+
+			relatives_matched_args.append(relative_matched_args)
+
+		return [list(chain(*combined_args)) for combined_args in product(*relatives_matched_args)]
+
 	def _get_matched_arguments(
-			self, token: ParsedWord, constraint_map: ConstraintsMap
-	) -> Optional[List[ExtractedArgument]]:
-		arg_idxs = []
-		if not self._is_token_match_constraints(token, constraint_map):
-			if constraint_map.required:
-				return None
+			self, word: ParsedWord, constraints_map: ConstraintsMap, cached_results: dict
+	) -> Optional[List[List[ExtractedArgument]]]:
+		if (word, constraints_map) in cached_results:
+			return cached_results[(word, constraints_map)]
 
-		elif constraint_map.arg_type is not None:
-			arg_idxs = [token.i] if constraint_map.word_relations == [] else token.subtree_indices
+		is_match_constraints = self._is_word_match_constraints(word, constraints_map)
+		if not is_match_constraints and constraints_map.required:
+			return None
 
-		extracted_args = []
-		for sub_contraint in constraint_map.sub_constraints:
-			sub_extracted_args = self._get_matched_arguments(token, sub_contraint)
-			if sub_extracted_args is None:
-				return None
+		relatives = list(word.children)
+		relatives_constraints = constraints_map.relatives_constraints
+		required_maps = [m for m in relatives_constraints if m.required]
+		if len(relatives) < len(required_maps):
+			return None
 
-			extracted_args += sub_extracted_args
-
-		other_args_idxs = chain(*[arg.arg_idxs for arg in extracted_args])
-		arg_idxs = [i for i in arg_idxs if i not in other_args_idxs]
-
-		if len(arg_idxs) > 0:
-			extracted_args.append(ExtractedArgument(
+		arg = None
+		if is_match_constraints and constraints_map.arg_type is not None:
+			arg_idxs = word.subtree_indices if constraints_map.word_relations != [] else []
+			arg_idxs += [word.i]
+			arg = ExtractedArgument(
 				arg_idxs=arg_idxs,
-				arg_type=constraint_map.arg_type
-			))
+				arg_type=constraints_map.arg_type
+			)
 
-		return extracted_args
+		matched_args_combinations = []
+		relatives += [None] * (len(relatives_constraints) - len(relatives))
+		relatives_permutations = set(permutations(relatives, len(relatives_constraints)))
+		for relatives_permute in relatives_permutations:
+			relatvies_matched_args_combinations = self._get_relatives_matched_args(
+				relatives=list(relatives_permute), constraints_maps=relatives_constraints,
+				cached_results=cached_results
+			)
+
+			if relatvies_matched_args_combinations is not None:
+				matched_args_combinations += relatvies_matched_args_combinations
+
+		if is_match_constraints and constraints_map.arg_type is not None:
+			for args in matched_args_combinations:
+				other_args_idxs = chain(*[arg.arg_idxs for arg in args])
+				arg.arg_idxs = [i for i in arg.arg_idxs if i not in other_args_idxs]
+				args.append(arg)
+
+		cached_results[(word, constraints_map)] = matched_args_combinations
+		return matched_args_combinations
 
 	def extract(self, word_idx: int, parsed_text: ParsedText) -> List[Extraction]:
 		word = parsed_text[word_idx]
@@ -77,16 +116,16 @@ class NomlexArgsExtractor(ArgsExtractor):
 		if word_entry is None:
 			return []
 
-		maps = list(chain(*word_entry.subcats.values()))
-
+		cached_results = {}
 		extractions = []
+		maps = set(chain(*word_entry.subcats.values()))
 		for constraint_map in maps:
-			for token in word.children:
-				matched_args = self._get_matched_arguments(token, constraint_map)
-				if matched_args is not None:
-					extractions.append(Extraction(
-						predicate_idx=word_idx,
-						args=matched_args
-					))
+			matched_args_combinations = self._get_matched_arguments(word, constraint_map, cached_results)
+
+			if matched_args_combinations is None:
+				continue
+
+			for matched_args in matched_args_combinations:
+				extractions.append(Extraction(predicate_idx=word_idx, args=list(matched_args)))
 
 		return choose_longest(uniqify(extractions))

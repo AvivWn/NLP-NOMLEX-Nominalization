@@ -1,9 +1,10 @@
 from os import makedirs
+from os.path import dirname
 
 from yet_another_verb.file_handlers.file_handler import FileHandler
 
 
-class PKLFileHandler(FileHandler):
+class BinaryFileHandler(FileHandler):
 	def __init__(self):
 		super().__init__()
 
@@ -14,6 +15,6 @@ class PKLFileHandler(FileHandler):
 
 	@staticmethod
 	def save(file_path: str, data: bytes):
-		makedirs(file_path, exist_ok=True)
+		makedirs(dirname(file_path), exist_ok=True)
 		with open(file_path, 'wb') as output_file:
 			output_file.write(data)

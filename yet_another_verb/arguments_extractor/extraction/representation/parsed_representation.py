@@ -15,5 +15,5 @@ class ParsedRepresentation(ExtractionRepresentation):
 
 	def represent_argument(self, predicate_idx: int, argument: ExtractedArgument) -> ParsedSpan:
 		min_idx = min(argument.arg_idxs)
-		max_idx = max(argument.arg_idxs)
+		max_idx = max(argument.arg_idxs) + 1
 		return self.words[min_idx:max_idx]
