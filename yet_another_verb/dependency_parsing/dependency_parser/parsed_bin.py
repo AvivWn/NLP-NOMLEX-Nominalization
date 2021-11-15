@@ -1,5 +1,5 @@
 import abc
-from typing import Iterator
+from typing import Iterator, Dict
 
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
@@ -21,3 +21,6 @@ class ParsedBin(abc.ABC):
 	@staticmethod
 	@abc.abstractmethod
 	def from_bytes(bytes_data) -> 'ParsedBin': pass
+
+	def get_parsing_by_text(self, parser: DependencyParser) -> Dict[str, ParsedText]:
+		return {doc.text: doc for doc in self.get_docs(parser)}

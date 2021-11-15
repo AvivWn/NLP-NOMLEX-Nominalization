@@ -1,9 +1,12 @@
 def print_extraction(extraction_repr):
-	for predicate, extractions in extraction_repr.items():
-		if not extractions:
-			continue
+	indentation = " " * 4
 
+	for predicate, extractions in extraction_repr.items():
 		print(predicate + ":")
 
+		if not extractions:
+			print(indentation + "-")
+			continue
+
 		for e in extractions:
-			print(" " * 4 + str(e))
+			print(indentation + str(e))

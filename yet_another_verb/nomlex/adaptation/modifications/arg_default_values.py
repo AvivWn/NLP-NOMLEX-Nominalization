@@ -24,7 +24,7 @@ def _get_values_by_lexicon(
 
 def _get_modifier_values(adjp_only: bool = False) -> ArgValuesByArgAndLexicon:
 	return _get_values_by_lexicon(ArgumentType.MODIFIER, arg_values={
-		LexiconType.VERB: [ArgumentValue.AJMOD] if adjp_only else [ArgumentValue.AJMOD],
+		LexiconType.VERB: [ArgumentValue.AJMOD] if adjp_only else [ArgumentValue.ADMOD],
 		LexiconType.NOUN: [ArgumentValue.AJMOD] if adjp_only else [ArgumentValue.ADMOD, ArgumentValue.AJMOD]
 	})
 
@@ -65,7 +65,7 @@ def _get_where_when_s_values() -> ArgValuesByArgAndLexicon:
 	])
 
 
-def _get_how_s_values(untensed_only=True) -> ArgValuesByArgAndLexicon:
+def _get_how_s_values(untensed_only: bool = False) -> ArgValuesByArgAndLexicon:
 	return _get_values_by_lexicon(ArgumentType.SBAR, arg_values={
 		LexiconType.VERB: [ArgumentValue.HOW_TO_INF] if untensed_only else [ArgumentValue.HOW_S],
 		LexiconType.NOUN: [ArgumentValue.HOW_TO_INF] if untensed_only else [ArgumentValue.HOW_S]

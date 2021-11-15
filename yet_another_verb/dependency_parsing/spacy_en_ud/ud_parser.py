@@ -8,8 +8,12 @@ from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parsed_text import UDPar
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 
+spacy.util.fix_random_seed()
 Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for node in token.subtree]))
 Token.set_extension("subtree_indices", getter=lambda token: [node.i for node in token.subtree])
+
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
 class UDParser(DependencyParser):
@@ -46,7 +50,11 @@ class UDParser(DependencyParser):
 			disable = []
 
 		if isinstance(text, str):
-			return UDParsedText(self._parser(text, disable=disable))
+			d = UDParsedText(self._parser(text, disable=disable))
+			print([x.dep for x in d])
+			print([x.head for x in d])
+			print([x.tag for x in d])
+			return d
 
 		# parse a tokenized sentence
 		doc = self._parser.tokenizer.tokens_from_list(text)
@@ -59,3 +67,7 @@ class UDParser(DependencyParser):
 	@property
 	def vocab(self):
 		return self._parser.vocab
+
+# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']
+# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']
+# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']

@@ -1,5 +1,6 @@
 import abc
 from typing import List, Iterator
+from functools import lru_cache
 
 
 class ParsedWord(abc.ABC):
@@ -34,7 +35,7 @@ class ParsedWord(abc.ABC):
 
 	@property
 	@abc.abstractmethod
-	def children(self) -> Iterator['ParsedWord']: pass
+	def children(self) -> List['ParsedWord']: pass
 
 	@property
 	@abc.abstractmethod
@@ -61,9 +62,11 @@ class ParsedWord(abc.ABC):
 	def pos(self) -> str: pass
 
 	@property
+	@lru_cache(maxsize=None)
 	def subtree_text(self) -> str:
 		return " ".join([node.text for node in self.subtree])
 
 	@property
+	@lru_cache(maxsize=None)
 	def subtree_indices(self) -> List[int]:
 		return [node.i for node in self.subtree]

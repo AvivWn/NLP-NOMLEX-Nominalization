@@ -24,7 +24,7 @@ class NomlexMaestro:
 		lisp_lexicon = self.get_original_lexicon()
 		json_data = lisps_to_jsons(lisp_lexicon)
 		lexicon = generate_adapted_lexicon(json_data)
-		JsonFileHandler.save(json_path, lexicon.to_json())
+		# JsonFileHandler.save(json_path, lexicon.to_json())
 		return lexicon
 
 	def get_adapted_lexicon(self) -> Lexicon:

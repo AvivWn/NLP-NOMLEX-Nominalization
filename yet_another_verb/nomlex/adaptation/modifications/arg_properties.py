@@ -51,7 +51,7 @@ ARG_CONTROLLED = {
 	}
 }
 
-ARG_ATTRIBUTES = {
+ARG_ATTRIBUTES_PROPERTY = {
 	ArgumentType.SUBJ: EntryProperty.SUBJ_ATTRIBUTE,
 	ArgumentType.OBJ: EntryProperty.OBJ_ATTRIBUTE,
 	ArgumentType.IND_OBJ: EntryProperty.IND_OBJ_ATTRIBUTE
@@ -121,4 +121,4 @@ def get_controlled_args(subcat_type: SubcatType, arg_type: ArgumentType) -> List
 
 
 def get_arg_attributes_property(arg_type: ArgumentType) -> Optional[EntryProperty]:
-	return ARG_ATTRIBUTES.get(arg_type, None)
+	return ARG_ATTRIBUTES_PROPERTY.get(arg_type, None)

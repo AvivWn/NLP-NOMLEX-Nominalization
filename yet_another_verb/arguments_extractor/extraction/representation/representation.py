@@ -3,12 +3,11 @@ from typing import List, Dict, Optional
 
 from toolz.dicttoolz import merge_with
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction
+from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
 from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
 from yet_another_verb.nomlex.constants.argument_type import ArgumentType
 
-Extractions = List[Extraction]
-ExtractionsByIdx = Dict[int, List[Extraction]]
+ExtractionsByIdx = Dict[int, Extractions]
 ArgumentTypes = Optional[List[ArgumentType]]
 
 

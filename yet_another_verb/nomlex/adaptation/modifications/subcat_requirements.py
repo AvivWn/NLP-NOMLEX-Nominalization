@@ -92,8 +92,8 @@ SUBCAT_REQUIRED_ARGS = {
 		LexiconType.NOUN: [ArgumentType.SUBJ, ArgumentType.PP]
 	},
 	SubcatType.NOM_NP_PP_AS_NP: {
-		LexiconType.VERB: [ArgumentType.OBJ, ArgumentType.PP, ArgumentType.PP],
-		LexiconType.NOUN: [ArgumentType.OBJ, ArgumentType.PP, ArgumentType.PP]
+		LexiconType.VERB: [ArgumentType.OBJ, ArgumentType.PP, ArgumentType.PP1],
+		LexiconType.NOUN: [ArgumentType.OBJ, ArgumentType.PP, ArgumentType.PP1]
 	},
 	SubcatType.NOM_ING_SC: {
 		LexiconType.VERB: [ArgumentType.ING],

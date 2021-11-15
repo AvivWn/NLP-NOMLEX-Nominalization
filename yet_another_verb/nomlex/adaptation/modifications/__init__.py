@@ -9,6 +9,7 @@ from yet_another_verb.nomlex.adaptation.modifications.arg_renamings import get_a
 from yet_another_verb.nomlex.adaptation.modifications.arg_default_preps import \
 	get_default_preps_by_arg
 from yet_another_verb.nomlex.adaptation.modifications.arg_default_values import get_default_arg_values
-from yet_another_verb.nomlex.adaptation.modifications.arg_constraints import get_arg_constraints_maps
+from yet_another_verb.nomlex.adaptation.modifications.arg_constraints import get_arg_constraints_maps, \
+	get_maps_with_complex_constraints
 from yet_another_verb.nomlex.adaptation.modifications.arg_properties import get_plural_property, \
 	get_controlled_args, get_subjunct_property, get_arg_attributes_property

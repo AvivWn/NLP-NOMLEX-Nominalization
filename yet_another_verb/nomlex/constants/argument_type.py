@@ -5,7 +5,7 @@ class ArgumentType(str, Enum):
 	SUBJ = "SUBJECT"
 	OBJ = "OBJECT"
 	IND_OBJ = "IND-OBJ"
-	NP = "OBJECT"
+	NP = "NP"
 	PP = "PP"
 	PP1 = "PP1"
 	PP2 = "PP2"
@@ -14,6 +14,16 @@ class ArgumentType(str, Enum):
 	TO_INF = "TO-INF"
 	SBAR = "SBAR"
 	PART = "PARTICLE"
+
+	# @staticmethod
+	# def _without_numbers(s: str) -> str:
+	# 	return ''.join([i for i in s if not i.isdigit()])
+	#
+	# def __eq__(self, other):
+	# 	return isinstance(other, str) and self._without_numbers(self) == self._without_numbers(other)
+	#
+	# def __hash__(self):
+	# 	return super().__hash__()
 
 	@staticmethod
 	def is_np_arg(arg_type: 'ArgumentType'):

@@ -11,10 +11,6 @@ ARG_RENAMINGS = {
 		LexiconType.VERB: {ArgumentType.PP: ArgumentType.PP1},
 		LexiconType.NOUN: {ArgumentType.PP: ArgumentType.PP1}
 	},
-	SubcatType.NOM_NP_PP_AS_NP: {
-		LexiconType.VERB: {ArgumentType.PP1: ArgumentType.PP},
-		LexiconType.NOUN: {ArgumentType.PP1: ArgumentType.PP}
-	},
 	SubcatType.NOM_NP_ING: {
 		LexiconType.VERB: {ArgumentType.OBJ: ArgumentType.NP},
 		LexiconType.NOUN: {ArgumentType.OBJ: ArgumentType.NP}

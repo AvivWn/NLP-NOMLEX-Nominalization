@@ -11,22 +11,32 @@ from yet_another_verb.nomlex.adaptation.entry.entry_division import devide_to_en
 from yet_another_verb.nomlex.adaptation.entry.entry_omission import should_ommit_entry
 from yet_another_verb.nomlex.adaptation.entry.entry_simplification import simplify_entry
 
+#
+# def add_to_lexicon(lexicon: Lexicon, entry: Optional[LexicalEntry]):
+# 	if entry is None:
+# 		return
+#
+# 	if entry.orth not in lexicon.entries.keys():
+# 		lexicon.entries[entry.orth] = entry
+# 		return
+#
+# 	exist_entry = lexicon.entries[entry.orth]
+# 	exist_entry.related_orths = list(set(exist_entry.related_orths + entry.related_orths))
+# 	for subcat_type, subcat in entry.subcats.items():
+# 		if subcat_type not in exist_entry.subcats:
+# 			exist_entry.subcats[subcat_type] = []
+#
+# 		exist_entry.subcats[subcat_type] = list(set(exist_entry.subcats[subcat_type] + subcat))
+
 
 def add_to_lexicon(lexicon: Lexicon, entry: Optional[LexicalEntry]):
 	if entry is None:
 		return
 
 	if entry.orth not in lexicon.entries.keys():
-		lexicon.entries[entry.orth] = entry
-		return
+		lexicon.entries[entry.orth] = []
 
-	exist_entry = lexicon.entries[entry.orth]
-	exist_entry.related_orths = list(set(exist_entry.related_orths + entry.related_orths))
-	for subcat_type, subcat in entry.subcats.items():
-		if subcat_type not in exist_entry.subcats:
-			exist_entry.subcats[subcat_type] = []
-
-		exist_entry.subcats[subcat_type] = list(set(exist_entry.subcats[subcat_type] + subcat))
+	lexicon.entries[entry.orth].append(entry)
 
 
 def create_entry_from_dict(entry: dict, related_orths: List[str]) -> LexicalEntry:

@@ -1,6 +1,7 @@
+from collections import namedtuple
 from itertools import product
 from copy import deepcopy
-from typing import List
+from typing import List, Dict, Callable
 
 from yet_another_verb.nomlex.constants import LexiconType, LexiconTag, EntryProperty, SubcatType, \
 	SubcatProperty, ArgumentType, ArgumentValue, WordRelation
@@ -11,8 +12,21 @@ from yet_another_verb.nomlex.adaptation.argument.arg_enrichment import enrich_ar
 from yet_another_verb.nomlex.adaptation.argument.arg_renaming import rename_argument
 from yet_another_verb.nomlex.adaptation.argument.arg_omission import should_ommit_argument
 from yet_another_verb.nomlex.adaptation.argument.arg_adaptation import adapt_argument
-from yet_another_verb.nomlex.adaptation.modifications import get_arg_constraints_maps
+from yet_another_verb.nomlex.adaptation.modifications import get_arg_constraints_maps, get_arg_attributes_property, \
+	get_maps_with_complex_constraints
 from yet_another_verb.nomlex.adaptation.subcat.subcat_simplification import simplify_subcat
+from yet_another_verb.nomlex.representation.lexical_argument import LexicalArgument
+from yet_another_verb.nomlex.representation.lexical_subcat import LexicalSubcat
+from yet_another_verb.nomlex.adaptation.modifications.arg_properties import get_plural_property, \
+	get_subjunct_property, get_controlled_args
+
+ArgValuePair = namedtuple('ArgValuePair', ['value', 'preps'])
+ArgCombination = Dict[ArgumentType, ArgValuePair]
+
+
+def combine_keys_multi_values(keys: list, multi_values: List[list], value_func: Callable):
+	assert len(multi_values) == len(keys)
+	return [dict(zip(keys, list(map(lambda v: value_func(v), values)))) for values in product(*multi_values)]
 
 
 def _perform_alternation_if_needed(subcat: dict, subcat_type: SubcatType):
@@ -26,7 +40,7 @@ def _perform_alternation_if_needed(subcat: dict, subcat_type: SubcatType):
 	assert old_type in subcat
 
 	# Avoid alternation when the target argument is also required for the subcat structure
-	if new_type not in subcat:
+	if new_type in subcat:
 		return
 
 	# Avoid alternation when argument corresponds to the nominalization (like renter or boiler)
@@ -60,12 +74,14 @@ def _combine_args_into_property(subcat: dict, subcat_type: SubcatType, lexicon_t
 	assert set(subcat[SubcatProperty.REQUIRED] + subcat[SubcatProperty.OPTIONAL]) == set(subcat[SubcatProperty.ARGUMENTS].keys())
 
 
-def _is_compatible_with_not(subcat: dict, value_by_arg: dict) -> bool:
+def _is_compatible_with_not(subcat: dict, pair_by_arg: dict) -> bool:
 	for not_structure in subcat[SubcatProperty.NOT]:
 		# Not compatible if NOT demands arg that isn't specified in the given structure
-		compatible_with_not = set(not_structure.keys()).issubset(value_by_arg.keys())
+		compatible_with_not = set(not_structure.keys()).issubset(pair_by_arg.keys())
 
-		for arg_type, arg_value in value_by_arg.items():
+		for arg_type, arg_pair in pair_by_arg.items():
+			arg_value, arg_preps = arg_pair
+
 			if arg_type not in not_structure:
 				continue
 
@@ -74,11 +90,10 @@ def _is_compatible_with_not(subcat: dict, value_by_arg: dict) -> bool:
 				compatible_with_not = False
 			else:
 				# Not compatible if demanded arg preps don't match ENTIRELY
-				preps = set(subcat[SubcatProperty.ARGUMENTS][arg_type][arg_value])
 				not_preps = not_structure[arg_type][arg_value]
-				without_not_preps = preps - set(not_preps)
-				if (len(preps) > 0 or len(not_preps) > 0) and len(without_not_preps) > 0:
-					subcat[SubcatProperty.ARGUMENTS][arg_type][arg_value] = without_not_preps
+				without_not_preps = set(arg_preps) - set(not_preps)
+				if (len(arg_preps) > 0 or len(not_preps) > 0) and len(without_not_preps) > 0:
+					# pair_by_arg[arg_type] = (arg_value, without_not_preps)
 					compatible_with_not = False
 
 		if compatible_with_not:
@@ -87,28 +102,100 @@ def _is_compatible_with_not(subcat: dict, value_by_arg: dict) -> bool:
 	return False
 
 
-def _should_ommit_arg_combination(subcat: dict, value_by_arg: dict) -> bool:
-	if _is_compatible_with_not(subcat, value_by_arg):
-		return True
+def _split_arg_combination_by_preps(combination: ArgCombination):
+	splitted_combination = {}
+	for arg in combination:
+		arg_value_pair = combination[arg].value
 
-	values = list(value_by_arg.values())
-	repeated_values = set([x for x in values if values.count(x) > 1])
+		value_pairs = [ArgValuePair(arg_value_pair, [prep]) for prep in combination[arg][1]]
+		if len(combination[arg].preps) == 0:
+			value_pairs = [ArgValuePair(arg_value_pair, [])]
 
-	# Only NP value can specified to multiple arguments
-	return len(repeated_values) > 0 and not repeated_values.issubset({ArgumentValue.NP})
+		splitted_combination[arg] = value_pairs
+
+		#
+		# if len(combination[arg][1]) == 0:
+		# 	combination[arg] = (combination[arg][0], [None])
+		#
+		# combination[arg] = [(combination[arg][0], [prep]) for prep in combination[arg][1]]
+		#
+		# combination[arg] = [(combination[arg][0], prep) for prep in combination[arg]]
+
+	# combination = {arg: (combination[arg] if combination[arg][1] != [] else [None]) for arg in combination}
+	# combination = {arg: [(combination[arg][0], prep) for prep in combination[arg][1]] for arg in combination}
+	# combinations = [dict(zip(combination, t)) for t in zip(*combination.values())]
+	#
+	# combinations = []
+	# for t in zip(*combination.values()):
+	# 	new_combination = {arg: (values if values is not None else []) for arg, values in dict(zip(combination, t)).items()}
+	# 	combinations.append(new_combination)
+
+	# return [dict(zip(combination, t)) for t in product(*splitted_combination.values())]
+	return combine_keys_multi_values(list(combination.keys()), list(splitted_combination.values()), lambda x: x)
 
 
-def _get_args_combinations(subcat: dict):
+def _filter_args_combinations(subcat: dict, args_combinations: List[ArgCombination]) -> List[dict]:
+	to_check_combinations = []
+
+	for combination in args_combinations:
+		# Separate combination by prepositions, if NOT constraint exists
+		if len(subcat[SubcatProperty.NOT]) > 0:
+			to_check_combinations += _split_arg_combination_by_preps(combination)
+			# to_check_combinations += [dict(zip(combination, t)) for t in product(*combination.values())]
+		else:
+			to_check_combinations.append(combination)
+
+	filtered_combinations = []
+	for combination in to_check_combinations:
+		# Check for NOT constraint
+		if _is_compatible_with_not(subcat, combination):
+			continue
+
+		# Only NP value can specified to multiple arguments
+		values = list(combination.values())
+		repeated_values = [x for x in values if values.count(x) > 1 and x.value != ArgumentValue.NP]
+		if len(repeated_values) > 0:
+			continue
+
+		filtered_combinations.append(combination)
+
+	return filtered_combinations
+
+
+def _get_args_combinations(subcat: dict) -> list:
 	arg_types = list(subcat[SubcatProperty.ARGUMENTS].keys())
-	args_values = [subcat[SubcatProperty.ARGUMENTS][arg_type] for arg_type in arg_types]
-	all_combinations = [dict(zip(arg_types, v)) for v in product(*args_values)]
-	relavant_combinations = []
+	args_value_pairs = [subcat[SubcatProperty.ARGUMENTS][arg_type].items() for arg_type in arg_types]
 
-	for value_by_arg in all_combinations:
-		if not _should_ommit_arg_combination(subcat, value_by_arg):
-			relavant_combinations.append(value_by_arg)
+	# args_pairs = []
+	# for arg_type in arg_types:
+	# 	arg_pairs = []
+	# 	for arg_value, preps in subcat[SubcatProperty.ARGUMENTS][arg_type].items():
+	# 		if len(preps) == 0:
+	# 			arg_pairs.append((arg_value, preps))
+	#
+	# 		arg_pairs += [(arg_value, [prep]) for prep in preps]
+	#
+	# 	args_pairs.append(arg_pairs)
 
-	return relavant_combinations
+		# args_values.append(list(chain(*[[(v, prep) for prep in preps] for v, preps in arg_values.items()])))
+
+	all_combinations = combine_keys_multi_values(arg_types, args_value_pairs, lambda x: ArgValuePair(*x))
+	# [dict(zip(arg_types, list(map(lambda x: ArgValuePair(*x), values)))) for values in product(*args_value_pairs)]
+	return _filter_args_combinations(subcat, all_combinations)
+
+	# for pair_by_arg in all_combinations:
+		# if ArgumentType.PP1 in value_by_arg and ArgumentType.PP2 in value_by_arg:
+		# 	temp_value_by_arg = deepcopy(value_by_arg)
+		# 	temp_value_by_arg[ArgumentType.PP1] = value_by_arg[ArgumentType.PP2]
+		# 	temp_value_by_arg[ArgumentType.PP2] = value_by_arg[ArgumentType.PP1]
+		#
+		# 	if temp_value_by_arg in relavant_combinations:
+		#
+
+		# if not _should_ommit_arg_combination(subcat, pair_by_arg):
+		# 	relavant_combinations.append(pair_by_arg)
+
+	# return relavant_combinations
 
 
 def _is_value_required_by_other_arg(subcat: dict, arg_type: ArgumentType, arg_value: ArgumentValue) -> bool:
@@ -132,28 +219,33 @@ def _get_subcat_as_constraint_maps(
 	assert not (is_singular_only and is_plural_only)
 
 	subcat_maps = []
-	for value_by_arg in _get_args_combinations(subcat):
+	for value_pair_by_arg in _get_args_combinations(subcat):
+		value_by_arg, preps_by_arg = {}, {}
+
 		passive_voice = \
 			lexicon_type == LexiconType.VERB and (
-				value_by_arg.get(ArgumentType.SUBJ, None) == ArgumentValue.NP or
-				value_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
+				value_pair_by_arg.get(ArgumentType.SUBJ, None) == ArgumentValue.NP or
+				value_pair_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
 			)
 
 		nom_arg_type = None
 		constraints_by_arg = {}
-		for arg_type, arg_value in value_by_arg.items():
-			if _is_value_required_by_other_arg(subcat, arg_type, arg_value):
+		for arg_type, arg_value_pair in value_pair_by_arg.items():
+			value_by_arg[arg_type], preps_by_arg[arg_type] = arg_value_pair.value, arg_value_pair.preps
+
+			if _is_value_required_by_other_arg(subcat, arg_type, arg_value_pair.value):
 				continue
 
-			if arg_value is ArgumentValue.NOM:
+			if arg_value_pair.value is ArgumentValue.NOM:
 				nom_arg_type = arg_type
+				continue
 
-			# TODO: handle specific ING subcats differently
 			constraints_by_arg[arg_type] = get_arg_constraints_maps(
-				subcat_type=subcat_type, arg_type=arg_type, arg_value=arg_value, lexicon_type=lexicon_type,
-				preps=subcat[SubcatProperty.ARGUMENTS][arg_type][arg_value],
-				is_required=arg_type in subcat[SubcatProperty.REQUIRED]
+				arg_type=arg_type, arg_value=arg_value_pair.value, lexicon_type=lexicon_type,
+				preps=arg_value_pair.preps,
+				is_required=arg_type in subcat[SubcatProperty.REQUIRED],
 			)
+			assert constraints_by_arg[arg_type] != []
 
 		extra_constraints = [ConstraintsMap(word_relations=[WordRelation.AUXPASS])] if passive_voice else []
 		predicate_values = []
@@ -169,17 +261,37 @@ def _get_subcat_as_constraint_maps(
 		)
 
 		for combined_constraints in product(*constraints_by_arg.values()):
-			expanded_map = deepcopy(predicate_map)
-			expanded_map.relatives_constraints += list(combined_constraints)
-			subcat_maps.append(expanded_map)
+			map_by_arg = dict(zip(constraints_by_arg.keys(), combined_constraints))
+			combined_constraints_options = [list(combined_constraints)] + \
+				get_maps_with_complex_constraints(subcat_type, map_by_arg, value_by_arg, preps_by_arg, lexicon_type)
 
-	return subcat_maps
+			for constraints in combined_constraints_options:
+				expanded_map = deepcopy(predicate_map)
+				expanded_map.relatives_constraints += constraints
+				subcat_maps.append(expanded_map)
+
+	return list(set(subcat_maps))
 
 
 def reconstruct_constraints(entry: dict, subcat: dict, subcat_type: SubcatType, lexicon_type: LexiconType):
 	_perform_alternation_if_needed(subcat, subcat_type)
 	_combine_args_into_property(subcat, subcat_type, lexicon_type)
-	entry[EntryProperty.SUBCATS][subcat_type] = _get_subcat_as_constraint_maps(entry, subcat, subcat_type, lexicon_type)
+
+	lexical_args = {}
+	for arg_type in subcat[SubcatProperty.ARGUMENTS]:
+		lexical_args[arg_type] = LexicalArgument(
+			arg_type=arg_type,
+			plural=get_plural_property(subcat_type, arg_type),
+			subjunct=get_subjunct_property(subcat_type, arg_type),
+			controlled=get_controlled_args(subcat_type, arg_type),
+			attributes=entry.get(get_arg_attributes_property(arg_type), [])
+		)
+
+	entry[EntryProperty.SUBCATS][subcat_type] = LexicalSubcat(
+		subcat_type=subcat_type,
+		constraints_maps=_get_subcat_as_constraint_maps(entry, subcat, subcat_type, lexicon_type),
+		lexical_args=lexical_args
+	)
 
 
 def adapt_subcat(entry: dict, subcat_type: SubcatType, lexicon_type: LexiconType):

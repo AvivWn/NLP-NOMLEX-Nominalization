@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List, Set, Optional
+from itertools import chain
 
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
@@ -6,24 +7,37 @@ from dataclasses_json import dataclass_json
 from yet_another_verb.nomlex.constants import ArgumentType, WordRelation, POSTag
 
 
-# class OnRequiredValue()
-
-
 @dataclass_json
 @dataclass
 class ConstraintsMap:
 	arg_type: Optional[ArgumentType] = field(default=None)
-	controlled: List[ArgumentType] = field(default_factory=list)
 
 	word_relations: List[WordRelation] = field(default_factory=list)
 	postags: List[POSTag] = field(default_factory=list)
 	values: List[str] = field(default_factory=list)
-	attributes: List[str] = field(default_factory=list)
 	required: bool = field(default=True)
-	plural: bool = field(default=False)
-	subjunct: bool = field(default=False)
 
+	included_args: Set[ArgumentType] = field(default_factory=set)
 	relatives_constraints: List['ConstraintsMap'] = field(default_factory=list)
+
+	def _update_included_args(self):
+		self.included_args.update(chain(*[c.included_args for c in self.relatives_constraints]))
+
+		if self.arg_type is not None:
+			self.included_args.add(self.arg_type)
+
+	def __post_init__(self):
+		self._update_included_args()
+
+	def __setattr__(self, key: str, value: List['ConstraintsMap']):
+		super().__setattr__(key, value)
+
+		if key == 'relatives_constraints':
+			self._update_included_args()
 
 	def __hash__(self):
 		return hash(str(self))
+
+
+ORConstraintsMaps = List[ConstraintsMap]  # (constraint 1) OR (constraint 2) OR (...)
+ANDConstraintsMaps = List[ConstraintsMap]  # (constraint 1) AND (constraint 2) AND (...)

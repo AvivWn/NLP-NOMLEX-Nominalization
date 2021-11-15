@@ -27,6 +27,6 @@ class UDParsedBin(ParsedBin):
 
 	@staticmethod
 	def from_bytes(bytes_data) -> 'UDParsedBin':
-		parsed_bin = UDParsedBin()
+		parsed_bin = UDParsedBin(attrs=[])
 		parsed_bin._doc_bin = DocBin().from_bytes(bytes_data)
 		return parsed_bin

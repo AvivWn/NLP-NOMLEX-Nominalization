@@ -97,6 +97,9 @@ def simplify_subject(entry: dict, subcat: dict, lexicon_type: LexiconType):
 		elif "by" not in subcat[ArgumentType.SUBJ]:
 			subcat[ArgumentType.SUBJ].append("by")
 
+		if ArgumentValue.DET_POSS in subcat[ArgumentType.SUBJ]:
+			subcat[ArgumentType.SUBJ].append(ArgumentValue.NSUBJ)
+
 
 def simplify_object(subcat: dict, subcat_type: SubcatType, lexicon_type: LexiconType):
 	if lexicon_type == LexiconType.VERB:

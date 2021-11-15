@@ -67,4 +67,7 @@ def should_ommit_entry(entry: dict) -> bool:
 	if not has_at_most_single_plural(entry):
 		return True
 
+	if entry[EntryProperty.ORTH] in ["being"]:
+		return True
+
 	return False

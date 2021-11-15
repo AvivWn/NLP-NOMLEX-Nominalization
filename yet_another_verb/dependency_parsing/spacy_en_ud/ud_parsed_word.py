@@ -1,4 +1,5 @@
-from typing import List, Iterator
+from typing import Iterator, List
+from functools import lru_cache
 
 from spacy.tokens import Token
 
@@ -38,11 +39,12 @@ class UDParsedWord(ParsedWord):
 
 	@property
 	def subtree(self) -> Iterator['UDParsedWord']:
-		return map(UDParsedWord, self._token.children)
+		return map(UDParsedWord, self._token.subtree)
 
 	@property
-	def children(self) -> Iterator['UDParsedWord']:
-		return map(UDParsedWord, self._token.children)
+	@lru_cache(maxsize=None)
+	def children(self) -> List['UDParsedWord']:
+		return list(map(UDParsedWord, self._token.children))
 
 	@property
 	def head(self) -> 'UDParsedWord':
