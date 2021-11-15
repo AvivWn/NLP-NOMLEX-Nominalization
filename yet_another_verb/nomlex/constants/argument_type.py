@@ -15,16 +15,6 @@ class ArgumentType(str, Enum):
 	SBAR = "SBAR"
 	PART = "PARTICLE"
 
-	# @staticmethod
-	# def _without_numbers(s: str) -> str:
-	# 	return ''.join([i for i in s if not i.isdigit()])
-	#
-	# def __eq__(self, other):
-	# 	return isinstance(other, str) and self._without_numbers(self) == self._without_numbers(other)
-	#
-	# def __hash__(self):
-	# 	return super().__hash__()
-
 	@staticmethod
 	def is_np_arg(arg_type: 'ArgumentType'):
 		return arg_type in [ArgumentType.OBJ, ArgumentType.SUBJ, ArgumentType.IND_OBJ, ArgumentType.NP]

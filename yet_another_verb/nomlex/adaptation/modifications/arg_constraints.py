@@ -641,20 +641,6 @@ def _get_maps_with_preps(
 	prep_arg_type = arg_type if ArgumentType.is_pp_arg(arg_type) else None
 	return list(chain(*[_get_constraints_with_preps(c, arg_type, preps, prep_arg_type) for c in constraints_maps]))
 
-#
-# def _expand_maps_with_properties(
-# 		constraints_maps: ORConstraintsMaps, subcat_type: SubcatType, arg_type: ArgumentType, attributes: List[str]
-# ):
-# 	is_plural = get_plural_property(subcat_type, arg_type)
-# 	is_subjunct = get_subjunct_property(subcat_type, arg_type)
-# 	controlled_args = get_controlled_args(subcat_type, arg_type)
-#
-# 	for constraints_map in constraints_maps:
-# 		constraints_map.is_plural = is_plural
-# 		constraints_map.is_subjunct = is_subjunct
-# 		constraints_map.controlled = controlled_args
-# 		constraints_map.attributes = attributes
-#
 
 def get_arg_constraints_maps(
 		arg_type: ArgumentType, arg_value: ArgumentValue, lexicon_type: LexiconType,

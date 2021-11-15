@@ -67,7 +67,3 @@ class UDParser(DependencyParser):
 	@property
 	def vocab(self):
 		return self._parser.vocab
-
-# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']
-# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']
-# ['nmod:poss', 'ROOT', 'case', 'nmod', 'mark', 'mark', 'nsubj', 'aux', 'acl', 'mark', 'xcomp', 'det', 'dobj', 'punct']

@@ -113,24 +113,6 @@ def _split_arg_combination_by_preps(combination: ArgCombination):
 
 		splitted_combination[arg] = value_pairs
 
-		#
-		# if len(combination[arg][1]) == 0:
-		# 	combination[arg] = (combination[arg][0], [None])
-		#
-		# combination[arg] = [(combination[arg][0], [prep]) for prep in combination[arg][1]]
-		#
-		# combination[arg] = [(combination[arg][0], prep) for prep in combination[arg]]
-
-	# combination = {arg: (combination[arg] if combination[arg][1] != [] else [None]) for arg in combination}
-	# combination = {arg: [(combination[arg][0], prep) for prep in combination[arg][1]] for arg in combination}
-	# combinations = [dict(zip(combination, t)) for t in zip(*combination.values())]
-	#
-	# combinations = []
-	# for t in zip(*combination.values()):
-	# 	new_combination = {arg: (values if values is not None else []) for arg, values in dict(zip(combination, t)).items()}
-	# 	combinations.append(new_combination)
-
-	# return [dict(zip(combination, t)) for t in product(*splitted_combination.values())]
 	return combine_keys_multi_values(list(combination.keys()), list(splitted_combination.values()), lambda x: x)
 
 
@@ -165,37 +147,8 @@ def _filter_args_combinations(subcat: dict, args_combinations: List[ArgCombinati
 def _get_args_combinations(subcat: dict) -> list:
 	arg_types = list(subcat[SubcatProperty.ARGUMENTS].keys())
 	args_value_pairs = [subcat[SubcatProperty.ARGUMENTS][arg_type].items() for arg_type in arg_types]
-
-	# args_pairs = []
-	# for arg_type in arg_types:
-	# 	arg_pairs = []
-	# 	for arg_value, preps in subcat[SubcatProperty.ARGUMENTS][arg_type].items():
-	# 		if len(preps) == 0:
-	# 			arg_pairs.append((arg_value, preps))
-	#
-	# 		arg_pairs += [(arg_value, [prep]) for prep in preps]
-	#
-	# 	args_pairs.append(arg_pairs)
-
-		# args_values.append(list(chain(*[[(v, prep) for prep in preps] for v, preps in arg_values.items()])))
-
 	all_combinations = combine_keys_multi_values(arg_types, args_value_pairs, lambda x: ArgValuePair(*x))
-	# [dict(zip(arg_types, list(map(lambda x: ArgValuePair(*x), values)))) for values in product(*args_value_pairs)]
 	return _filter_args_combinations(subcat, all_combinations)
-
-	# for pair_by_arg in all_combinations:
-		# if ArgumentType.PP1 in value_by_arg and ArgumentType.PP2 in value_by_arg:
-		# 	temp_value_by_arg = deepcopy(value_by_arg)
-		# 	temp_value_by_arg[ArgumentType.PP1] = value_by_arg[ArgumentType.PP2]
-		# 	temp_value_by_arg[ArgumentType.PP2] = value_by_arg[ArgumentType.PP1]
-		#
-		# 	if temp_value_by_arg in relavant_combinations:
-		#
-
-		# if not _should_ommit_arg_combination(subcat, pair_by_arg):
-		# 	relavant_combinations.append(pair_by_arg)
-
-	# return relavant_combinations
 
 
 def _is_value_required_by_other_arg(subcat: dict, arg_type: ArgumentType, arg_value: ArgumentValue) -> bool:

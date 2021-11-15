@@ -172,19 +172,6 @@ class NomlexArgsExtractor(ArgsExtractor):
 
 	@staticmethod
 	def _filter_typless_args(extracted_args: List[ExtractedArgument]):
-		# cleaned_args = []
-		# idx = -1
-		# pp1_arg_idx = None
-		# pp2_arg_idx = None
-		#
-		# for arg in extracted_args:
-		# 	if arg.arg_type is not None:
-		# 		idx += 1
-		# 		cleaned_args.append(arg)
-		#
-		# 	if arg.arg_type == ArgumentType.PP1:
-		# 		pp1_arg_idx = i
-
 		return [arg for arg in extracted_args if arg.arg_type is not None]
 
 	@staticmethod
