@@ -20,11 +20,10 @@ class EntryProperty(str, Enum):
 	N_N_MOD_NO_OTHER_OBJ = "N-N-MOD-NO-OTHER-OBJ"
 	DET_POSS_NO_OTHER_OBJ = "DET-POSS-NO-OTHER-OBJ"
 
-	NEXT = "NEXT"
 	NOM = "NOM"
 	VERB = "VERB"
-	SINGULAR = "SINGULAR"
 	PLURAL = "PLURAL"
+	HAS_ANOTHER_ENTRY = "HAS-ANOTHER-ENTRY"  # does another entry with the same orth exist?
 
 
 ENTRY_PROPERTIES = {p for p in EntryProperty}

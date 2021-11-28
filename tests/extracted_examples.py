@@ -9,7 +9,6 @@ EXTRACTIONS_BY_SENTENCE = {
 	"The document had been released into the public domain.": {
 		"released": [{"PP": "into the public domain", "OBJECT": "The document"}]},
 	"Bad advice was given.": {
-		"advice": [],
 		"given": [{"OBJECT": "Bad advice"}]},
 
 	########################################################################
@@ -34,8 +33,7 @@ EXTRACTIONS_BY_SENTENCE = {
 			{"PP": "to Sotheby", "SUBJECT": "He", "OBJECT": "three paintings"}]},
 	"The consignee of the three painting appreciated the gesture.": {
 		"consignee": [{"IND-OBJ": "consignee", "OBJECT": "the three painting"}],
-		"appreciated": [{"SUBJECT": "The consignee of the three painting", "OBJECT": "the gesture"}],
-		"gesture": []},
+		"appreciated": [{"SUBJECT": "The consignee of the three painting", "OBJECT": "the gesture"}]},
 
 	# P-OBJECT (IGNORED)
 	"They captioned the picture with an humorous text.": {
@@ -57,22 +55,22 @@ EXTRACTIONS_BY_SENTENCE = {
 
 	"They backed up on the disk.": {
 		"backed": [{"PARTICLE": "up", "PP": "on the disk", "SUBJECT": "They"}]},
-	"Their backup on the disk.": {
+	"Their backup on the disk": {
 		"backup": [{"PP": "on the disk", "SUBJECT": "Their", "OBJECT": "backup"}]},
 	"Their back-up on the disk.": {
 		"back-up": [{"PP": "on the disk", "SUBJECT": "Their", "OBJECT": "back-up"}]},
 	"They backed up the files to the cloud.": {
 		"backed": [{"PARTICLE": "up", "PP": "to the cloud", "SUBJECT": "They", "OBJECT": "the files"}]},
-	"Their backup of the files to the cloud.": {
-		"backup": [
-			{"OBJECT": "the files", "PP": "to the disk", "SUBJECT": "Their"},
-			{"PP": "to the cloud", "SUBJECT": "Their", "OBJECT": "backup"},
-			{"PP": "of the files", "SUBJECT": "Their", "OBJECT": "backup"}]},
-	"Their back-up of the data to the disk.": {
-		"back-up": [
-			{"OBJECT": "the files", "PP": "to the disk", "SUBJECT": "Their"},
-			{"PP": "to the cloud", "SUBJECT": "Their", "OBJECT": "back-up"},
-			{"PP": "of the files", "SUBJECT": "Their", "OBJECT": "back-up"}]},
+	"Their backup of the files, to the cloud.": {
+		"backup": [{"OBJECT": "the files", "PP": "to the cloud", "SUBJECT": "Their"}]},
+	"Their back-up of the data, to the disk.": {
+		"back-up": [{"OBJECT": "the data", "PP": "to the disk", "SUBJECT": "Their"}]},
+	"The man set up his user as root.": {
+		"set": [{"SUBJECT": "The man", "OBJECT": "his user", "PP": "as root", "PARTICLE": "up"}],
+		"user": [{"SUBJECT": "user"}]},
+	"The man's setup of his user as root.": {
+		"setup": [{"SUBJECT": "The man", "OBJECT": "his user", "PP": "as root"}],
+		"user": [{"SUBJECT": "user"}]},
 
 	########################################################################
 	# Multi-word prepositions
@@ -83,16 +81,13 @@ EXTRACTIONS_BY_SENTENCE = {
 		"sleeping": [{"SUBJECT": "he"}]},
 	"Their discussion with respect to whether he is sleeping.": {
 		"discussion": [{"SBAR": "whether he is sleeping", "SUBJECT": "Their"}],
-		"respect": [],
 		"sleeping": [{"SUBJECT": "he"}]},
 	"Alice dreamed her boyfriend with regard to his future.": {
-		"dreamed": [{"PP": "with regard to his future", "SUBJECT": "Alice", "OBJECT": "her boyfriend"}],
-		"regard": []},
+		"dreamed": [{"PP": "with regard to his future", "SUBJECT": "Alice", "OBJECT": "her boyfriend"}]},
 	"Alice's dream of her boyfriend with regard to his future.": {
 		"dream": [
 			{"SUBJECT": "her boyfriend", "PP": "with regard to his future", "OBJECT": "Alice"},
-			{"OBJECT": "her boyfriend", "PP": "with regard to his future", "SUBJECT": "Alice"}],
-		"regard": []},
+			{"OBJECT": "her boyfriend", "PP": "with regard to his future", "SUBJECT": "Alice"}]},
 	"Alice dreamed her boyfriend in connection with his future.": {
 		"dreamed": [{"PP": "in connection with his future", "SUBJECT": "Alice", "OBJECT": "her boyfriend"}],
 		"connection": [{"PP": "with his future"}]},
@@ -105,22 +100,16 @@ EXTRACTIONS_BY_SENTENCE = {
 	# 2-worded prepositions
 	"She speculated with respect to whether the man will arrive.": {
 		"speculated": [{"SBAR": "whether the man will arrive", "SUBJECT": "She"}],
-		"respect": [],
-		"will": [],
 		"arrive": [{"SUBJECT": "the man"}]},
 	"Her speculation with respect to whether the man will arrive.": {
 		"speculation": [{"SBAR": "whether the man will arrive", "SUBJECT": "Her"}],
-		"respect": [],
-		"will": [],
 		"arrive": [{"SUBJECT": "the man"}]},
 	"He shoot away from the target last night.": {
 		"shoot": [
 			{"PP": "away from the target", "SUBJECT": "He"},
-			{"PP": "away from the target", "OBJECT": "He"}],
-		"target": []},
+			{"PP": "away from the target", "OBJECT": "He"}]},
 	"His shoot away from the target last night.": {
-		"shoot": [{"PP": "away from the target", "SUBJECT": "His"}],
-		"target": []},
+		"shoot": [{"PP": "away from the target", "SUBJECT": "His"}]},
 	"He started the game ahead of the others.": {
 		"started": [{"PP": "ahead of the others", "SUBJECT": "He", "OBJECT": "the game"}]},
 	"His start of the game ahead of the others.": {
@@ -131,11 +120,9 @@ EXTRACTIONS_BY_SENTENCE = {
 		"station": [{"PP": "next to his house", "OBJECT": "The soldier", "SUBJECT": "him"}]},
 	"She speculated as to whether the man will arrive.": {
 		"speculated": [{"SBAR": "whether the man will arrive", "SUBJECT": "She"}],
-		"will": [],
 		"arrive": [{"SUBJECT": "the man"}]},
 	"Her speculation as to whether the man will arrive.": {
 		"speculation": [{"SBAR": "whether the man will arrive", "SUBJECT": "Her"}],
-		"will": [],
 		"arrive": [{"SUBJECT": "the man"}]},
 
 	########################################################################
@@ -154,16 +141,19 @@ EXTRACTIONS_BY_SENTENCE = {
 		"registration": [{"OBJECT": "child"}]},
 
 	# NOT constraints
+	# compatible with NOT constraints
 	"The man's reflection with regard to the sun.": {
-		"reflection": [{"PP": "with regard to the sun", "SUBJECT": "The man"}],
-		"regard": []},
+		"reflection": [{"PP": "with regard to the sun", "SUBJECT": "The man"}]},
+	# NOT- "with regard to" isn't compatible with N-N-MOD
 	"The man reflection with regard to the sun.": {
-		"reflection": [{"PP": "with regard to the sun"}],
-		"regard": []},
+		"reflection": [{"PP": "with regard to the sun"}]},
+	# compatible with NOT constraints
 	"His representation of the paper to the audience.": {
 		"representation": [{"PP": "to the audience", "SUBJECT": "His", "OBJECT": "the paper"}]},
+	# NOT- "them" must be SUBJ, but OBJ isn't compatible with DET-POSS, when there is another PP
 	"The paper's representation by them to the audience.": {
 		"representation": [{"OBJECT": "The paper", "SUBJECT": "them"}]},
+	# NOT- Double compound isn't compatible for this nom
 	"The paper man representation.": {
 		"representation": [
 			{"SUBJECT": "man"},
@@ -174,20 +164,16 @@ EXTRACTIONS_BY_SENTENCE = {
 	# SUBJ-OBJ-ALT (SUBJECT is actually OBJECT)
 	# standard
 	"Microsoft circulated the rumor.": {
-		"circulated": [{"SUBJECT": "Microsoft", "OBJECT": "the rumor"}],
-		"rumor": []},
+		"circulated": [{"SUBJECT": "Microsoft", "OBJECT": "the rumor"}]},
 	"Microsoft's circulation of the rumor.": {
 		"circulation": [
 			{"SUBJECT": "Microsoft", "OBJECT": "the rumor"},
-			{"OBJECT": "Microsoft", "SUBJECT": "the rumor"}],
-		"rumor": []},
+			{"OBJECT": "Microsoft", "SUBJECT": "the rumor"}]},
 	# ALTERNATES
 	"The rumor circulated.": {
-		"rumor": [],
 		"circulated": [{"OBJECT": "The rumor"}]},
 	"The circulation of the rumor.": {
-		"circulation": [{"OBJECT": "the rumor"}],
-		"rumor": []},
+		"circulation": [{"OBJECT": "the rumor"}]},
 
 	# SUBJ-IND-OBJ-ALT (SUBJECT is actually IND-OJB)
 	# standard
@@ -239,22 +225,19 @@ EXTRACTIONS_BY_SENTENCE = {
 		"strike": [{"OBJECT": "the blizzard"}]},
 	"The man forecasts how many people will arrive.": {
 		"forecasts": [{"SBAR": "how many people will arrive", "SUBJECT": "The man"}],
-		"will": [],
 		"arrive": [{"SUBJECT": "how many people"}]},
 	"His forecast of how many people will arrive.": {
 		"forecast": [{"SBAR": "how many people will arrive", "SUBJECT": "His"}],
-		"will": [],
 		"arrive": [{"SUBJECT": "how many people"}]},
 	"They forecasted how many will be there.": {
 		"forecasted": [{"SBAR": "how many will be there", "SUBJECT": "They"}]},
 	"Their forecast of how many will be there.": {
 		"forecast": [{"SBAR": "how many will be there", "SUBJECT": "Their"}]},
 	"She forecasts how much money they will make.": {
-		"forecasts": [{"SBAR": "how much money they will make", "SUBJECT": "She"}], "will": [],
+		"forecasts": [{"SBAR": "how much money they will make", "SUBJECT": "She"}],
 		"make": [{"SUBJECT": "they", "OBJECT": "how much money"}]},
 	"Her forecast of how much money they will make.": {
 		"forecast": [{"SBAR": "how much money they will make", "SUBJECT": "Her"}],
-		"will": [],
 		"make": [{"SUBJECT": "they", "OBJECT": "how much money"}]},
 
 	# NOM-NP-P-WH-S
@@ -270,11 +253,9 @@ EXTRACTIONS_BY_SENTENCE = {
 		"pressure": [{"SBAR": "what they want", "SUBJECT": "me", "OBJECT": "them"}]},
 	"The man pressed the woman, with respect to whether he should kill them.": {
 		"pressed": [{"SBAR": "whether he should kill them", "SUBJECT": "The man", "OBJECT": "the woman"}],
-		"respect": [],
 		"kill": [{"SUBJECT": "he", "OBJECT": "them"}]},
 	"The woman's pressure by the man, with respect to whether he should kill them.": {
 		"pressure": [{"SBAR": "whether he should kill them", "OBJECT": "The woman", "SUBJECT": "the man"}],
-		"respect": [],
 		"kill": [{"SUBJECT": "he", "OBJECT": "them"}]},
 
 	# NOM-PP-P-WH-S
@@ -349,11 +330,9 @@ EXTRACTIONS_BY_SENTENCE = {
 		"wonder": [{"SBAR": "whether he is referring to Jake", "SUBJECT": "My"}],
 		"referring": [{"PP": "to Jake", "SUBJECT": "he"}]},
 	"I know what he will do.": {
-		"know": [{"SBAR": "what he will do", "SUBJECT": "I"}],
-		"will": []},
+		"know": [{"SBAR": "what he will do", "SUBJECT": "I"}]},
 	"My knowledge of what he will do.": {
-		"knowledge": [{"SBAR": "what he will do", "SUBJECT": "My"}],
-		"will": []},
+		"knowledge": [{"SBAR": "what he will do", "SUBJECT": "My"}]},
 	"I wonder if he is sick.": {
 		"wonder": [{"SBAR": "if he is sick", "SUBJECT": "I"}]},
 	"My wonder of whether he is sick.": {
@@ -366,25 +345,19 @@ EXTRACTIONS_BY_SENTENCE = {
 	"Henry conspired with Marsha to steal the contract.": {
 		"conspired": [
 			{"PP": "with Marsha", "SUBJECT": "Henry"},
-			{"TO-INF": "to steal the contract", "SUBJECT": "Henry"}],
-		"contract": []},
+			{"TO-INF": "to steal the contract", "SUBJECT": "Henry"}]},
 	"Henry's conspiracy with Marsha to steal the contract.": {
 		"conspiracy": [
 			{"PP": "with Marsha", "SUBJECT": "Henry"},
-			{"TO-INF": "to steal the contract", "SUBJECT": "Henry"}],
-		"contract": []},
+			{"TO-INF": "to steal the contract", "SUBJECT": "Henry"}]},
 	"Henry and Tomer conspired to steal the contract.": {
-		"conspired": [{"TO-INF": "to steal the contract", "SUBJECT": "Henry and Tomer"}],
-		"contract": []},
+		"conspired": [{"TO-INF": "to steal the contract", "SUBJECT": "Henry and Tomer"}]},
 	"Henry and Tomer's conspiracy to steal the contract.": {
-		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Henry and Tomer's"}],
-		"contract": []},
+		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Henry and Tomer's"}]},
 	"The Henry and Tomer conspiracy to steal the contract.": {
-		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Tomer"}],  # not quite
-		"contract": []},
+		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Tomer"}]},  # not quite
 	"Their conspiracy to steal the contract.": {
-		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Their"}],
-		"contract": []},
+		"conspiracy": [{"TO-INF": "to steal the contract", "SUBJECT": "Their"}]},
 
 	# NOM-PP-FOR-TO-INF
 	"Daniel arranged with her for John to take the bus to school.": {
@@ -413,8 +386,7 @@ EXTRACTIONS_BY_SENTENCE = {
 
 	# NOM-P-NP-TO-INF
 	"He relies on her to succeed.": {
-		"relies": [{"PP": "on her", "SUBJECT": "He", "TO-INF": "to succeed"}],
-		"succeed": []},
+		"relies": [{"PP": "on her", "SUBJECT": "He", "TO-INF": "to succeed"}]},
 	"His reliance on her to succeed, didn't help.": {
 		"reliance": [{"PP": "on her", "SUBJECT": "His", "TO-INF": "to succeed"}],
 		"help": [{"SUBJECT": "His reliance on her to succeed"}]},
@@ -441,7 +413,8 @@ EXTRACTIONS_BY_SENTENCE = {
 		"life": [
 			{"OBJECT": "his"},
 			{"SUBJECT": "his"}],
-		"go": [{"PP": "to school"}]},
+		"go": [{"PP": "to school"}],
+		"changed": [{"OBJECT": "his life", "SUBJECT": "My imposition on him to go to school"}]},
 
 	# NOM-NP-TO-INF-VC
 	"She solicited Mayor Koch to lead the parade.": {
@@ -471,12 +444,10 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-TO-INF-SC
 	"He needs to win every argument.": {
 		"needs": [{"TO-INF": "to win every argument", "SUBJECT": "He"}],
-		"win": [{"OBJECT": "every argument"}],
-		"argument": []},
+		"win": [{"OBJECT": "every argument"}]},
 	"His need to win every argument.": {
 		"need": [{"TO-INF": "to win every argument", "SUBJECT": "His"}],
-		"win": [{"OBJECT": "every argument"}],
-		"argument": []},
+		"win": [{"OBJECT": "every argument"}]},
 
 	########################################################################
 	# POSSING complements
@@ -535,11 +506,9 @@ EXTRACTIONS_BY_SENTENCE = {
 		"disagreement": [{"PP": "with Mick", "SUBJECT": "Jake", "ING": "his visiting to China"}],
 		"visiting": [{"SUBJECT": "his"}]},
 	"Jake disagreed with Mick about visiting to China.": {
-		"disagreed": [{"PP": "with Mick", "SUBJECT": "Jake", "ING": "visiting to China"}],
-		"visiting": []},
+		"disagreed": [{"PP": "with Mick", "SUBJECT": "Jake", "ING": "visiting to China"}]},
 	"Jake's disagreement with Mick about visiting to China.": {
-		"disagreement": [{"PP": "with Mick", "SUBJECT": "Jake", "ING": "visiting to China"}],
-		"visiting": []},
+		"disagreement": [{"PP": "with Mick", "SUBJECT": "Jake", "ING": "visiting to China"}]},
 
 	# NOM-NP-P-POSSING
 	"We collected money for John's sweeping the road.": {
@@ -575,40 +544,32 @@ EXTRACTIONS_BY_SENTENCE = {
 		"drinking": [{"SUBJECT": "his", "OBJECT": "the wine"}]},
 	"Jay argued against paying for the damage.": {
 		"argued": [{"SUBJECT": "Jay", "ING": "paying for the damage"}],
-		"paying": [{"PP": "for the damage"}],
-		"damage": []},
+		"paying": [{"PP": "for the damage"}]},
 	"Jay's argument against paying for the damage.": {
 		"argument": [{"SUBJECT": "Jay", "ING": "paying for the damage"}],
-		"paying": [{"PP": "for the damage"}],
-		"damage": []},
+		"paying": [{"PP": "for the damage"}]},
 
 	# NOM-POSSING
 	"My father suggested his taking out loans to pay for college.": {
 		"suggested": [{"SUBJECT": "My father", "ING": "his taking out loans to pay for college"}],
 		"taking": [{"PARTICLE": "out", "SUBJECT": "his", "OBJECT": "loans to pay for college"}],
-		"loans": [],
 		"pay": [{"PP": "for college"}]},
 	"My father's suggestion of his taking out loans to pay for college.": {
 		"suggestion": [{"SUBJECT": "My father", "ING": "his taking out loans to pay for college"}],
 		"taking": [{"PARTICLE": "out", "SUBJECT": "his", "OBJECT": "loans to pay for college"}],
-		"loans": [],
 		"pay": [{"PP": "for college"}]},
 	"Tom suggested Aviv's taking out loans to pay for college.": {
 		"suggested": [{"SUBJECT": "Tom", "ING": "Aviv's taking out loans to pay for college"}],
 		"taking": [{"PARTICLE": "out", "SUBJECT": "Aviv", "OBJECT": "loans to pay for college"}],
-		"loans": [],
 		"pay": [{"PP": "for college"}]},
 	"The suggestion by Tom, of Aviv's taking out loans to pay for college.": {
 		"suggestion": [{"SUBJECT": "Tom,", "ING": "Aviv's taking out loans to pay for college"}],
 		"taking": [{"PARTICLE": "out", "SUBJECT": "Aviv", "OBJECT": "loans to pay for college"}],
-		"loans": [],
 		"pay": [{"PP": "for college"}]},
 	"The administration abolished sitting in on classes.": {
-		"administration": [],
 		"abolished": [{"SUBJECT": "The administration", "ING": "sitting in on classes"}],
 		"sitting": [{"PP": "on classes", "PARTICLE": "in"}]},
 	"The administration's abolition of sitting in on classes.": {
-		"administration": [],
 		"abolition": [{"SUBJECT": "The administration", "ING": "sitting in on classes"}],
 		"sitting": [{"PP": "on classes", "PARTICLE": "in"}]},
 
@@ -629,8 +590,7 @@ EXTRACTIONS_BY_SENTENCE = {
 	"I thought about the student, failing the test.": {
 		"thought": [{"ING": "failing the test", "PP": "about the student", "SUBJECT": "I"}],
 		"student": [{"SUBJECT": "student"}],
-		"failing": [{"OBJECT": "the test"}],
-		"test": []},
+		"failing": [{"OBJECT": "the test"}]},
 	"My thinking about the student, chasing after his friend.": {
 		"thinking": [{"ING": "chasing after his friend", "PP": "about the student", "SUBJECT": "My"}],
 		"student": [{"SUBJECT": "student"}],
@@ -653,12 +613,12 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-NP-P-ING-OC
 	"The state imprisoned the congressman for failing to pay taxes.": {
 		"imprisoned": [{"SUBJECT": "The state", "OBJECT": "the congressman", "ING": "failing to pay taxes"}],
-		"failing": [{"TO-INF": "to pay taxes"}], "pay": [{"OBJECT": "taxes"}], "taxes": []},
+		"failing": [{"TO-INF": "to pay taxes"}],
+		"pay": [{"OBJECT": "taxes"}]},
 	"The state's imprisonment of the congressman for failing to pay taxes.": {
 		"imprisonment": [{"SUBJECT": "The state", "OBJECT": "the congressman", "ING": "failing to pay taxes"}],
 		"failing": [{"TO-INF": "to pay taxes"}],
-		"pay": [{"OBJECT": "taxes"}],
-		"taxes": []},
+		"pay": [{"OBJECT": "taxes"}]},
 
 	# NOM-NP-P-ING
 	"I prohibited the man from drinking wine.": {
@@ -683,15 +643,13 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-NP-ING-OC
 	"I imitated the president, denying the charges.": {
 		"imitated": [{"ING": "denying the charges", "OBJECT": "the president", "SUBJECT": "I"}],
-		"denying": [{"OBJECT": "the charges"}],
-		"charges": []},
+		"denying": [{"OBJECT": "the charges"}]},
 	"My imitation of the president, denying the charges.": {
 		"imitation": [{"ING": "denying the charges", "OBJECT": "the president", "SUBJECT": "My"}],
-		"denying": [{"OBJECT": "the charges"}],
-		"charges": []},
+		"denying": [{"OBJECT": "the charges"}]},
 
 	# NOM-NP-ING-SC
-	"He risked his life chasing after her.": {
+	"He risked his life, chasing after her.": {
 		"risked": [{"ING": "chasing after her", "SUBJECT": "He", "OBJECT": "his life"}],
 		"life": [
 			{"SUBJECT": "his"},
@@ -702,14 +660,11 @@ EXTRACTIONS_BY_SENTENCE = {
 			{"SUBJECT": "His"},
 			{"OBJECT": "His"}],
 		"risk": [{"ING": "chasing after her", "OBJECT": "His life", "SUBJECT": "him"}],
-		"chasing": [{"PP": "after her"}],
-		"made": []},
+		"chasing": [{"PP": "after her"}]},
 
 	# NOM-NP-ING
 	"I justified them cheating in the test.": {
-		"justified": [{"ING": "cheating in the test", "NP": "them", "SUBJECT": "I"}],
-		"cheating": [],
-		"test": []},
+		"justified": [{"ING": "cheating in the test", "NP": "them", "SUBJECT": "I"}]},
 	"The justification of them cheating the test, proved the point.": {
 		"justification": [{"ING": "cheating the test", "NP": "them"}],
 		"cheating": [{"OBJECT": "the test"}],
@@ -718,12 +673,10 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-ING-SC
 	"The police department continued accepting bribes.": {
 		"continued": [{"ING": "accepting bribes", "SUBJECT": "The police department"}],
-		"accepting": [{"OBJECT": "bribes"}],
-		"bribes": []},
+		"accepting": [{"OBJECT": "bribes"}]},
 	"The police department's continuance of accepting bribes.": {
 		"continuance": [{"ING": "accepting bribes", "SUBJECT": "The police department"}],
-		"accepting": [{"OBJECT": "bribes"}],
-		"bribes": []},
+		"accepting": [{"OBJECT": "bribes"}]},
 
 	########################################################################
 	# S complements
@@ -753,10 +706,10 @@ EXTRACTIONS_BY_SENTENCE = {
 		"authorities": [{"SUBJECT": "authorities"}]},
 
 	# NOM-NP-S
-	"I reminded her that the car had been stolen.": {
-		"reminded": [{"SUBJECT": "I", "SBAR": "that the car had been stolen", "OBJECT": "her"}]},
-	"My reminder to her that the car had been stolen.": {
-		"reminder": [{"SUBJECT": "reminder", "SBAR": "that the car had been stolen", "OBJECT": "her"}]},
+	"I promised him that everything will be okay.": {
+		"promised": [{"SUBJECT": "I", "SBAR": "that everything will be okay", "OBJECT": "him"}]},
+	"His promise to me that everything will be okay.": {
+		"promise": [{"SUBJECT": "His", "SBAR": "that everything will be okay", "OBJECT": "me"}]},
 
 	# NOM-S-SUBJUNCT (SUBJUNCT is ignored)
 	"I demanded that he be in tune.": {
@@ -765,12 +718,10 @@ EXTRACTIONS_BY_SENTENCE = {
 		"specified": [{"SUBJECT": "I", "SBAR": "that he should be on time"}]},
 	"The electrician recommended she buy extra insulation.": {
 		"recommended": [{"SUBJECT": "The electrician", "SBAR": "she buy extra insulation"}],
-		"buy": [{"SUBJECT": "she", "OBJECT": "extra insulation"}],
-		"insulation": []},
+		"buy": [{"SUBJECT": "she", "OBJECT": "extra insulation"}]},
 	"The electrician's recommendation that she buy extra insulation.": {
 		"recommendation": [{"SUBJECT": "The electrician", "SBAR": "that she buy extra insulation"}],
-		"buy": [{"SUBJECT": "she", "OBJECT": "extra insulation"}],
-		"insulation": []},
+		"buy": [{"SUBJECT": "she", "OBJECT": "extra insulation"}]},
 
 	# NOM-THAT-S
 	"She observed that the world is better today.": {
@@ -802,17 +753,15 @@ EXTRACTIONS_BY_SENTENCE = {
 		"diagnosis": [{"SUBJECT": "Her", "OBJECT": "him", "ING": "being ill with the measles"}]},
 
 	# NOM-NP-AS-ADJP
-	"The part-time workers do not consider their plight as statistical.": {
+	"The part-time workers did not perceive the project as theoretical.": {
 		"workers": [{"SUBJECT": "workers"}],
-		"consider": [{"MODIFIER": "statistical", "SUBJECT": "The part-time workers", "OBJECT": "their plight"}]},
-	"The part-time workers' consideration of their plight as statistical.": {
+		"perceive": [{"MODIFIER": "theoretical", "SUBJECT": "The part-time workers", "OBJECT": "the project"}]},
+	"The part-time workers' perception of the project as theoretical.": {
 		"workers": [{"SUBJECT": "workers"}],
-		"consideration": [{"MODIFIER": "statistical", "SUBJECT": "The part-time workers'", "OBJECT": "their plight"}]},
+		"perception": [{"MODIFIER": "theoretical", "SUBJECT": "The part-time workers", "OBJECT": "the project"}]},
 	"They characterized the play as beautiful.": {
-		"characterized": [{"MODIFIER": "beautiful", "SUBJECT": "They", "OBJECT": "the play"}],
-		"play": []},
+		"characterized": [{"MODIFIER": "beautiful", "SUBJECT": "They", "OBJECT": "the play"}]},
 	"The play's characterization by them as beautiful appeared all over the news.": {
-		"play": [],
 		"characterization": [{"MODIFIER": "beautiful", "OBJECT": "The play", "SUBJECT": "them"}],
 		"appeared": [{"SUBJECT": "The play's characterization by them as beautiful"}]},
 	"They viewed the problem as interesting.": {
@@ -824,11 +773,9 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-NP-PP-AS-NP
 	"They mentioned the call to me as a possible lead.": {
 		"mentioned": [{"PP1": "to me", "PP": "as a possible lead", "SUBJECT": "They", "OBJECT": "the call"}],
-		"call": [],
 		"lead": [{"MODIFIER": "possible"}]},
 	"Their mention of the call, to me as a possible lead.": {
 		"mention": [{"PP1": "to me", "PP": "as a possible lead", "SUBJECT": "Their", "OBJECT": "the call"}],
-		"call": [],
 		"lead": [{"MODIFIER": "possible"}]},
 
 	# NOM-NP-AS-NP-SC
@@ -874,7 +821,10 @@ EXTRACTIONS_BY_SENTENCE = {
 	"His slow look.": {
 		"look": [{"MODIFIER": "slow", "SUBJECT": "His"}]},
 
+	########################################################################
 	# NP and PP
+
+	# NOM-NP-PP-PP
 	"They moved their money from the apartment to this house.": {
 		"moved": [{"PP1": "from the apartment", "PP2": "to this house", "SUBJECT": "They", "OBJECT": "their money"}]},
 	"Their money's movement by them from the apartment to this house.": {
@@ -883,20 +833,16 @@ EXTRACTIONS_BY_SENTENCE = {
 	# NOM-NP-TO-NP
 	"The department allocates a computer to new students.": {
 		"allocates": [{"IND-OBJ": "new students", "SUBJECT": "The department", "OBJECT": "a computer"}],
-		"computer": [],
 		"students": [{"SUBJECT": "students"}]},
 	"The department's allocation of a computer to new students.": {
 		"allocation": [{"IND-OBJ": "new students", "SUBJECT": "The department", "OBJECT": "a computer"}],
-		"computer": [],
 		"students": [{"SUBJECT": "students"}]},
 	"The department allocated new students a computer.": {
 		"allocated": [{"IND-OBJ": "new students", "SUBJECT": "The department", "OBJECT": "a computer"}],
-		"students": [{"SUBJECT": "students"}],
-		"computer": []},
+		"students": [{"SUBJECT": "students"}]},
 	"The department allocates to new students a computer.": {
 		"allocates": [{"IND-OBJ": "new students", "SUBJECT": "The department", "OBJECT": "a computer"}],
-		"students": [{"SUBJECT": "students"}],
-		"computer": []},
+		"students": [{"SUBJECT": "students"}]},
 
 	# NOM-NP-FOR-NP
 	"The chef prepared a breakfast, for the guest.": {
@@ -931,18 +877,24 @@ EXTRACTIONS_BY_SENTENCE = {
 	"Nabisco competed against Nestles, for market share.": {
 		"competed": [{"PP2": "for market share", "SUBJECT": "Nabisco", "PP1": "against Nestles"}],
 		"share": [
-			{"SUBJECT": "market"},
-			{"OBJECT": "market"}]},
+			{'OBJECT': 'market'},
+			{'SUBJECT': 'market'}]},
+	"The new competitor against Nestles, for market share, would rise soon.": {
+		"competitor": [{"PP2": "for market share", "SUBJECT": "competitor", "PP1": "against Nestles"}],
+		"rise": [{"MODIFIER": "soon", "OBJECT": "The new competitor against Nestles, for market share,"}],
+		"share": [
+			{'OBJECT': 'market'},
+			{'SUBJECT': 'market'}]},
 	"Nabisco's competition against Nestles, for market share.": {
 		"competition": [{"PP2": "for market share", "SUBJECT": "Nabisco", "PP1": "against Nestles"}],
-		"share": [{"SUBJECT": "market"}, {"OBJECT": "market"}]},
+		"share": [
+			{"SUBJECT": "market"},
+			{"OBJECT": "market"}]},
 
 	# NOM-PP
 	"He advised on the compromise.": {
-		"advised": [{"PP": "on the compromise", "SUBJECT": "He"}],
-		"compromise": []},
+		"advised": [{"PP": "on the compromise", "SUBJECT": "He"}]},
 	"The compromise advice by him.": {
-		"compromise": [],
 		"advice": [{"PP": "compromise", "SUBJECT": "him"}]},
 
 	# NOM-NP-NP

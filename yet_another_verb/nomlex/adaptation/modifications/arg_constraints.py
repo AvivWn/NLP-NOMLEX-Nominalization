@@ -62,7 +62,7 @@ def _get_possessive_maps(arg_type: ArgumentType) -> ORConstraintsMaps:
 		ConstraintsMap(
 			word_relations=possessive_relations,
 			postags=NOUN_POSTAGS,
-			relatives_constraints=[ConstraintsMap(values=["'s"])],
+			relatives_constraints=[ConstraintsMap(values=["'s", "'"])],
 			arg_type=arg_type)
 	]
 
@@ -215,6 +215,14 @@ def _get_how_much_or_many_s_maps(word_relations: List[WordRelation], aux_value: 
 		[ConstraintsMap(
 			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
 			relatives_constraints=[how_s_map],
+			arg_type=arg_type,
+			values=[aux_value]
+		)]
+	) + _get_sbar_maps(
+		word_relations,
+		arg_type,
+		[how_s_map] + [ConstraintsMap(
+			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
 			arg_type=arg_type,
 			values=[aux_value]
 		)]
@@ -648,18 +656,10 @@ def get_arg_constraints_maps(
 ) -> ORConstraintsMaps:
 	if arg_type == ArgumentType.PART:
 		constraints_maps = _get_particle_maps(preps, arg_type)
-		# _expand_maps_with_properties(constraints_maps, subcat_type, arg_type, attributes)
 	else:
 		constraints_table = PREPOSITIONAL_ARG_CONSTRAINTS if preps else ARG_CONSTRAINTS
 		constraints_maps = constraints_table.get(lexicon_type, {}).get(arg_value, lambda _: [])(arg_type)
 		constraints_maps = _get_maps_with_preps(arg_type, preps, constraints_maps)
-
-		# if ArgumentType.is_pp_arg(arg_type):
-		# 	constraints_maps = _get_maps_with_preps(constraints_maps, arg_type, preps, arg_type)
-		# 	_expand_maps_with_properties(constraints_maps, subcat_type, arg_type, attributes)
-		# else:
-		# 	_expand_maps_with_properties(constraints_maps, subcat_type, arg_type, attributes)
-		# 	constraints_maps = _get_maps_with_preps(constraints_maps, arg_type, preps)
 
 	for constraints_map in constraints_maps:
 		constraints_map.required = is_required

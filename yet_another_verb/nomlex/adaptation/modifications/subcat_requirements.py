@@ -5,7 +5,7 @@ from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentT
 SUBCAT_REQUIRED_ARGS = {
 	SubcatType.NOM_PART: {
 		LexiconType.VERB: [ArgumentType.PART],
-		LexiconType.NOUN: [ArgumentType.PART]
+		LexiconType.NOUN: []
 	},
 	SubcatType.NOM_NP: {
 		LexiconType.VERB: [ArgumentType.OBJ],
@@ -13,7 +13,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_NP: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.OBJ],
-		LexiconType.NOUN: [ArgumentType.PART]
+		LexiconType.NOUN: []
 	},
 	SubcatType.NOM_NP_NP: {
 		LexiconType.VERB: [ArgumentType.IND_OBJ, ArgumentType.OBJ],
@@ -25,7 +25,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_PP: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.PP],
-		LexiconType.NOUN: [ArgumentType.PART, ArgumentType.PP]
+		LexiconType.NOUN: [ArgumentType.PP]
 	},
 	SubcatType.NOM_PP_PP: {
 		LexiconType.VERB: [ArgumentType.PP1, ArgumentType.PP2],
@@ -37,7 +37,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_NP_PP: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.OBJ, ArgumentType.PP],
-		LexiconType.NOUN: [ArgumentType.PART, ArgumentType.PP]
+		LexiconType.NOUN: [ArgumentType.PP]
 	},
 	SubcatType.NOM_NP_TO_NP: {
 		LexiconType.VERB: [ArgumentType.OBJ, ArgumentType.IND_OBJ],
@@ -77,7 +77,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_AS_NP: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.SUBJ, ArgumentType.PP],
-		LexiconType.NOUN: [ArgumentType.PART, ArgumentType.SUBJ, ArgumentType.PP]
+		LexiconType.NOUN: [ArgumentType.SUBJ, ArgumentType.PP]
 	},
 	SubcatType.NOM_NP_AS_NP: {
 		LexiconType.VERB: [ArgumentType.OBJ, ArgumentType.PP],
@@ -85,7 +85,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_NP_AS_NP: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.OBJ, ArgumentType.PP],
-		LexiconType.NOUN: [ArgumentType.PART, ArgumentType.OBJ, ArgumentType.PP]
+		LexiconType.NOUN: [ArgumentType.OBJ, ArgumentType.PP]
 	},
 	SubcatType.NOM_NP_AS_NP_SC: {
 		LexiconType.VERB: [ArgumentType.SUBJ, ArgumentType.OBJ, ArgumentType.PP],
@@ -101,7 +101,7 @@ SUBCAT_REQUIRED_ARGS = {
 	},
 	SubcatType.NOM_PART_ING_SC: {
 		LexiconType.VERB: [ArgumentType.PART, ArgumentType.ING],
-		LexiconType.NOUN: [ArgumentType.PART, ArgumentType.ING]
+		LexiconType.NOUN: [ArgumentType.ING]
 	},
 	SubcatType.NOM_NP_ING: {
 		LexiconType.VERB: [ArgumentType.NP, ArgumentType.ING],

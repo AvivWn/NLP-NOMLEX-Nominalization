@@ -36,11 +36,17 @@ def has_ilegal_alternation(entry: dict) -> bool:
 
 
 def does_suitable_noun_exist(entry: dict) -> bool:
+	# This omission criterion was replaced by "ambiguity" property in the new representation
 	return not {
 		LexiconTag.EXISTS,
 		LexiconTag.RARE_NOM,
 		LexiconTag.RARE_NOUN
 	}.isdisjoint(entry[EntryProperty.NOUN])
+
+
+def is_singular_false(entry: dict) -> bool:
+	# This omission criterion was replaced by "ambiguity" property in the new representation
+	return entry.get(EntryProperty.SINGULAR_FALSE, False)
 
 
 def has_at_most_single_plural(entry: dict) -> bool:
@@ -61,7 +67,7 @@ def should_ommit_entry(entry: dict) -> bool:
 	if has_ilegal_alternation(entry):
 		return True
 
-	if does_suitable_noun_exist(entry):
+	if is_singular_false(entry):
 		return True
 
 	if not has_at_most_single_plural(entry):

@@ -59,6 +59,8 @@ class TestNomlexExtractor(TestCase):
 		extractions_per_word = ParsedStrRepresentation(parsed_text).represent_dict(extractions_per_idx)
 		print_extraction(extractions_per_word)
 
+		assert len(extractions_per_word) == len(expected_extractions)
+
 		for word, extractions in extractions_per_word.items():
 			word = word.split(".")[0]
 			assert word in expected_extractions

@@ -15,7 +15,8 @@ from yet_another_verb.nomlex.representation.lexical_subcat import LexicalSubcat
 @dataclass
 class LexicalEntry:
 	orth: str
-	related_orths: List[str] = field(default_factory=list)
+	related_orths: List[str]  # orths in the same word-family
+	ambiguous_forms: List[str]  # forms that might be misleading
 	subcats: Dict[SubcatType, LexicalSubcat] = field(default_factory=dict)
 
 	def __hash__(self):

@@ -3,7 +3,7 @@ from itertools import product
 from copy import deepcopy
 from typing import List, Dict, Callable
 
-from yet_another_verb.nomlex.constants import LexiconType, LexiconTag, EntryProperty, SubcatType, \
+from yet_another_verb.nomlex.constants import LexiconType, EntryProperty, SubcatType, \
 	SubcatProperty, ArgumentType, ArgumentValue, WordRelation
 from yet_another_verb.nomlex.constants.word_postag import NOUN_POSTAGS, VERB_POSTAGS
 from yet_another_verb.nomlex.constants.subcat_property import SUBCAT_PROPERTIES
@@ -164,22 +164,29 @@ def _is_value_required_by_other_arg(subcat: dict, arg_type: ArgumentType, arg_va
 	return arg_type not in required_args and len(required_args) > 0
 
 
-def _get_subcat_as_constraint_maps(
-		entry: dict, subcat: dict, subcat_type: SubcatType, lexicon_type: LexiconType
-) -> List[ConstraintsMap]:
-	is_singular_only = LexiconTag.SING_ONLY in entry[EntryProperty.NOUN] or entry.get(EntryProperty.PLURAL) is None
-	is_plural_only = entry.get(EntryProperty.SINGULAR_FALSE, False) or LexiconTag.PLUR_ONLY in entry[EntryProperty.NOUN]
-	assert not (is_singular_only and is_plural_only)
+def _get_predicate_base_constraint_map(
+		arg_type: ArgumentType, value_pair_by_arg: Dict[ArgumentType, ArgValuePair], lexicon_type: LexiconType
+) -> ConstraintsMap:
+	is_passive_voice = \
+		lexicon_type == LexiconType.VERB and (
+				value_pair_by_arg.get(ArgumentType.SUBJ, None) == ArgumentValue.NP or
+				value_pair_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
+		)
 
+	extra_constraints = [ConstraintsMap(word_relations=[WordRelation.AUXPASS])] if is_passive_voice else []
+	return ConstraintsMap(
+		arg_type=arg_type,
+		postags=VERB_POSTAGS if lexicon_type == LexiconType.VERB else NOUN_POSTAGS,
+		relatives_constraints=extra_constraints
+	)
+
+
+def _get_subcat_as_constraint_maps(
+		subcat: dict, subcat_type: SubcatType, lexicon_type: LexiconType
+) -> List[ConstraintsMap]:
 	subcat_maps = []
 	for value_pair_by_arg in _get_args_combinations(subcat):
 		value_by_arg, preps_by_arg = {}, {}
-
-		passive_voice = \
-			lexicon_type == LexiconType.VERB and (
-				value_pair_by_arg.get(ArgumentType.SUBJ, None) == ArgumentValue.NP or
-				value_pair_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
-			)
 
 		nom_arg_type = None
 		constraints_by_arg = {}
@@ -200,18 +207,7 @@ def _get_subcat_as_constraint_maps(
 			)
 			assert constraints_by_arg[arg_type] != []
 
-		extra_constraints = [ConstraintsMap(word_relations=[WordRelation.AUXPASS])] if passive_voice else []
-		predicate_values = []
-		if lexicon_type == LexiconType.NOUN:
-			predicate_values += [entry[EntryProperty.ORTH]] if not is_plural_only else []
-			predicate_values += [entry[EntryProperty.PLURAL]] if not is_singular_only else []
-
-		predicate_map = ConstraintsMap(
-			arg_type=nom_arg_type,
-			postags=VERB_POSTAGS if lexicon_type == LexiconType.VERB else NOUN_POSTAGS,
-			values=predicate_values,
-			relatives_constraints=extra_constraints
-		)
+		predicate_map = _get_predicate_base_constraint_map(nom_arg_type, value_pair_by_arg, lexicon_type)
 
 		for combined_constraints in product(*constraints_by_arg.values()):
 			map_by_arg = dict(zip(constraints_by_arg.keys(), combined_constraints))
@@ -242,7 +238,7 @@ def reconstruct_constraints(entry: dict, subcat: dict, subcat_type: SubcatType, 
 
 	entry[EntryProperty.SUBCATS][subcat_type] = LexicalSubcat(
 		subcat_type=subcat_type,
-		constraints_maps=_get_subcat_as_constraint_maps(entry, subcat, subcat_type, lexicon_type),
+		constraints_maps=_get_subcat_as_constraint_maps(subcat, subcat_type, lexicon_type),
 		lexical_args=lexical_args
 	)
 
