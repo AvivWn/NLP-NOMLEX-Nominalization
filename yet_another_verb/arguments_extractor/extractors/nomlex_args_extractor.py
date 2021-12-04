@@ -56,7 +56,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 			relevant_values.update(m.values)
 
 			# is JOKER
-			if len(m.postags) == 0 and len(m.postags) == 0 and len(m.values) == 0:
+			if len(m.postags) == 0 and len(m.word_relations) == 0 and len(m.values) == 0:
 				return [relative for relative in word.children]
 
 		return [
@@ -92,7 +92,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 
 	@staticmethod
 	def _get_combined_args(args: List[ExtractedArgument], new_arg: ExtractedArgument, constraints_map: ConstraintsMap) -> List[ExtractedArgument]:
-		combined_args = []
+		combined_args_by_type = {new_arg.arg_type: new_arg}
 		other_args_idxs = set()
 		for other_arg in args:
 			if other_arg.arg_type == constraints_map.arg_type:
@@ -101,11 +101,15 @@ class NomlexArgsExtractor(ArgsExtractor):
 				new_arg.fulfilled_constraints += other_arg.fulfilled_constraints
 			else:
 				other_args_idxs.update(other_arg.arg_idxs)
-				combined_args.append(other_arg)
+
+				if other_arg.arg_type not in combined_args_by_type:
+					combined_args_by_type[other_arg.arg_type] = other_arg
+				else:
+					combined_args_by_type[other_arg.arg_type].arg_idxs.update(other_arg.arg_idxs)
+					combined_args_by_type[other_arg.arg_type].fulfilled_constraints += other_arg.fulfilled_constraints
 
 		new_arg.arg_idxs = new_arg.arg_idxs - other_args_idxs
-		combined_args.append(new_arg)
-		return combined_args
+		return list(combined_args_by_type.values())
 
 	def _has_matching_potential(self, relatives: List[ParsedWord], relatives_constraints: List[ConstraintsMap]) -> bool:
 		required_constraints = [m for m in relatives_constraints if m.required]
@@ -145,7 +149,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 			return None
 
 		arg_idxs = set(word.subtree_indices) if predicate != word else set()
-		arg = ExtractedArgument(
+		new_arg = ExtractedArgument(
 			arg_idxs=arg_idxs.union({word.i}),
 			arg_type=constraints_map.arg_type if is_match_constraints else None,
 			fulfilled_constraints=[constraints_map] if is_match_constraints else []
@@ -164,8 +168,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 				matched_args_combinations += relatives_matched_args_combinations
 
 		for i, matched_args in enumerate(matched_args_combinations):
-			# matched_args_combinations[i] = self._get_combined_args(matched_args, arg, constraints_map)
-			matched_args_combinations[i] = self._get_combined_args(matched_args, deepcopy(arg), constraints_map)
+			matched_args_combinations[i] = self._get_combined_args(deepcopy(matched_args), deepcopy(new_arg), constraints_map)
 
 		cache[(word, constraints_map)] = matched_args_combinations
 		return matched_args_combinations

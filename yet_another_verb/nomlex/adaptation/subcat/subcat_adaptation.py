@@ -1,5 +1,5 @@
 from collections import namedtuple
-from itertools import product
+from itertools import product, chain
 from copy import deepcopy
 from typing import List, Dict, Callable
 

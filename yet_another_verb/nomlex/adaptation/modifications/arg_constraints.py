@@ -47,7 +47,7 @@ def _get_advmod_map(values: List[str], arg_type: ArgumentType, postags: List[POS
 def _get_np_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
 	return [ConstraintsMap(
 		word_relations=word_relations, postags=NOUN_POSTAGS + [POSTag.PRP_POSS], arg_type=arg_type,
-		relatives_constraints=[ConstraintsMap(values=["'s"], required=False)]
+		relatives_constraints=[ConstraintsMap(values=["'s", "'", "’s", "’"], required=False)]
 	)]
 
 
@@ -62,7 +62,7 @@ def _get_possessive_maps(arg_type: ArgumentType) -> ORConstraintsMaps:
 		ConstraintsMap(
 			word_relations=possessive_relations,
 			postags=NOUN_POSTAGS,
-			relatives_constraints=[ConstraintsMap(values=["'s", "'"])],
+			relatives_constraints=[ConstraintsMap(values=["'s", "'", "’s", "’"])],
 			arg_type=arg_type)
 	]
 
@@ -109,7 +109,7 @@ def _get_ing_maps(
 			arg_type=arg_type
 		),
 		ConstraintsMap(
-			word_relations=word_relations,
+			word_relations=word_relations + [WordRelation.NMOD],
 			relatives_constraints=[
 				ConstraintsMap(
 					word_relations=[WordRelation.COP],
@@ -401,17 +401,19 @@ P_NP_ING_COMPLEX = lambda preps: \
 		_get_ing_maps([WordRelation.ACL], ArgumentType.ING))) + \
 	_expand_constraints_separately(
 		_get_ing_maps([WordRelation.ACL], ArgumentType.ING),
-		_get_maps_with_preps(ArgumentType.PP, preps, (_get_np_maps([WordRelation.NSUBJ], ArgumentType.PP)))) + \
+		_get_maps_with_preps(ArgumentType.PP, preps, _get_np_maps([WordRelation.NSUBJ], ArgumentType.PP))) + \
 	_get_maps_with_preps(ArgumentType.PP, preps, _expand_constraints_separately(
 		_get_ing_maps([WordRelation.ACL], ArgumentType.ING),
 		_get_np_maps([WordRelation.NSUBJ], ArgumentType.PP)))
 
 COMPLEX_ARG_CONSTRAINTS = {
 	(ArgumentType.NP, ArgumentType.ING): {
-		(ArgumentValue.NP, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.NP, ArgumentType.ING)
+		(ArgumentValue.NP, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.NP, ArgumentType.ING),
+		(ArgumentValue.DOBJ, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.NP, ArgumentType.ING)
 	},
 	(ArgumentType.OBJ, ArgumentType.ING): {
-		(ArgumentValue.NP, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.OBJ, ArgumentType.ING)
+		(ArgumentValue.NP, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.OBJ, ArgumentType.ING),
+		(ArgumentValue.DOBJ, ArgumentValue.ING): NP_ING_COMPLEX(ArgumentType.OBJ, ArgumentType.ING)
 	},
 	(ArgumentType.PP, ArgumentType.ING): {
 		(ArgumentValue.NP, ArgumentValue.ING): {
@@ -646,6 +648,9 @@ def _get_constraints_with_preps(
 def _get_maps_with_preps(
 		arg_type: ArgumentType, preps: List[str], constraints_maps: ORConstraintsMaps
 ) -> ORConstraintsMaps:
+	if len(preps) == 0:
+		return constraints_maps
+
 	prep_arg_type = arg_type if ArgumentType.is_pp_arg(arg_type) else None
 	return list(chain(*[_get_constraints_with_preps(c, arg_type, preps, prep_arg_type) for c in constraints_maps]))
 

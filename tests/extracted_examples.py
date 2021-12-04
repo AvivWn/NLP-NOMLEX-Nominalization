@@ -459,38 +459,12 @@ EXTRACTIONS_BY_SENTENCE = {
 	"His discussion with the crowd about their giving up smoking.": {
 		"discussion": [{"SUBJECT": "His", "PP": "with the crowd", "ING": "their giving up smoking"}],
 		"giving": [{"SUBJECT": "their", "PARTICLE": "up", "OBJECT": "smoking"}]},
-	# "He discusses their filming, with them.": {
-	# 	"discusses": [{"SUBJECT": "He", "ING": "their filming", "PP": "with them"}]},
-	# "His discussion with them about their filming the movie.": {
-	# 	"discussion": [{"SUBJECT": "His", "PP": "with them", "ING": "about filming the movie"}]},
 	"Clare explained to me planning to steal the bank.": {
 		"explained": [{"SUBJECT": "Clare", "PP": "to me", "ING": "planning to steal the bank"}],
 		"planning": [{"TO-INF": "to steal the bank"}]},
 	"Clare's explanation to me of planning to steal the bank.": {
 		"explanation": [{"SUBJECT": "Clare", "PP": "to me", "ING": "planning to steal the bank"}],
 		"planning": [{"TO-INF": "to steal the bank"}]},
-	
-	# "He recommended to  their giving money to poverty.": {
-	# 	"recommended": [{"PP": "to the children", "SUBJECT": "He", "ING": "their giving money to poverty"}],
-	# 	"giving": [{"SUBJECT": "their", "OBJECT": "money", "IND-OBJ": "poverty"}]},
-	# "His recommendation to the children, of their giving money to poverty.": {
-	# 	"recommendation": [{"PP": "to the children,", "SUBJECT": "His", "ING": "their giving money to poverty"}],
-	# 	"giving": [{"SUBJECT": "their", "OBJECT": "money", "IND-OBJ": "poverty"}]},
-	# "He emphasized working hard at night, to the children."
-	# "He  working hard at night, to the children."
-	# "His emphasis to the children, of working hard at night."
-	# "His recommendation of giving up learning in school, to the children.": {
-	# 	"recommendation": [{"PP": "to the children", "SUBJECT": "Their", "ING": "their winning the war"}],
-	# 	"winning": [{"SUBJECT": "their", "OBJECT": "the war"}],
-	# 	"war": []},
-	# "They recommended winning the war, to the soldiers.": {
-	# 	"recommended": [{"PP": "to the soldiers", "SUBJECT": "They", "ING": "winning the war"}],
-	# 	"winning": [{"OBJECT": "the war"}],
-	# 	"war": []},
-	# "Their recommendation of winning the war, to the soldiers.": {
-	# 	"recommendation": [{"PP": "to the soldiers", "SUBJECT": "Their", "ING": "winning the war"}],
-	# 	"winning": [{"OBJECT": "the war"}],
-	# 	"war": []},
 
 	# NOM-PP-P-POSSING
 	"Jake disagreed with Mick, about Clinton's visiting to China.": {
@@ -584,7 +558,15 @@ EXTRACTIONS_BY_SENTENCE = {
 		"call": [{"ING": "leaving the country", "PP": "about them", "OBJECT": "him", "SUBJECT": "My"}],
 		"leaving": [{"OBJECT": "the country", "SUBJECT": "about them"}]},
 	"I educated him about Joe, being a man.": {
-		"educated": [{"ING": "being a man", "PP": "about Joe", "OBJECT": "him", "SUBJECT": "I"}]},
+		"educated": [{"SUBJECT": "I", "OBJECT": "him", "PP": "about Joe", "ING": "being a man"}]},
+	"My education of him about Joe being a man, was required.": {
+		"education": [{"SUBJECT": "My", "OBJECT": "him", "PP": "about Joe", "ING": "being a man"}]},
+	"I educated him about a man landing on the moon.": {
+		"educated": [{"SUBJECT": "I", "OBJECT": "him", "PP": "about a man", "ING": "landing on the moon"}],
+		"landing": [{"PP": "on the moon"}]},
+	"My education of him about a man landing on the moon.": {
+		"education": [{"SUBJECT": "My", "OBJECT": "him", "PP": "about a man", "ING": "landing on the moon"}],
+		"landing": [{"PP": "on the moon"}]},
 
 	# NOM-P-NP-ING
 	"I thought about the student, failing the test.": {
@@ -595,6 +577,16 @@ EXTRACTIONS_BY_SENTENCE = {
 		"thinking": [{"ING": "chasing after his friend", "PP": "about the student", "SUBJECT": "My"}],
 		"student": [{"SUBJECT": "student"}],
 		"chasing": [{"PP": "after his friend"}]},
+	"They reported about the manager leaving the site.": {
+		"reported": [{"SUBJECT": "They", "PP": "about the manager", "ING": "leaving the site"}],
+		"manager": [{"SUBJECT": "manager"}],
+		"leaving": [{"OBJECT": "the site"}]},
+	"Their report about the manager leaving the site.": {
+		"report": [
+			{"SUBJECT": "Their", "PP": "about the manager", "ING": "leaving the site"},
+			{"SUBJECT": "Their", "NP": "the manager", "ING": "leaving the site"}],
+		"manager": [{"SUBJECT": "manager"}],
+		"leaving": [{"OBJECT": "the site"}]},
 
 	# NOM-NP-P-ING-SC
 	"They justified their delay by riding the bikes.": {
@@ -609,6 +601,12 @@ EXTRACTIONS_BY_SENTENCE = {
 			{"SUBJECT": "their"},
 			{"OBJECT": "their"}],
 		"riding": [{"OBJECT": "the bikes"}]},
+	"John wasted money in searching for love.": {
+		"wasted": [{"OBJECT": "money", "SUBJECT": "John", "ING": "searching for love"}],
+		"searching": [{"PP": "for love"}]},
+	"John’s waste of money in searching for love.": {
+		"waste": [{"OBJECT": "money", "SUBJECT": "John", "ING": "searching for love"}],
+		"searching": [{"PP": "for love"}]},
 
 	# NOM-NP-P-ING-OC
 	"The state imprisoned the congressman for failing to pay taxes.": {
@@ -619,6 +617,10 @@ EXTRACTIONS_BY_SENTENCE = {
 		"imprisonment": [{"SUBJECT": "The state", "OBJECT": "the congressman", "ING": "failing to pay taxes"}],
 		"failing": [{"TO-INF": "to pay taxes"}],
 		"pay": [{"OBJECT": "taxes"}]},
+	"I cautioned him about going.": {
+		"cautioned": [{"SUBJECT": "I", "OBJECT": "him", "ING": "going"}]},
+	"His caution by me about going.": {
+		"caution": [{"SUBJECT": "me", "OBJECT": "His", "ING": "going"}]},
 
 	# NOM-NP-P-ING
 	"I prohibited the man from drinking wine.": {
@@ -627,6 +629,10 @@ EXTRACTIONS_BY_SENTENCE = {
 	"My prohibition of the man from drinking wine.": {
 		"prohibition": [{"SUBJECT": "My", "NP": "the man", "ING": "drinking wine"}],
 		"drinking": [{"OBJECT": "wine"}]},
+	"I introduced you to drinking at night.": {
+		"introduced": [{"SUBJECT": "I", "NP": "you", "ING": "drinking at night"}]},
+	"The introduction of you to drinking at night.": {
+		"introduction": [{"NP": "you", "ING": "drinking at night"}]},
 
 	# NOM-P-ING-SC
 	"They confessed to lying at poker.": {
@@ -639,6 +645,12 @@ EXTRACTIONS_BY_SENTENCE = {
 		"confessed": [{"ING": "their stealing the store", "SUBJECT": "They"}]},
 	"Their confession to their stealing the store.": {
 		"confession": [{"ING": "their stealing the store", "SUBJECT": "Their"}]},
+	"Everyday, I profit from raising my children.": {
+		"profit": [{"ING": "raising my children", "SUBJECT": "I"}],
+		"raising": [{"OBJECT": "my children"}]},
+	"My profit from raising my children.": {
+		"profit": [{"ING": "raising my children", "SUBJECT": "My"}],
+		"raising": [{"OBJECT": "my children"}]},
 
 	# NOM-NP-ING-OC
 	"I imitated the president, denying the charges.": {
@@ -647,6 +659,12 @@ EXTRACTIONS_BY_SENTENCE = {
 	"My imitation of the president, denying the charges.": {
 		"imitation": [{"ING": "denying the charges", "OBJECT": "the president", "SUBJECT": "My"}],
 		"denying": [{"OBJECT": "the charges"}]},
+	"He sensed the students fearing from the test.": {
+		"sensed": [{"ING": "fearing from the test", "OBJECT": "the students", "SUBJECT": "He"}],
+		"students": [{"SUBJECT": "students"}]},
+	"My sense of the students fearing from the test.": {
+		"sense": [{"ING": "fearing from the test", "OBJECT": "the students", "SUBJECT": "My"}],
+		"students": [{"SUBJECT": "students"}]},
 
 	# NOM-NP-ING-SC
 	"He risked his life, chasing after her.": {
@@ -661,6 +679,12 @@ EXTRACTIONS_BY_SENTENCE = {
 			{"OBJECT": "His"}],
 		"risk": [{"ING": "chasing after her", "OBJECT": "His life", "SUBJECT": "him"}],
 		"chasing": [{"PP": "after her"}]},
+	"He wasted the prize gambling on basketball.": {
+		"wasted": [{"SUBJECT": "He", "OBJECT": "the prize", "ING": "gambling on basketball"}],
+		"gambling": [{"PP": "on basketball"}]},
+	"The waste of the prize gambling on basketball.": {
+		"waste": [{"OBJECT": "the prize", "ING": "gambling on basketball"}],
+		"gambling": [{"PP": "on basketball"}]},
 
 	# NOM-NP-ING
 	"I justified them cheating in the test.": {
@@ -669,6 +693,20 @@ EXTRACTIONS_BY_SENTENCE = {
 		"justification": [{"ING": "cheating the test", "NP": "them"}],
 		"cheating": [{"OBJECT": "the test"}],
 		"proved": [{"SUBJECT": "The justification of them cheating the test", "OBJECT": "the point"}]},
+	"I discover the pirates searching for gold.": {
+		"discover": [{"SUBJECT": "I", "NP": "the pirates", "ING": "searching for gold"}],
+		"pirates": [{"SUBJECT": "pirates"}],
+		"searching": [{"SUBJECT": "the pirates", "PP": "for gold"}]},
+	"The discovery of the pirates searching for gold.": {
+		"discovery": [{"NP": "the pirates", "ING": "searching for gold"}],
+		"pirates": [{"SUBJECT": "pirates"}],
+		"searching": [{"PP": "for gold"}]},
+	"They reported everyone switching to dollar.": {
+		"reported": [{"SUBJECT": "They", "ING": "switching to dollar", "NP": "everyone"}],
+		"switching": [{"PP": "to dollar"}]},
+	"The report of everyone switching to dollar.": {
+		"report": [{"ING": "switching to dollar", "NP": "everyone"}],
+		"switching": [{"PP": "to dollar"}]},
 
 	# NOM-ING-SC
 	"The police department continued accepting bribes.": {
@@ -677,6 +715,12 @@ EXTRACTIONS_BY_SENTENCE = {
 	"The police department's continuance of accepting bribes.": {
 		"continuance": [{"ING": "accepting bribes", "SUBJECT": "The police department"}],
 		"accepting": [{"OBJECT": "bribes"}]},
+	"The man avoided watching tv in the morning.": {
+		"avoided": [{"SUBJECT": "The man", "ING": "watching tv in the morning"}],
+		"watching": [{"OBJECT": "tv"}]},
+	"The man's avoidance of watching tv in the morning.": {
+		"avoidance": [{"SUBJECT": "The man", "ING": "watching tv in the morning"}],
+		"watching": [{"OBJECT": "tv"}]},
 
 	########################################################################
 	# S complements
