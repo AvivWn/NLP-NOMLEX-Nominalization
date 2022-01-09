@@ -28,8 +28,6 @@ def remove_irrelevant_properties(entry: dict):
 
 def specify_properties_in_subcats(entry):
 	nom_features = entry.get(EntryProperty.FEATURES, {}).keys()
-	subcats = entry.get(EntryProperty.SUBCATS, {}).values()
-	any_alternates_appear = any([SubcatProperty.ALTERNATES in subcat.keys() for subcat in subcats])
 	subcat_types = deepcopy(entry)[EntryProperty.SUBCATS].keys()
 
 	for subcat_type in subcat_types:
@@ -37,13 +35,15 @@ def specify_properties_in_subcats(entry):
 		subcat_info[SubcatProperty.DET_POSS_NO_OTHER_OBJ] = entry[EntryProperty.DET_POSS_NO_OTHER_OBJ]
 		subcat_info[SubcatProperty.N_N_MOD_NO_OTHER_OBJ] = entry[EntryProperty.N_N_MOD_NO_OTHER_OBJ]
 
-		# Add the ALTERNATES constraint for suitable subcats if the entry don't contain any ALTERNATES tag
-		if not any_alternates_appear:
-			if LexiconTag.SUBJ_OBJ_ALT in nom_features and SubcatType.is_intransitive(subcat_type):
-				subcat_info[SubcatProperty.ALTERNATES] = "T"
+		# Correcting ALTERNATES tags
 
-			if LexiconTag.SUBJ_IND_OBJ_ALT in nom_features and SubcatType.is_transitive(subcat_type):
-				subcat_info[SubcatProperty.ALTERNATES] = "T"
+		# Only intransitive subcat can have SUBJ-OBJ-ALT
+		if LexiconTag.SUBJ_OBJ_ALT in nom_features:
+			subcat_info[SubcatProperty.ALTERNATES] = "T" if SubcatType.is_intransitive(subcat_type) else "F"
+
+		# Only transitive subject can have SUBJ-IND-OBJ-ALT
+		if LexiconTag.SUBJ_IND_OBJ_ALT in nom_features:
+			subcat_info[SubcatProperty.ALTERNATES] = "T" if SubcatType.is_transitive(subcat_type) else "F"
 
 
 def rearrange_subcats(entry: dict, lexicon_type: LexiconType):
