@@ -3,11 +3,11 @@ from typing import Iterator
 from spacy.tokens import DocBin
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
-from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parsed_text import UDParsedText
-from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parser import UDParser
+from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
+from yet_another_verb.dependency_parsing.spacy.spacy_parser import UDParser
 
 
-class UDParsedBin(ParsedBin):
+class SpacyParsedBin(ParsedBin):
 	_doc_bin: DocBin
 
 	def __init__(self, attrs=None, store_user_data=False):
@@ -16,17 +16,17 @@ class UDParsedBin(ParsedBin):
 	def __len__(self) -> int:
 		return len(self._doc_bin)
 
-	def add(self, parsed_text: UDParsedText):
+	def add(self, parsed_text: SpacyParsedText):
 		self._doc_bin.add(parsed_text.get_inner())
 
-	def get_docs(self, parser: UDParser) -> Iterator[UDParsedText]:
-		return map(UDParsedText, self._doc_bin.get_docs(parser.vocab))
+	def get_parsed_texts(self, parser: UDParser) -> Iterator[SpacyParsedText]:
+		return map(SpacyParsedText, self._doc_bin.get_docs(parser.vocab))
 
 	def to_bytes(self) -> bytes:
 		return self._doc_bin.to_bytes()
 
 	@staticmethod
-	def from_bytes(bytes_data) -> 'UDParsedBin':
-		parsed_bin = UDParsedBin(attrs=[])
+	def from_bytes(bytes_data) -> 'SpacyParsedBin':
+		parsed_bin = SpacyParsedBin(attrs=[])
 		parsed_bin._doc_bin = DocBin().from_bytes(bytes_data)
 		return parsed_bin

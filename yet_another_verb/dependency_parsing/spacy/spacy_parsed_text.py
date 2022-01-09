@@ -3,26 +3,27 @@ from typing import Union, Iterator
 from spacy.tokens import Doc, Token
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
-from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parsed_word import UDParsedWord
-from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parsed_span import UDParsedSpan
+from yet_another_verb.dependency_parsing.spacy.spacy_parsed_word import UDParsedWord
+from yet_another_verb.dependency_parsing.spacy.spacy_parsed_span import SpacyParsedSpan
 
 
-class UDParsedText(ParsedText):
+class SpacyParsedText(ParsedText):
 	_doc: Doc
 
 	def __init__(self, doc: Doc):
+		super().__init__()
 		self._doc = doc
 
 	def __len__(self) -> int:
 		return len(self._doc)
 
-	def __getitem__(self, i) -> Union[UDParsedWord, UDParsedSpan]:
+	def __getitem__(self, i) -> Union[UDParsedWord, SpacyParsedSpan]:
 		item = self._doc[i]
 
 		if isinstance(item, Token):
 			return UDParsedWord(item)
 		else:  # span
-			return UDParsedSpan(item)
+			return SpacyParsedSpan(item)
 
 	def __str__(self) -> str:
 		return str(self._doc)
@@ -40,8 +41,8 @@ class UDParsedText(ParsedText):
 		return map(UDParsedWord, iter(self._doc))
 
 	@property
-	def sents(self) -> Iterator[UDParsedSpan]:
-		return self._doc.sents
+	def sents(self) -> Iterator[SpacyParsedSpan]:
+		return map(SpacyParsedSpan, self._doc.sents)
 
 	@property
 	def text(self) -> str:

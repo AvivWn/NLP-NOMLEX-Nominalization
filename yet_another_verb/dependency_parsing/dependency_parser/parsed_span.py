@@ -1,10 +1,13 @@
 import abc
-from typing import Union, Iterator
+from typing import Union, Iterator, TYPE_CHECKING
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 
+if TYPE_CHECKING:
+	from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 
-class ParsedSpan(abc.ABC):
+
+class ParsedSpan(abc.ABC, list):
 	@abc.abstractmethod
 	def __len__(self) -> int: pass
 
@@ -31,3 +34,5 @@ class ParsedSpan(abc.ABC):
 	@property
 	def tokenized_text(self) -> str:
 		return " ".join([w.text for w in self])
+
+	def as_standalone_parsed_text(self) -> 'ParsedText': pass

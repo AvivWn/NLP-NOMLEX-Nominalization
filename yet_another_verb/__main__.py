@@ -19,9 +19,8 @@ def extract(args: Namespace):
 		return
 
 	limited_idxs = None if args.word_idx is None else [args.word_idx]
-	parsed_text = args_extractor.preprocess(args.text)
-	extractions_per_idx = timeit(args_extractor.extract_multiword)(parsed_text, limited_idxs)
-	str_repr = ParsedStrRepresentation(parsed_text).represent_dict(extractions_per_idx)
+	multi_word_extraction = timeit(args_extractor.extract_multiword)(args.text, limited_idxs=limited_idxs)
+	str_repr = ParsedStrRepresentation().represent_dict(multi_word_extraction)
 	print_extraction(str_repr)
 
 

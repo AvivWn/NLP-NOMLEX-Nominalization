@@ -10,7 +10,7 @@ from yet_another_verb.arguments_extractor.extraction.filters import prefer_by_n_
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
-from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
+from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText, ParsedWords
 from yet_another_verb.nomlex.constants import ArgumentType
 from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
@@ -27,8 +27,36 @@ class NomlexArgsExtractor(ArgsExtractor):
 		self.adapted_lexicon = NomlexMaestro(nomlex_version).get_adapted_lexicon()
 		self.dependency_parser = dependency_parser
 
-	def preprocess(self, text: InputText) -> ParsedText:
+	def _tokenize(self, text: InputText) -> ParsedText:
 		return self.dependency_parser(text)
+
+	def _is_potential_predicate(
+			self, word_idx: int, words: ParsedWords,
+			limited_predicates: Optional[list], allow_related_forms: bool
+	) -> bool:
+		if limited_predicates is None:
+			return True
+
+		word = words[word_idx]
+
+		if allow_related_forms:
+			self.adapted_lexicon.enhance_orths(limited_predicates)
+
+		return word.lemma in limited_predicates
+
+	def _is_potential_sentence(
+			self, words: list,
+			limited_predicates: Optional[list], allow_related_forms: bool
+	) -> bool:
+		if limited_predicates is None:
+			return True
+
+		lemmas = set([w.lemma for w in words])
+
+		if allow_related_forms:
+			self.adapted_lexicon.enhance_orths(limited_predicates)
+
+		return not lemmas.isdisjoint(limited_predicates)
 
 	@staticmethod
 	def _is_empty_or_contain(values: list, v):
@@ -189,14 +217,13 @@ class NomlexArgsExtractor(ArgsExtractor):
 
 			if pp1_start > pp2_start:
 				pp1_arg.arg_type = ArgumentType.PP2
+				pp1_arg.arg_tag = ArgumentType.PP2
 				pp2_arg.arg_type = ArgumentType.PP1
+				pp2_arg.arg_tag = ArgumentType.PP1
 
-	def extract(self, word_idx: int, parsed_text: ParsedText) -> Optional[Extractions]:
-		word = parsed_text[word_idx]
-		word_entries = self.adapted_lexicon.entries.get(word.lemma)
-
-		if word_entries is None:
-			return None
+	def extract(self, word_idx: int, words: ParsedText) -> Optional[Extractions]:
+		word = words[word_idx]
+		word_entries = self.adapted_lexicon.entries.get(word.lemma, [])
 
 		cache = {}
 		extractions = []
@@ -212,16 +239,15 @@ class NomlexArgsExtractor(ArgsExtractor):
 
 				for matched_args in matched_args_combinations:
 					fulfilled_constraints = list(chain(*[a.fulfilled_constraints for a in matched_args]))
-					tmp_matched_args = self._filter_typless_args(matched_args)
+					matched_args = self._filter_typless_args(matched_args)
 					self._reorder_numbered_args(matched_args)
 
-					if len(tmp_matched_args) > 0:
-						extraction = Extraction(predicate_idx=word_idx, args=set(tmp_matched_args), fulfilled_constraints=fulfilled_constraints)
+					if len(matched_args) > 0:
+						extraction = Extraction(
+							words=words, predicate_idx=word_idx, predicate_lemma=word.lemma, args=set(matched_args),
+							fulfilled_constraints=fulfilled_constraints)
 						extractions.append(extraction)
-						max_num_of_args = max(max_num_of_args, len(tmp_matched_args))
-
-		if len(extractions) == 0:
-			return None
+						max_num_of_args = max(max_num_of_args, len(matched_args))
 
 		for filter_func in [uniqify, prefer_by_n_args, prefer_by_constraints]:
 			extractions = filter_func(extractions)

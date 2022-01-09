@@ -13,16 +13,6 @@ def _choose_first_by_order(extractions: Extractions, order: Callable[[Extraction
 def prefer_by_n_args(extractions: Extractions) -> Extractions:
 	return _choose_first_by_order(extractions, lambda e: len(e), reverse=True)
 
-#
-# def filter_by_arg_preference(extractions: List[Extraction]) -> List[Extraction]:
-# 	extractions_groups = defaultdict(list)
-# 	for extraction in extractions:
-# 		extractions_groups[hash("")] = extraction
-#
-# 	extractions.sort(key=lambda e: len(e), reverse=True)
-# 	extractions = list(filter(lambda e: len(e) == len(extractions[0]), extractions))
-# 	return extractions
-
 
 def prefer_by_constraints(extractions: Extractions) -> Extractions:
 	return _choose_first_by_order(extractions, lambda e: len(e.fulfilled_constraints), reverse=True)

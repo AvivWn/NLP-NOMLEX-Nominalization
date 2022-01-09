@@ -205,7 +205,7 @@ body.dark {
 }
 
 /*When a checkbox is checked, add a colorful background*/
-.btn-container.nom-btn input:checked ~ .checkmark {
+.btn-container.noun-btn input:checked ~ .checkmark {
     background-color: #64b34c;
 }
 

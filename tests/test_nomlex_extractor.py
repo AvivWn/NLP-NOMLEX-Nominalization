@@ -1,5 +1,5 @@
-from typing import Dict
 import os
+from typing import Dict
 
 import unittest
 from unittest import TestCase
@@ -36,14 +36,6 @@ class TestNomlexExtractor(TestCase):
 	def tearDownClass(cls) -> None:
 		BinaryFileHandler.save(PARSED_EXAMPLES_PATH, cls.parsed_bin.to_bytes())
 
-	def _parse_text(self, text: str):
-		if text in self.parsing_by_text:
-			return self.parsing_by_text[text]
-
-		parsed_text = self.args_extractor.preprocess(text)
-		self.parsed_bin.add(parsed_text)
-		return parsed_text
-
 	@staticmethod
 	def _compare_extractions(extractions, expected_extractions):
 		for e in extractions:
@@ -54,9 +46,14 @@ class TestNomlexExtractor(TestCase):
 
 	@parameterized.expand(list(EXTRACTIONS_BY_SENTENCE.items()))
 	def test_extraction(self, text: str, expected_extractions: Dict[str, Dict[str, str]]):
-		parsed_text = self._parse_text(text)
-		extractions_per_idx = timeit(self.args_extractor.extract_multiword)(parsed_text)
-		extractions_per_word = ParsedStrRepresentation(parsed_text).represent_dict(extractions_per_idx)
+		multi_word_extraction = timeit(self.args_extractor.extract_multiword)(self.parsing_by_text.get(text, text))
+		parsed_text = multi_word_extraction.words
+
+		if text not in self.parsing_by_text:
+			self.parsing_by_text[text] = parsed_text
+			self.parsed_bin.add(parsed_text)
+
+		extractions_per_word = ParsedStrRepresentation().represent_dict(multi_word_extraction)
 		print_extraction(extractions_per_word)
 
 		assert len(extractions_per_word) == len(expected_extractions)

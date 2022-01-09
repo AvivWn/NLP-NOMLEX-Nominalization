@@ -13,7 +13,7 @@ class ParsedBin(abc.ABC):
 	def add(self, parsed_text: ParsedText): pass
 
 	@abc.abstractmethod
-	def get_docs(self, parser: DependencyParser) -> Iterator[ParsedText]: pass
+	def get_parsed_texts(self, parser: DependencyParser) -> Iterator[ParsedText]: pass
 
 	@abc.abstractmethod
 	def to_bytes(self) -> bytes: pass
@@ -23,4 +23,4 @@ class ParsedBin(abc.ABC):
 	def from_bytes(bytes_data) -> 'ParsedBin': pass
 
 	def get_parsing_by_text(self, parser: DependencyParser) -> Dict[str, ParsedText]:
-		return {doc.text: doc for doc in self.get_docs(parser)}
+		return {doc.text: doc for doc in self.get_parsed_texts(parser)}

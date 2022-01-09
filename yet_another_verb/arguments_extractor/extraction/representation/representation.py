@@ -1,42 +1,39 @@
 import abc
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 from toolz.dicttoolz import merge_with
 
 from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
 from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
 from yet_another_verb.nomlex.constants.argument_type import ArgumentType
 
-ExtractionsByIdx = Dict[int, Extractions]
 ArgumentTypes = Optional[List[ArgumentType]]
 
 
 class ExtractionRepresentation(abc.ABC):
-	def __init__(self, words):
-		self.words = words
-
 	@abc.abstractmethod
-	def represent_predicate(self, predicate_idx: int):
+	def _represent_predicate(self, words: list, predicate_idx: int):
 		raise NotImplementedError()
 
 	@abc.abstractmethod
-	def represent_argument(self, predicate_idx: int, argument: ExtractedArgument):
+	def _represent_argument(self, words: list, predicate_idx: int, argument: ExtractedArgument):
 		raise NotImplementedError()
 
-	def represent_extraction(self, extraction: Extraction, arg_types: ArgumentTypes = None):
+	def _represent_extraction(self, extraction: Extraction, arg_types: ArgumentTypes = None) -> dict:
 		extraction_repr = {}
 
 		for arg in extraction.args:
 			if arg_types is None or arg.arg_type in arg_types:
-				extraction_repr[arg.arg_type] = self.represent_argument(extraction.predicate_idx, arg)
+				extraction_repr[arg.arg_tag] = self._represent_argument(extraction.words, extraction.predicate_idx, arg)
 
 		return extraction_repr
 
 	def represent_list(self, extractions: Extractions, arg_types: ArgumentTypes = None) -> list:
-		list_repr = [self.represent_extraction(e, arg_types) for e in extractions]
+		list_repr = [self._represent_extraction(e, arg_types) for e in extractions]
 		return list_repr
 
-	def represent_combined_list(self, extractions: Extractions, strict=False, arg_types: ArgumentTypes = None) -> list:
+	def represent_combined_list(self, extractions: Extractions, strict=False, arg_types: ArgumentTypes = None) -> dict:
 		list_repr = self.represent_list(extractions)
 
 		if not strict:
@@ -56,23 +53,23 @@ class ExtractionRepresentation(abc.ABC):
 
 		return combined_repr
 
-	def represent_dict(self, extractions_by_idx: ExtractionsByIdx, arg_types: ArgumentTypes = None) -> dict:
+	def represent_dict(self, multi_word_ext: MultiWordExtraction, arg_types: ArgumentTypes = None) -> dict:
 		dict_repr = {}
 
-		for predicate_idx, extractions in extractions_by_idx.items():
+		for predicate_idx, extractions in multi_word_ext.extractions_per_idx.items():
 			extractions_repr = self.represent_list(extractions, arg_types)
-			dict_repr[self.represent_predicate(predicate_idx)] = extractions_repr
+			dict_repr[self._represent_predicate(multi_word_ext.words, predicate_idx)] = extractions_repr
 
 		return dict_repr
 
 	def represent_combined_dict(
-			self, extractions_by_idx: ExtractionsByIdx,
+			self, multi_word_ext: MultiWordExtraction,
 			strict=False, arg_types: ArgumentTypes = None
 	) -> dict:
 		dict_repr = {}
 
-		for predicate_idx, extractions in extractions_by_idx.items():
+		for predicate_idx, extractions in multi_word_ext.extractions_per_idx.items():
 			extractions_repr = self.represent_combined_list(extractions, strict, arg_types)
-			dict_repr[self.represent_predicate(predicate_idx)] = extractions_repr
+			dict_repr[self._represent_predicate(multi_word_ext.words, predicate_idx)] = extractions_repr
 
 		return dict_repr

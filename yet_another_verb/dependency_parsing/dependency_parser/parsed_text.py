@@ -1,11 +1,11 @@
 import abc
-from typing import Union, Iterator
+from typing import Union, Iterator, List
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_span import ParsedSpan
 
 
-class ParsedText(abc.ABC):
+class ParsedText(abc.ABC, list):
 	@abc.abstractmethod
 	def __len__(self) -> int: pass
 
@@ -36,5 +36,12 @@ class ParsedText(abc.ABC):
 	def text(self) -> str: pass
 
 	@property
+	def words(self) -> List[str]:
+		return [w.text for w in self]
+
+	@property
 	def tokenized_text(self) -> str:
-		return " ".join([w.text for w in self])
+		return " ".join(self.words)
+
+
+ParsedWords = Union[ParsedText, ParsedSpan]

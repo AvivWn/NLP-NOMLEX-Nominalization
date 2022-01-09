@@ -4,7 +4,7 @@ from spacy.util import compile_infix_regex
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Token, Doc
 
-from yet_another_verb.dependency_parsing.spacy_en_ud.ud_parsed_text import UDParsedText
+from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 
@@ -13,7 +13,7 @@ Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for
 Token.set_extension("subtree_indices", getter=lambda token: [node.i for node in token.subtree])
 
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 class UDParser(DependencyParser):
@@ -39,18 +39,18 @@ class UDParser(DependencyParser):
 		)
 
 	@typeguard.typechecked
-	def parse(self, text: InputText, disable=None) -> UDParsedText:
-		if isinstance(text, UDParsedText):
+	def parse(self, text: InputText, disable=None) -> SpacyParsedText:
+		if isinstance(text, SpacyParsedText):
 			return text
 
 		if isinstance(text, Doc):
-			return UDParsedText(text)
+			return SpacyParsedText(text)
 
 		if disable is None:
 			disable = []
 
 		if isinstance(text, str):
-			d = UDParsedText(self._parser(text, disable=disable))
+			d = SpacyParsedText(self._parser(text, disable=disable))
 			print([x.dep for x in d])
 			print([x.head for x in d])
 			print([x.tag for x in d])
@@ -62,7 +62,7 @@ class UDParser(DependencyParser):
 			if name not in disable:
 				doc = proc(doc)
 
-		return UDParsedText(doc)
+		return SpacyParsedText(doc)
 
 	@property
 	def vocab(self):

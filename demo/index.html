@@ -17,7 +17,7 @@
             <div class="narrow center-items" style="height:60px"><input class="icon" type="image" src="img/biu_nlp.png" height="50" width="50" alt="" onclick="location.href='https://biu-nlp.github.io/'" id="biu-nlp-img"></div>
             <div class="narrow center-items" style="height:60px"><input class="icon" type="image" src="img/biu.png" height="50" width="50" alt="" onclick="location.href='https://www.cs.biu.ac.il/en'" id="biu-img"></div>
             <p class="narrow main-title">
-                <b>Syntactic Arguments Extractor</b>
+                <b>Yet Another Verb</b>
             </p>
             <ul class="narrow nav nav-pills pull-right center" style="background-color: transparent; height: 60px; margin: 0; padding-right: 0;">
                 <li class="center-items"><a class="header-btn" href id="theme-button">Dark</a></li>
@@ -33,7 +33,7 @@
                         <div style="width:100%" data-step="" data-intro="">
                             <br>
                             <h5>Type your input here:</h5>
-                                <input class="input-line narrow" id="sentence-input" autocomplete="off" type="text" placeholder="e.g., The appointment [nominalization] of Tim Cook by Apple as a CEO was expected. Apple appointed [verb] Tim Cook as CEO." name="input">
+                                <input class="input-line narrow" id="sentence-input" autocomplete="off" type="text" placeholder="e.g., The appointment [nominalization] of Tim Cook, by Apple as a CEO was expected. Apple appointed [verb] Tim Cook as CEO." name="input">
                                 <button class="submit-btn narrow" id="submit-button" type="submit">Submit</button>
                                 <button class="submit-btn random-btn narrow" id="random-button" type="submit"><i class='fas fa-dice'></i></button>
                         </div>
@@ -43,11 +43,11 @@
             <div class="container my-container">
                 <div class="options-container narrow" data-step="" data-intro="">
                     <div class="btn-container based-radio-btn narrow"><label>Rule-based<sup>1</sup><input type="radio" name="radio" id="rule-based" value="1" checked="checked"><span class="checkmark"></span></label></div>
-                    <div class="btn-container based-radio-btn narrow"><label>Model-based<input type="radio" name="radio" id="model-based" value="2"><span class="checkmark"></span></label></div>
-                    <div class="btn-container based-radio-btn narrow"><label>Hybrid<input type="radio" name="radio" id="hybrid-based" value="3"><span class="checkmark"></span></label></div>
+<!--                    <div class="btn-container based-radio-btn narrow"><label>Model-based<input type="radio" name="radio" id="model-based" value="2"/><span class="checkmark"></span></label></div>-->
+<!--                    <div class="btn-container based-radio-btn narrow"><label>Hybrid<input type="radio" name="radio" id="hybrid-based" value="3"><span class="checkmark"></span></label></div>-->
                 </div>
                 <div class="options-container narrow" data-step="" data-intro="">
-                    <div class="btn-container nom-btn narrow"><label>Nominalizations<input type="checkbox" name="check" id="noms-cb" value="4" checked><span class="checkmark"></span></label></div>
+                    <div class="btn-container noun-btn narrow"><label>Nominalizations<input type="checkbox" name="check" id="nouns-cb" value="4" checked><span class="checkmark"></span></label></div>
                     <div class="btn-container verb-btn narrow"><label>Verbs<input type="checkbox" name="check" id="verbs-cb" value="5" checked><span class="checkmark"></span></label></div>
                     <div class="btn-container ud-btn narrow"><label>UD Relations<input type="checkbox" name="check" id="ud-cb" value="6" checked><span class="checkmark"></span></label></div>
                     <div class="btn-container pos-btn narrow"><label>POS tags<input type="checkbox" name="check" id="postag-cb" value="7" checked><span class="checkmark"></span></label></div>
