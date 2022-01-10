@@ -44,8 +44,8 @@ def _get_random_sentence(sentences):
 	return random_sentence
 
 
-@route('/nomlexDemo/')
-@route('/nomlexDemo/<file_path:path>')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/<file_path:path>')
 def server_static(file_path="index.html"):
 	last_part = file_path[file_path.rfind('/') + 1:]
 	all_files = _get_list_of_files(".")
@@ -57,7 +57,7 @@ def server_static(file_path="index.html"):
 	return static_file(file_path, root='./')
 
 
-@route('/nomlexDemo/feedback/', method='POST')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/feedback/', method='POST')
 def feedback():
 	text_to_send = request.json["text-to-send"]
 	port = 465  # For SSL
@@ -80,7 +80,7 @@ def feedback():
 			f.write(text_to_send + "\n")
 
 
-@route('/nomlexDemo/get_random_example/', method='GET')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/get_random_example/', method='GET')
 def get_random_example():
 	return {"text": _get_random_sentence(example_sentences)}
 
@@ -97,7 +97,7 @@ def _extract_inner(text: str, args_extractor) -> Tuple[Extractions, DynamicExtra
 	return generate_args_extraction_info(ud_parsed_text, args_extractor, str(uuid4()), tagged_ranges)
 
 
-@route('/nomlexDemo/extract/', method='POST')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/extract/', method='POST')
 @force_min_response_time
 def extract():
 	text = request.json["text"]
@@ -107,7 +107,7 @@ def extract():
 	return asdict(dynamic_extractions_info)
 
 
-@route('/nomlexDemo/match/', method='POST')
+@route(f'/{DEMO_CONFIG.WWW_ENDPOINT}/match/', method='POST')
 @force_min_response_time
 def match():
 	text = request.json["text"]

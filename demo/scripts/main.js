@@ -10,7 +10,7 @@ define([
 	introJs
 ) {
 	function main() {
-		const DEMO_URL = "http://127.0.0.1:5000/nomlexDemo/"; //"https://nlp.biu.ac.il/~avivwn/nomlexDemo/";
+		const DEMO_URL = "https://nlp.biu.ac.il/~avivwn/yet_another_verb/"; // "http://127.0.0.1:5000/yet_another_verb/";
 		const EXTRACT_ENDPOINT = DEMO_URL + "extract/";
 		const MATCH_ENDPOINT = DEMO_URL + "match/";
 		const RANDOM_ENDPOINT = DEMO_URL + "get_random_example/";

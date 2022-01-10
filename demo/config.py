@@ -3,8 +3,9 @@ class DemoConfig:
 			self,
 			data_dir="data",
 	):
-		self.URL = "127.0.0.1"  # '0.0.0.0'
+		self.URL = '0.0.0.0'  # "127.0.0.1"
 		self.PORT = 5000
+		self.WWW_ENDPOINT = "yet_another_verb"
 
 		self.DATA_DIR = data_dir
 		self.EXAMPLE_DATA_PATH = self.DATA_DIR + "/examples.txt"
