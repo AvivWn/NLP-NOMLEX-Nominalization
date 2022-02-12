@@ -1,6 +1,3 @@
-from os import makedirs
-from os.path import dirname
-
 from yet_another_verb.file_handlers.file_handler import FileHandler
 
 
@@ -15,6 +12,6 @@ class BinaryFileHandler(FileHandler):
 
 	@staticmethod
 	def save(file_path: str, data: bytes):
-		makedirs(dirname(file_path), exist_ok=True)
+		FileHandler._make_relevant_dirs(file_path)
 		with open(file_path, 'wb') as output_file:
 			output_file.write(data)

@@ -13,13 +13,14 @@ from bottle import route, run, request, static_file
 
 from yet_another_verb.arguments_extractor.extraction.comparators.arg_type_matcher import ArgTypeMatcher
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
-from yet_another_verb.configuration.parsing_config import PARSING_CONFIG
 from yet_another_verb import NomlexArgsExtractor
 from demo.dynamic_extractions_info import DynamicExtractionsInfo
 from demo.handle_specified_tags import parse_specified_tags, translate_char_ranges_to_word_ranges
 from handle_args_extraction import generate_args_extraction_info
 from time_utils import force_min_response_time
 from config import DEMO_CONFIG
+from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
+from yet_another_verb.file_handlers import ParsedBinFileHandler, TXTFileHandler
 
 
 def _get_list_of_files(dir_name):
@@ -137,19 +138,15 @@ if __name__ == '__main__':
 	email_address = "" #input("Enter your e-mail address: ")
 	password = "" #getpass("Password for sending emails: ")
 
-	ud_parser = PARSING_CONFIG.DEFAULT_PARSER_MAKER()
+	ud_parser = DependencyParserFactory()()
 	default_args_extractor = NomlexArgsExtractor()
 	args_extractors = {
 		"rule-based": default_args_extractor
 	}
 	extraction_matcher = ArgTypeMatcher()
 
-	with open(DEMO_CONFIG.EXAMPLE_DATA_PATH, "r") as example_sentence_file:
-		example_sentences = example_sentence_file.readlines()
-
-	with open(DEMO_CONFIG.PARSED_EXAMPLE_DATA_PATH, "rb") as parsed_dataset_file:
-		dataset_bytes = parsed_dataset_file.read()
-		doc_bin = PARSING_CONFIG.DEFAULT_PARSED_BIN_MAKER().from_bytes(dataset_bytes)
-		parsed_example_documents = list(doc_bin.get_parsed_texts(default_args_extractor.dependency_parser))
+	example_sentences = TXTFileHandler(as_lines=True).load(DEMO_CONFIG.EXAMPLE_DATA_PATH)
+	parsed_bin = ParsedBinFileHandler(ud_parser).load(DEMO_CONFIG.PARSED_EXAMPLE_DATA_PATH)
+	parsed_example_documents = list(parsed_bin.get_parsed_texts())
 
 	run(host=DEMO_CONFIG.URL, reloader=False, port=DEMO_CONFIG.PORT, server='paste')

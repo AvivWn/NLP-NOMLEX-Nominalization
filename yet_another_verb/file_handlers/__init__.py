@@ -3,3 +3,4 @@ from yet_another_verb.file_handlers.json_file_handler import JsonFileHandler
 from yet_another_verb.file_handlers.txt_file_handler import TXTFileHandler
 from yet_another_verb.file_handlers.binary_file_handler import BinaryFileHandler
 from yet_another_verb.file_handlers.pkl_file_handler import PKLFildHandler
+from yet_another_verb.file_handlers.parsed_bin_file_handler import ParsedBinFileHandler

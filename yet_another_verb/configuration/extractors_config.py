@@ -4,14 +4,17 @@ from yet_another_verb import nomlex
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 
 
-class NomlexConfig:
+class ExtractorsConfig:
 	def __init__(
 			self,
+			extractor="nomlex",
 			version=NomlexVersion.V2,
-			use_cache=True,
+			use_nomlex_cache=True
 	):
-		self.USE_CACHE = use_cache
+		self.EXTRACTOR = extractor
 
+		# nomlex related configurations
+		self.USE_NOMLEX_CACHE = use_nomlex_cache
 		self.NOMLEX_VERSION = version
 		self.LEXICON_DIR = f"{dirname(nomlex.__file__)}/lexicons"
 		self.LISP_LEXICON_DIR = join(self.LEXICON_DIR, "lisp")
@@ -19,4 +22,4 @@ class NomlexConfig:
 		self.PKL_LEXICON_DIR = join(self.LEXICON_DIR, "pkl")
 
 
-NOMLEX_CONFIG = NomlexConfig()
+EXTRACTORS_CONFIG = ExtractorsConfig()

@@ -1,9 +1,13 @@
+import os
+
 import typeguard
 import spacy
 from spacy.util import compile_infix_regex
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Token, Doc
 
+from yet_another_verb.configuration import PARSING_CONFIG
+from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
@@ -12,17 +16,21 @@ spacy.util.fix_random_seed()
 Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for node in token.subtree]))
 Token.set_extension("subtree_indices", getter=lambda token: [node.i for node in token.subtree])
 
-import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
-class UDParser(DependencyParser):
-	def __init__(self, parser_name: str):
-		self._parser = spacy.load(parser_name)
+class SpacyParser(DependencyParser):
+	def __init__(self, parser_name: str = PARSING_CONFIG.PARSER_NAME, **kwargs):
+		self.parser_name = parser_name
+		self._parser = spacy.load(self.parser_name)
 		self._parser.tokenizer = self._create_custom_tokenizer()
 
 	def __call__(self, text: InputText, disable=None):
 		return self.parse(text, disable)
+
+	@property
+	def id(self) -> str:
+		return f"spacy-{self.parser_name}"
 
 	def _create_custom_tokenizer(self):
 		infixes = self._parser.Defaults.infixes
@@ -51,9 +59,9 @@ class UDParser(DependencyParser):
 
 		if isinstance(text, str):
 			d = SpacyParsedText(self._parser(text, disable=disable))
-			print([x.dep for x in d])
-			print([x.head for x in d])
-			print([x.tag for x in d])
+			# print([x.dep for x in d])
+			# print([x.head for x in d])
+			# print([x.tag for x in d])
 			return d
 
 		# parse a tokenized sentence
@@ -67,3 +75,7 @@ class UDParser(DependencyParser):
 	@property
 	def vocab(self):
 		return self._parser.vocab
+
+	def generate_parsed_bin(self) -> ParsedBin:
+		from yet_another_verb.dependency_parsing.spacy.spacy_parsed_bin import SpacyParsedBin
+		return SpacyParsedBin(self)

@@ -1,20 +1,21 @@
-from os import makedirs
-from os.path import dirname
-from typing import List
+from typing import List, Union
 
 from yet_another_verb.file_handlers.file_handler import FileHandler
 
 
 class TXTFileHandler(FileHandler):
-	def __init__(self):
+	def __init__(self, as_lines=True):
 		super().__init__()
+		self.as_lines = as_lines
 
-	@staticmethod
-	def load(file_path: str) -> str:
-		return open(file_path, "r").read()
+	def load(self, file_path: str) -> Union[str, List[str]]:
+		with open(file_path, "r") as file:
+			if self.as_lines:
+				return file.readlines()
 
-	@staticmethod
-	def save(file_path: str, data: List[str]):
-		makedirs(dirname(file_path), exist_ok=True)
+			return file.read()
+
+	def save(self, file_path: str, data: List[str]):
+		FileHandler._make_relevant_dirs(file_path)
 		with open(file_path, "w") as target_file:
 			target_file.writelines(data)

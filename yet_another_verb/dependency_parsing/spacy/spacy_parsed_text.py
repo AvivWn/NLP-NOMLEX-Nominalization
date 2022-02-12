@@ -3,7 +3,7 @@ from typing import Union, Iterator
 from spacy.tokens import Doc, Token
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
-from yet_another_verb.dependency_parsing.spacy.spacy_parsed_word import UDParsedWord
+from yet_another_verb.dependency_parsing.spacy.spacy_parsed_word import SpacyParsedWord
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_span import SpacyParsedSpan
 
 
@@ -17,11 +17,11 @@ class SpacyParsedText(ParsedText):
 	def __len__(self) -> int:
 		return len(self._doc)
 
-	def __getitem__(self, i) -> Union[UDParsedWord, SpacyParsedSpan]:
+	def __getitem__(self, i) -> Union[SpacyParsedWord, SpacyParsedSpan]:
 		item = self._doc[i]
 
 		if isinstance(item, Token):
-			return UDParsedWord(item)
+			return SpacyParsedWord(item)
 		else:  # span
 			return SpacyParsedSpan(item)
 
@@ -37,8 +37,11 @@ class SpacyParsedText(ParsedText):
 	def __bytes__(self) -> bytes:
 		return self._doc.__bytes__()
 
-	def __iter__(self) -> Iterator[UDParsedWord]:
-		return map(UDParsedWord, iter(self._doc))
+	def __reduce__(self):
+		return SpacyParsedText, (self._doc, )
+
+	def __iter__(self) -> Iterator[SpacyParsedWord]:
+		return map(SpacyParsedWord, iter(self._doc))
 
 	@property
 	def sents(self) -> Iterator[SpacyParsedSpan]:

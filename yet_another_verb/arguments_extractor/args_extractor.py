@@ -1,12 +1,9 @@
 import abc
-from typing import Optional, Dict, List, Tuple, Union
+from typing import Optional, List, Union
 
 from yet_another_verb.arguments_extractor.extraction.comparators.extraction_matcher import ExtractionMatcher
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
-
-TaggedRanges = Dict[Tuple[int, int], str]
-TaggedRangesByIdx = Dict[int, TaggedRanges]
 
 
 class ArgsExtractor(abc.ABC):

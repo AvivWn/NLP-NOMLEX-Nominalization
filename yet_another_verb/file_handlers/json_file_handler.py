@@ -1,6 +1,4 @@
 import json
-from os import makedirs
-from os.path import dirname
 
 from yet_another_verb.file_handlers.file_handler import FileHandler
 
@@ -16,6 +14,6 @@ class JsonFileHandler(FileHandler):
 
 	@staticmethod
 	def save(file_path: str, data: dict):
-		makedirs(dirname(file_path), exist_ok=True)
+		FileHandler._make_relevant_dirs(file_path)
 		with open(file_path, "w") as json_file:
 			json.dump(data, json_file)

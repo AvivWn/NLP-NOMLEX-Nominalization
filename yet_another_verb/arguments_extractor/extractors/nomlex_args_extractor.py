@@ -11,18 +11,20 @@ from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser imp
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText, ParsedWords
+from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.nomlex.constants import ArgumentType
 from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
-from yet_another_verb.configuration import NOMLEX_CONFIG, PARSING_CONFIG
+from yet_another_verb.configuration import EXTRACTORS_CONFIG
 
 
 class NomlexArgsExtractor(ArgsExtractor):
 	def __init__(
 			self,
-			nomlex_version: NomlexVersion = NOMLEX_CONFIG.NOMLEX_VERSION,
-			dependency_parser: DependencyParser = PARSING_CONFIG.DEFAULT_PARSER_MAKER()
+			nomlex_version: NomlexVersion = EXTRACTORS_CONFIG.NOMLEX_VERSION,
+			dependency_parser: DependencyParser = DependencyParserFactory()(),
+			**kwargs
 	):
 		self.adapted_lexicon = NomlexMaestro(nomlex_version).get_adapted_lexicon()
 		self.dependency_parser = dependency_parser

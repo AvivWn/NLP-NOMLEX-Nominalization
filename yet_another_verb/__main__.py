@@ -1,22 +1,17 @@
 from argparse import ArgumentParser, Namespace
 
-from yet_another_verb.arguments_extractor.extractors.nomlex_args_extractor import NomlexArgsExtractor
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_str_representation import \
 	ParsedStrRepresentation
-from yet_another_verb.nomlex.nomlex_version import NomlexVersion
+from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.utils.debug_utils import timeit
 from yet_another_verb.utils.print_utils import print_extraction
-from yet_another_verb.configuration.nomlex_config import NOMLEX_CONFIG
+from yet_another_verb.configuration.extractors_config import EXTRACTORS_CONFIG
 
 
 def extract(args: Namespace):
-	NOMLEX_CONFIG.USE_CACHE = not args.ignore_cache
-	NOMLEX_CONFIG.NOMLEX_VERSION = args.nomlex_version
+	EXTRACTORS_CONFIG.USE_NOMLEX_CACHE = not args.ignore_nomlex_cache
 
-	if args.extraction_mode == "nomlex":
-		args_extractor = NomlexArgsExtractor()
-	else:
-		return
+	args_extractor = ExtractorFactory(**vars(args))()
 
 	limited_idxs = None if args.word_idx is None else [args.word_idx]
 	multi_word_extraction = timeit(args_extractor.extract_multiword)(args.text, limited_idxs=limited_idxs)
@@ -31,21 +26,12 @@ def main():
 		help="The text used to extract arguments"
 	)
 	arg_parser.add_argument(
-		"--extraction-mode", "-m", choices=["nomlex"], default="nomlex",
-		help="Defines the method of arguments extraction"
-	)
-	arg_parser.add_argument(
 		"--word-idx", "-i", type=int, default=None,
 		help="Specific index of a word to focus on"
 	)
-	arg_parser.add_argument(
-		"--ignore-cache", "-c", action="store_true",
-		help="Use cached files instead of recreating them"
-	)
-	arg_parser.add_argument(
-		"--nomlex-version", "-v", type=NomlexVersion, default=NomlexVersion.V2,
-		help="NOMLEX's lexicon version"
-	)
+
+	arg_parser = ExtractorFactory.expand_parser(arg_parser)
+
 	args, _ = arg_parser.parse_known_args()
 	extract(args)
 

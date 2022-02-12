@@ -4,14 +4,17 @@ from spacy.tokens import DocBin
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
-from yet_another_verb.dependency_parsing.spacy.spacy_parser import UDParser
+from yet_another_verb.dependency_parsing.spacy.spacy_parser import SpacyParser
+
+SAVED_ATTRS = ["ID", "ORTH", "LEMMA", "TAG", "POS", "HEAD", "DEP", "ENT_IOB", "ENT_TYPE"]
 
 
 class SpacyParsedBin(ParsedBin):
 	_doc_bin: DocBin
 
-	def __init__(self, attrs=None, store_user_data=False):
-		self._doc_bin = DocBin(attrs=attrs, store_user_data=store_user_data)
+	def __init__(self, parser: SpacyParser):
+		super().__init__(parser)
+		self._doc_bin = DocBin(attrs=SAVED_ATTRS, store_user_data=True)
 
 	def __len__(self) -> int:
 		return len(self._doc_bin)
@@ -19,14 +22,11 @@ class SpacyParsedBin(ParsedBin):
 	def add(self, parsed_text: SpacyParsedText):
 		self._doc_bin.add(parsed_text.get_inner())
 
-	def get_parsed_texts(self, parser: UDParser) -> Iterator[SpacyParsedText]:
-		return map(SpacyParsedText, self._doc_bin.get_docs(parser.vocab))
+	def get_parsed_texts(self) -> Iterator[SpacyParsedText]:
+		return map(SpacyParsedText, self._doc_bin.get_docs(self.parser.vocab))
 
 	def to_bytes(self) -> bytes:
 		return self._doc_bin.to_bytes()
 
-	@staticmethod
-	def from_bytes(bytes_data) -> 'SpacyParsedBin':
-		parsed_bin = SpacyParsedBin(attrs=[])
-		parsed_bin._doc_bin = DocBin().from_bytes(bytes_data)
-		return parsed_bin
+	def from_bytes(self, bytes_data):
+		self._doc_bin = DocBin().from_bytes(bytes_data)

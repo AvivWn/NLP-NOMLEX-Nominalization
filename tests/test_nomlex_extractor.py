@@ -1,4 +1,3 @@
-import os
 from typing import Dict
 
 import unittest
@@ -8,10 +7,10 @@ from parameterized import parameterized
 from yet_another_verb.arguments_extractor.extractors.nomlex_args_extractor import NomlexArgsExtractor
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_str_representation import \
 	ParsedStrRepresentation
+from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
-from yet_another_verb.file_handlers import BinaryFileHandler
+from yet_another_verb.file_handlers import ParsedBinFileHandler
 from yet_another_verb.utils.debug_utils import timeit
-from yet_another_verb.configuration.parsing_config import PARSING_CONFIG
 from extracted_examples import EXTRACTIONS_BY_SENTENCE
 from config import PARSED_EXAMPLES_PATH
 from yet_another_verb.utils.print_utils import print_extraction
@@ -19,6 +18,7 @@ from yet_another_verb.utils.print_utils import print_extraction
 
 class TestNomlexExtractor(TestCase):
 	args_extractor: NomlexArgsExtractor
+	parsed_file_handler: ParsedBinFileHandler
 	parsed_bin: ParsedBin
 	parsing_by_text: dict
 
@@ -26,15 +26,14 @@ class TestNomlexExtractor(TestCase):
 	def setUpClass(cls) -> None:
 		cls.args_extractor = NomlexArgsExtractor()
 
-		cls.parsed_bin = PARSING_CONFIG.DEFAULT_PARSED_BIN_MAKER()
-		if os.path.exists(PARSED_EXAMPLES_PATH):
-			cls.parsed_bin = cls.parsed_bin.from_bytes(BinaryFileHandler.load(PARSED_EXAMPLES_PATH))
-
-		cls.parsing_by_text = cls.parsed_bin.get_parsing_by_text(cls.args_extractor.dependency_parser)
+		dependency_parser = DependencyParserFactory()()
+		cls.parsed_file_handler = ParsedBinFileHandler(dependency_parser)
+		cls.parsed_bin = cls.parsed_file_handler.load(PARSED_EXAMPLES_PATH)
+		cls.parsing_by_text = cls.parsed_bin.get_parsing_by_text()
 
 	@classmethod
 	def tearDownClass(cls) -> None:
-		BinaryFileHandler.save(PARSED_EXAMPLES_PATH, cls.parsed_bin.to_bytes())
+		cls.parsed_file_handler.save(PARSED_EXAMPLES_PATH, cls.parsed_bin)
 
 	@staticmethod
 	def _compare_extractions(extractions, expected_extractions):

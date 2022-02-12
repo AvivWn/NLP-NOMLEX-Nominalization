@@ -6,7 +6,7 @@ from spacy.tokens import Token
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 
 
-class UDParsedWord(ParsedWord):
+class SpacyParsedWord(ParsedWord):
 	_token: Token
 
 	def __init__(self, token: Token):
@@ -30,7 +30,7 @@ class UDParsedWord(ParsedWord):
 	def __hash__(self) -> int:
 		return hash(self._token)
 
-	def __eq__(self, other: 'UDParsedWord') -> bool:
+	def __eq__(self, other: 'SpacyParsedWord') -> bool:
 		return self._token == other._token
 
 	@property
@@ -38,17 +38,17 @@ class UDParsedWord(ParsedWord):
 		return self._token.i
 
 	@property
-	def subtree(self) -> Iterator['UDParsedWord']:
-		return map(UDParsedWord, self._token.subtree)
+	def subtree(self) -> Iterator['SpacyParsedWord']:
+		return map(SpacyParsedWord, self._token.subtree)
 
 	@property
 	@lru_cache(maxsize=None)
-	def children(self) -> List['UDParsedWord']:
-		return list(map(UDParsedWord, self._token.children))
+	def children(self) -> List['SpacyParsedWord']:
+		return list(map(SpacyParsedWord, self._token.children))
 
 	@property
-	def head(self) -> 'UDParsedWord':
-		return UDParsedWord(self._token.head)
+	def head(self) -> 'SpacyParsedWord':
+		return SpacyParsedWord(self._token.head)
 
 	@property
 	def dep(self) -> str:

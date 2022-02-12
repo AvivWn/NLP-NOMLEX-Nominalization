@@ -1,2 +1,2 @@
-from yet_another_verb.configuration.nomlex_config import NOMLEX_CONFIG
+from yet_another_verb.configuration.extractors_config import EXTRACTORS_CONFIG
 from yet_another_verb.configuration.parsing_config import PARSING_CONFIG

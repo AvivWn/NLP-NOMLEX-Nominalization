@@ -6,6 +6,9 @@ from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import Pa
 
 
 class ParsedBin(abc.ABC):
+	def __init__(self, parser: DependencyParser):
+		self.parser = parser
+
 	@abc.abstractmethod
 	def __len__(self) -> int: pass
 
@@ -13,14 +16,13 @@ class ParsedBin(abc.ABC):
 	def add(self, parsed_text: ParsedText): pass
 
 	@abc.abstractmethod
-	def get_parsed_texts(self, parser: DependencyParser) -> Iterator[ParsedText]: pass
+	def get_parsed_texts(self) -> Iterator[ParsedText]: pass
 
 	@abc.abstractmethod
 	def to_bytes(self) -> bytes: pass
 
-	@staticmethod
 	@abc.abstractmethod
-	def from_bytes(bytes_data) -> 'ParsedBin': pass
+	def from_bytes(self, bytes_data): pass
 
-	def get_parsing_by_text(self, parser: DependencyParser) -> Dict[str, ParsedText]:
-		return {doc.text: doc for doc in self.get_parsed_texts(parser)}
+	def get_parsing_by_text(self) -> Dict[str, ParsedText]:
+		return {doc.text: doc for doc in self.get_parsed_texts()}
