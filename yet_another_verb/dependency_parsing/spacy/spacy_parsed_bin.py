@@ -29,4 +29,4 @@ class SpacyParsedBin(ParsedBin):
 		return self._doc_bin.to_bytes()
 
 	def from_bytes(self, bytes_data):
-		self._doc_bin = DocBin().from_bytes(bytes_data)
+		self._doc_bin.from_bytes(bytes_data)

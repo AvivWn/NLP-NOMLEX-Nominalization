@@ -11,7 +11,7 @@ class ParsedBinFileHandler(BinaryFileHandler):
 		self.parser = parser
 
 	def extend_file_name(self, file_path):
-		return f"{file_path}.{self.parser.id}"
+		return f"{file_path}-{self.parser.id}"
 
 	def load(self, file_path: str) -> ParsedBin:
 		file_path = self.extend_file_name(file_path)
