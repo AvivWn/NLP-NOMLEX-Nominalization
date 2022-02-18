@@ -13,7 +13,7 @@ def is_english(text: str) -> bool:
 	try:
 		lang = detect(text)
 		return lang == "en"
-	except lang_detect_exception:
+	except lang_detect_exception.LangDetectException:
 		return False
 
 
