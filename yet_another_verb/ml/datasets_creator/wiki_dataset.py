@@ -9,7 +9,7 @@ from yet_another_verb.utils.linguistic_utils import clean_sentence
 
 
 class WikiDatasetCreator(DatasetCreator):
-	def __init__(self, dataset_size=None):
+	def __init__(self, dataset_size=None, **kwargs):
 		super().__init__(dataset_size)
 
 	def _articles_to_sents(self, wiki_articles):

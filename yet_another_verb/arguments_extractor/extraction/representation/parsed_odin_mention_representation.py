@@ -1,11 +1,10 @@
 from enum import Enum
 from typing import Set
 from itertools import chain
-from collections import defaultdict
 
 from typeguard import typechecked
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
+from yet_another_verb.arguments_extractor.extraction.extraction import Extraction
 from yet_another_verb.arguments_extractor.extraction.representation.representation import ArgumentTypes
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
 from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
@@ -37,7 +36,7 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 			mention_id = f"R:{self.document_id}.{self.sentence_id}.{predicate_idx}"
 
 		mention = {
-			"type": mention_type, #.value,
+			"type": mention_type,
 			"id": mention_id,
 			"text": words[start_idx: end_idx + 1].tokenized_text,
 			"labels": [label] if label is not None else ["\xa0"],
@@ -87,7 +86,3 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 				extraction_repr.append(arg_mention)
 
 		return extraction_repr
-
-	def represent_combined_list(self, extractions: Extractions, strict=False, arg_types: ArgumentTypes = None) -> list:
-		# WARNING- chooses only the first extraction
-		return self.represent_list(extractions, arg_types)[0]

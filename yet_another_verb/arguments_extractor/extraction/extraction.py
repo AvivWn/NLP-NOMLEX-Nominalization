@@ -13,14 +13,21 @@ class Extraction:
 	predicate_idx: int
 	predicate_lemma: str
 	args: Set[ExtractedArgument]
-	fulfilled_constraints: List[ConstraintsMap] = field(default_factory=list, compare=False)
+	typeless_args: Set[ExtractedArgument] = field(default_factory=set, compare=False)
 	arg_by_range: Dict[ArgRange, ExtractedArgument] = field(default_factory=dict, compare=False)
 	arg_by_type: Dict[ArgumentType, ExtractedArgument] = field(default_factory=dict, compare=False)
 
 	def __post_init__(self):
+		typed_args = set()
 		for arg in self.args:
-			self.arg_by_type[arg.arg_type] = arg
-			self.arg_by_range[arg.tightest_range] = arg
+			if arg.arg_type is None:
+				self.typeless_args.add(arg)
+			else:
+				typed_args.add(arg)
+				self.arg_by_type[arg.arg_type] = arg
+				self.arg_by_range[arg.tightest_range] = arg
+
+		self.args = typed_args
 
 	def __len__(self):
 		return len(self.args)
@@ -32,6 +39,11 @@ class Extraction:
 	@property
 	def arg_types(self) -> Set[str]:
 		return set([arg.arg_type for arg in self.args])
+
+	@property
+	def fulfilled_constraints(self) -> List[ConstraintsMap]:
+		total_args = set.union(self.args, self.typeless_args)
+		return list(chain(*[arg.fulfilled_constraints for arg in total_args]))
 
 	def tag_arg_by_range(self, idx_range: ArgRange, tag: str):
 		arg = self.arg_by_range.get(idx_range, None)

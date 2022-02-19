@@ -17,11 +17,13 @@ class ArgumentType(str, Enum):
 
 	@staticmethod
 	def is_np_arg(arg_type: 'ArgumentType'):
-		return arg_type in [ArgumentType.OBJ, ArgumentType.SUBJ, ArgumentType.IND_OBJ, ArgumentType.NP]
+		return arg_type in NP_ARG_TYPES
 
 	@staticmethod
 	def is_pp_arg(arg_type: 'ArgumentType'):
-		return arg_type in [ArgumentType.PP, ArgumentType.PP1, ArgumentType.PP2]
+		return arg_type in PP_ARG_TYPES
 
 
 ARGUMENT_TYPES = [t for t in ArgumentType]
+NP_ARG_TYPES = [ArgumentType.OBJ, ArgumentType.SUBJ, ArgumentType.IND_OBJ, ArgumentType.NP]
+PP_ARG_TYPES = [ArgumentType.PP, ArgumentType.PP1, ArgumentType.PP2]

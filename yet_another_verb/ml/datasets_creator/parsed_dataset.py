@@ -14,7 +14,7 @@ SENT_MAX_LEN = 35
 
 
 class ParsedDatasetCreator(DatasetCreator):
-	def __init__(self, in_dataset_path: str, dependency_parser: DependencyParser, dataset_size=None):
+	def __init__(self, in_dataset_path: str, dependency_parser: DependencyParser, dataset_size=None, **kwargs):
 		super().__init__(dataset_size)
 		self.in_dataset_path = in_dataset_path
 		self.dependency_parser = dependency_parser

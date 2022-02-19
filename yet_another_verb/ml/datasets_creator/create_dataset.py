@@ -1,25 +1,30 @@
 from argparse import ArgumentParser, Namespace
 
 from yet_another_verb.ml.datasets_creator.dataset_creator import DatasetCreator
-from yet_another_verb.ml.datasets_creator import WikiDatasetCreator, ParsedDatasetCreator, ExtractedDatasetCreator
+from yet_another_verb.ml.datasets_creator import WikiDatasetCreator, ParsedDatasetCreator, ExtractedDatasetCreator, \
+	BIOArgsDatasetCreator
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
-
+from yet_another_verb.nomlex.constants.argument_type import PP_ARG_TYPES, NP_ARG_TYPES
+from yet_another_verb.nomlex.constants.word_postag import VERB_POSTAGS
 
 DATASET_TO_CREATOR = {
-	"wiki40b": lambda args: WikiDatasetCreator(args.dataset_size),
+	"wiki40b": lambda args: WikiDatasetCreator(**vars(args)),
 	"ud-parsed": lambda args: ParsedDatasetCreator(
-		args.in_path, DependencyParserFactory(**vars(args))(), args.dataset_size),
+		**vars(args),
+		dependency_parser=DependencyParserFactory(**vars(args))()),
 	"extracted": lambda args: ExtractedDatasetCreator(
-		args.in_path,
-		ExtractorFactory(**vars(args))(), DependencyParserFactory(**vars(args))(),
-		args.dataset_size
-	)
+		**vars(args),
+		args_extractor=ExtractorFactory(**vars(args))(),
+		dependency_parser=DependencyParserFactory(**vars(args))()),
+	"verb-bio-args": lambda args: BIOArgsDatasetCreator(
+		**vars(args),
+		limited_postags=VERB_POSTAGS,
+		limited_types=NP_ARG_TYPES + PP_ARG_TYPES)
 }
 
 
 def create_dataset(args: Namespace):
-	print(args.in_path, args.out_path)
 	out_path = args.out_path
 
 	dataset_creator: DatasetCreator = DATASET_TO_CREATOR[args.dataset_type](args)

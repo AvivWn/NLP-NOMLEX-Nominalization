@@ -3,7 +3,7 @@ import os
 from yet_another_verb.nomlex.lisp_to_json.lisp_to_json import lisps_to_jsons
 from yet_another_verb.nomlex.adaptation.lexicon_adaptation import generate_adapted_lexicon
 from yet_another_verb.nomlex.representation.lexicon import Lexicon
-from yet_another_verb.file_handlers import TXTFileHandler, JsonFileHandler, PKLFildHandler
+from yet_another_verb.file_handlers import TXTFileHandler, JsonFileHandler, PKLFileHandler
 from yet_another_verb.configuration.extractors_config import EXTRACTORS_CONFIG
 
 
@@ -30,8 +30,8 @@ class NomlexMaestro:
 	def get_adapted_lexicon(self) -> Lexicon:
 		pkl_path = f"{EXTRACTORS_CONFIG.PKL_LEXICON_DIR}/{self.nomlex_version}.pkl"
 		if EXTRACTORS_CONFIG.USE_NOMLEX_CACHE and os.path.exists(pkl_path):
-			return PKLFildHandler.load(pkl_path)
+			return PKLFileHandler.load(pkl_path)
 
 		lexicon = self.get_adapted_json_lexicon()
-		PKLFildHandler.save(pkl_path, lexicon)
+		PKLFileHandler.save(pkl_path, lexicon)
 		return lexicon

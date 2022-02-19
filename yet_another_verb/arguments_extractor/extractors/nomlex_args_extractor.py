@@ -240,16 +240,12 @@ class NomlexArgsExtractor(ArgsExtractor):
 					continue
 
 				for matched_args in matched_args_combinations:
-					fulfilled_constraints = list(chain(*[a.fulfilled_constraints for a in matched_args]))
-					matched_args = self._filter_typless_args(matched_args)
 					self._reorder_numbered_args(matched_args)
 
-					if len(matched_args) > 0:
-						extraction = Extraction(
-							words=words, predicate_idx=word_idx, predicate_lemma=word.lemma, args=set(matched_args),
-							fulfilled_constraints=fulfilled_constraints)
+					if any(arg.arg_type is not None for arg in matched_args):
+						extraction = Extraction(words=words, predicate_idx=word_idx, predicate_lemma=word.lemma, args=set(matched_args))
 						extractions.append(extraction)
-						max_num_of_args = max(max_num_of_args, len(matched_args))
+						max_num_of_args = max(max_num_of_args, len(extraction))
 
 		for filter_func in [uniqify, prefer_by_n_args, prefer_by_constraints]:
 			extractions = filter_func(extractions)

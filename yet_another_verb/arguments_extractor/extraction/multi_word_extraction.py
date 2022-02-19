@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from dataclasses import dataclass
 from itertools import chain
 
@@ -16,3 +16,6 @@ class MultiWordExtraction:
 
 	def update(self, more_extractions_per_idx: Dict[int, Extractions]):
 		self.extractions_per_idx.update(more_extractions_per_idx)
+
+
+MultiWordExtractions = List[MultiWordExtraction]

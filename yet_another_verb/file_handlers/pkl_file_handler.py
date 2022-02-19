@@ -3,7 +3,7 @@ import pickle
 from yet_another_verb.file_handlers.file_handler import FileHandler
 
 
-class PKLFildHandler(FileHandler):
+class PKLFileHandler(FileHandler):
 	def __init__(self):
 		super().__init__()
 
