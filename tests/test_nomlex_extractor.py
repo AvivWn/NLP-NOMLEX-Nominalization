@@ -13,7 +13,7 @@ from yet_another_verb.file_handlers import ParsedBinFileHandler
 from yet_another_verb.utils.debug_utils import timeit
 from extracted_examples import EXTRACTIONS_BY_SENTENCE
 from config import PARSED_EXAMPLES_PATH
-from yet_another_verb.utils.print_utils import print_extraction
+from yet_another_verb.utils.print_utils import print_multi_word_extraction
 
 
 class TestNomlexExtractor(TestCase):
@@ -53,7 +53,7 @@ class TestNomlexExtractor(TestCase):
 			self.parsed_bin.add(parsed_text)
 
 		extractions_per_word = ParsedStrRepresentation().represent_dict(multi_word_extraction)
-		print_extraction(extractions_per_word)
+		print_multi_word_extraction(extractions_per_word)
 
 		assert len(extractions_per_word) == len(expected_extractions)
 

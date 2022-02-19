@@ -1,12 +1,18 @@
-def print_extraction(extraction_repr):
+def print_extracion(extraction_repr, indentation=""):
+	if not extraction_repr:
+		print(indentation + "-")
+		return
+
+	if isinstance(extraction_repr, list):
+		for e in extraction_repr:
+			print_extracion(e, indentation)
+	else:
+		print(indentation + str(extraction_repr))
+
+
+def print_multi_word_extraction(multi_word_extraction_repr):
 	indentation = " " * 4
 
-	for predicate, extractions in extraction_repr.items():
-		print(predicate + ":")
-
-		if not extractions:
-			print(indentation + "-")
-			continue
-
-		for e in extractions:
-			print(indentation + str(e))
+	for word, extraction_repr in multi_word_extraction_repr.items():
+		print(word + ":")
+		print_extracion(extraction_repr, indentation)

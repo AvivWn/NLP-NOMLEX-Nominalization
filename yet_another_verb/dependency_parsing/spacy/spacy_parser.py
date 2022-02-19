@@ -7,6 +7,7 @@ from spacy.tokenizer import Tokenizer
 from spacy.tokens import Token, Doc
 
 from yet_another_verb.configuration import PARSING_CONFIG
+from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
@@ -59,9 +60,12 @@ class SpacyParser(DependencyParser):
 
 		if isinstance(text, str):
 			d = SpacyParsedText(self._parser(text, disable=disable))
-			# print([x.dep for x in d])
-			# print([x.head for x in d])
-			# print([x.tag for x in d])
+
+			if VERBOSE_CONFIG.VERBOSE:
+				print("Dependencies:", [x.dep for x in d])
+				print("Heads:", [x.head for x in d])
+				print("Postags:", [x.tag for x in d])
+
 			return d
 
 		# parse a tokenized sentence

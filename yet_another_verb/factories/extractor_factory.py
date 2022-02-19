@@ -30,7 +30,7 @@ class ExtractorFactory(Factory):
 			help="Ignores cached nomlex adaptation files instead of recreating them"
 		)
 		arg_parser.add_argument(
-			"--nomlex-version", "-v", type=NomlexVersion, default=EXTRACTORS_CONFIG.NOMLEX_VERSION,
+			"--nomlex-version", type=NomlexVersion, default=EXTRACTORS_CONFIG.NOMLEX_VERSION,
 			help="NOMLEX's lexicon version"
 		)
 		arg_parser = DependencyParserFactory.expand_parser(arg_parser)
