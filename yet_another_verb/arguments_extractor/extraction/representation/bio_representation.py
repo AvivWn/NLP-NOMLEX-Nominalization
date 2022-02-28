@@ -17,9 +17,9 @@ class BIOTag(str, Enum):
 	Out = "O"
 
 
-class StrBIORepresentation(ExtractionRepresentation):
+class BIORepresentation(ExtractionRepresentation):
 	@typechecked
-	def _represent_predicate(self, words: ParsedWords, predicate_idx: int) -> int:
+	def _represent_predicate(self, words: list, predicate_idx: int) -> int:
 		return predicate_idx
 
 	def _represent_argument(self, words: list, predicate_idx: int, argument: ExtractedArgument) -> Dict[int, str]:

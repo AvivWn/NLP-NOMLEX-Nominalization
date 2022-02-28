@@ -15,7 +15,7 @@ class WikiDatasetCreator(DatasetCreator):
 	def _articles_to_sents(self, wiki_articles):
 		total_sents = []
 
-		for article_info in tqdm(wiki_articles):
+		for article_info in tqdm(wiki_articles, leave=False):
 			text = article_info["text"]
 			paras = text.split("\n_START_PARAGRAPH_\n")
 

@@ -35,7 +35,7 @@ class ParsedDatasetCreator(DatasetCreator):
 	def _parse_dataset(self, sents) -> ParsedBin:
 		parsed_bin = self.dependency_parser.generate_parsed_bin()
 
-		for sent in tqdm(sents):
+		for sent in tqdm(sents, leave=False):
 			if not self._should_use_sentence(sent):
 				continue
 

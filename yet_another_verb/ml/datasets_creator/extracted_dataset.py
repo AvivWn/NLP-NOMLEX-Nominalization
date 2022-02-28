@@ -26,7 +26,7 @@ class ExtractedDatasetCreator(DatasetCreator):
 		multi_word_extractions = []
 		total_extracted_predicates = []
 
-		for doc in tqdm(docs):
+		for doc in tqdm(docs, leave=False):
 			multi_word_extraction = self.args_extractor.extract_multiword(doc)
 			extracted_predicates = multi_word_extraction.extractions_per_idx.keys()
 
