@@ -1,0 +1,1 @@
+from yet_another_verb.ml.models.token_classifier import TokenClassifier
