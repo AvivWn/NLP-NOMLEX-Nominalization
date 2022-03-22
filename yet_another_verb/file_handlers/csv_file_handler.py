@@ -8,10 +8,10 @@ class CSVFileHandler(FileHandler):
 		super().__init__()
 
 	@staticmethod
-	def load(file_path) -> pd.DataFrame:
+	def load(file_path: str) -> pd.DataFrame:
 		return pd.read_csv(file_path, sep="\t", keep_default_na=False)
 
 	@staticmethod
-	def save(file_path, data: pd.DataFrame):
+	def save(file_path: str, data: pd.DataFrame):
 		FileHandler._make_relevant_dirs(file_path)
 		data.to_csv(file_path, sep="\t", index=False)

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import pandas as pd
 from transformers import BatchEncoding
@@ -11,8 +11,8 @@ class TaggedTokensDataModule(PretrainedDataModule):
 	def __init__(
 			self, pretrained_model: str, data_dir: str, batch_size: int,
 			labels_column: str, main_inputs_column: str, secondary_inputs_column: Optional[str] = None,
-			n_loading_workers: int = N_DATA_LOADING_WORKERS):
-		super().__init__(pretrained_model, data_dir, batch_size, n_loading_workers)
+			n_loading_workers: int = N_DATA_LOADING_WORKERS, val_size: Optional[Union[float, int]] = None):
+		super().__init__(pretrained_model, data_dir, batch_size, n_loading_workers, val_size)
 		self.save_hyperparameters()
 
 	def _obtain_unique_labels(self, df: pd.DataFrame) -> List[str]:
@@ -40,7 +40,7 @@ class TaggedTokensDataModule(PretrainedDataModule):
 			data = df[self.hparams.main_inputs_column]
 		else:
 			data = zip(df[self.hparams.main_inputs_column].tolist(), df[self.hparams.secondary_inputs_column].tolist())
-			data = map(list, list(data))
+			data = map(lambda x: (x[0].split(), [x[1]]), list(data))
 
 		encoded_data = self.tokenizer.batch_encode_plus(
 			list(data),

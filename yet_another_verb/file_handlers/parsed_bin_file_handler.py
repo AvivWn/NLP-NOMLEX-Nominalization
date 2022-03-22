@@ -10,7 +10,7 @@ class ParsedBinFileHandler(BinaryFileHandler):
 		super().__init__()
 		self.parser = parser
 
-	def extend_file_name(self, file_path):
+	def extend_file_name(self, file_path: str) -> str:
 		return f"{file_path}-{self.parser.id}"
 
 	def load(self, file_path: str) -> ParsedBin:
