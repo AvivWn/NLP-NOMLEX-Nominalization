@@ -1,22 +1,19 @@
-from typing import Optional, List, Union
+from typing import Optional, List
 
 import pandas as pd
 from transformers import BatchEncoding
 
-from yet_another_verb.ml.data_modules.defaults import N_DATA_LOADING_WORKERS, IGNORED_LABEL_ID
+from yet_another_verb.ml.data_modules.defaults import IGNORED_LABEL_ID
 from yet_another_verb.ml.data_modules.pretrained_data_module import PretrainedDataModule
 
 
 class TaggedTokensDataModule(PretrainedDataModule):
 	def __init__(
-			self, pretrained_model: str, data_dir: str, batch_size: int,
-			labels_column: str, main_inputs_column: str, secondary_inputs_column: Optional[str] = None,
-			n_loading_workers: int = N_DATA_LOADING_WORKERS, val_size: Optional[Union[float, int]] = None):
-		super().__init__(pretrained_model, data_dir, batch_size, n_loading_workers, val_size)
+			self, labels_column: str, main_inputs_column: str, secondary_inputs_column: Optional[str] = None,
+			*args, **kwargs
+	):
+		super().__init__(*args, **kwargs)
 		self.save_hyperparameters()
-
-	def _obtain_unique_labels(self, df: pd.DataFrame) -> List[str]:
-		return list(df[self.hparams.labels_column].str.split(' ', expand=True).stack().unique())
 
 	def _align_and_encode_labels(self, examples_labels: List[List[str]], encoded_data: BatchEncoding) -> List[List[int]]:
 		encoded_labels = []
@@ -42,8 +39,9 @@ class TaggedTokensDataModule(PretrainedDataModule):
 			data = zip(df[self.hparams.main_inputs_column].tolist(), df[self.hparams.secondary_inputs_column].tolist())
 			data = map(lambda x: (x[0].split(), [x[1]]), list(data))
 
+		data = list(data)
 		encoded_data = self.tokenizer.batch_encode_plus(
-			list(data),
+			data,
 			padding=True,
 			return_attention_mask=True,
 			truncation=True,

@@ -1,3 +1,2 @@
-TRAIN, VAL, ZERO_VAL, TEST = "train", "val", "zero_val", "test"
+TRAIN, CONTROL_VAL, VAL, TEST = "train", "control_val", "val", "test"
 DATASET = "dataset"
-LABELS_FILE = "labels.txt"
