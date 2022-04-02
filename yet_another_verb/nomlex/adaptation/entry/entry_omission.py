@@ -54,6 +54,16 @@ def has_at_most_single_plural(entry: dict) -> bool:
 	return plural_form is None or (isinstance(plural_form, str) and plural_form)
 
 
+def is_defined_with_multiple_words(entry: dict) -> bool:
+	if EntryProperty.ORTH in entry and len(entry[EntryProperty.ORTH].split()) > 1:
+		return True
+
+	if EntryProperty.VERB in entry and len(entry[EntryProperty.VERB].split()) > 1:
+		return True
+
+	return False
+
+
 def should_ommit_entry(entry: dict) -> bool:
 	if not is_supported_entry_type(entry):
 		return True
@@ -74,6 +84,9 @@ def should_ommit_entry(entry: dict) -> bool:
 		return True
 
 	if entry[EntryProperty.ORTH] in ["being"]:
+		return True
+
+	if is_defined_with_multiple_words(entry):
 		return True
 
 	return False

@@ -2,7 +2,7 @@ from typing import List, Union, Iterator
 from itertools import takewhile
 from collections import ChainMap
 
-from .lisp_units_split import split_lisp_into_units
+from yet_another_verb.nomlex.lisp_to_json.lisp_units_split import split_lisp_into_units
 
 
 def _is_tag(value: str) -> bool:
