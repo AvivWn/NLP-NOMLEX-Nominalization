@@ -18,6 +18,10 @@ class BIOTag(str, Enum):
 
 
 class BIORepresentation(ExtractionRepresentation):
+	def __init__(self, tag_predicate: bool):
+		super().__init__()
+		self.tag_predicate = tag_predicate
+
 	@typechecked
 	def _represent_predicate(self, words: list, predicate_idx: int) -> int:
 		return predicate_idx
@@ -28,7 +32,9 @@ class BIORepresentation(ExtractionRepresentation):
 
 		for i in range(start_idx, end_idx + 1):
 			tag_prefix = BIOTag.Begin if i == start_idx else BIOTag.In
-			tag_by_idx[i] = f"{tag_prefix}-{argument.arg_tag}"
+
+			if start_idx != predicate_idx or self.tag_predicate:
+				tag_by_idx[i] = f"{tag_prefix}-{argument.arg_tag}"
 
 		return tag_by_idx
 

@@ -22,10 +22,11 @@ DATASET_TO_CREATOR = {
 		dependency_parser=DependencyParserFactory(**vars(args))()),
 	"bio-args": lambda args: BIOArgsDatasetCreator(
 		**vars(args),
-		limited_postags=VERB_POSTAGS,
+		limited_postags=NOUN_POSTAGS,  # VERB_POSTAGS
 		limited_types=NP_ARG_TYPES + PP_ARG_TYPES,
 		use_base_verb=True,
-		avoid_outside_tag=True,
+		avoid_outside_tag=False,
+		tag_predicate=False,
 		verb_translator=VerbTranslatorFactory(**vars(args))()),
 }
 

@@ -19,18 +19,19 @@ class BIOArgsDatasetCreator(DatasetCreator):
 	def __init__(
 			self, in_dataset_path: str, verb_translator: VerbTranslator,
 			dataset_size=None, limited_postags=None, limited_types=None, use_base_verb=False,
-			replace_in_sentence=False, avoid_outside_tag=False,
+			replace_in_sentence=False, avoid_outside_tag=False, tag_predicate=True,
 			**kwargs):
 		super().__init__(dataset_size)
 		self.in_dataset_path = in_dataset_path
 		self.verb_translator = verb_translator
+
 		self.limited_postags = limited_postags
 		self.limited_types = limited_types
 		self.use_base_verb = use_base_verb
 		self.replace_in_sentence = replace_in_sentence
 		self.avoid_outside_tag = avoid_outside_tag  # avoid O
 
-		self.bio_representation = BIORepresentation()
+		self.bio_representation = BIORepresentation(tag_predicate)
 
 	def _generate_bio_tagged_sentence(
 			self, words: ParsedText, predicate_idx: int, bio_tags: List[str]) -> Optional[BIOTaggedSentence]:
@@ -47,7 +48,7 @@ class BIOArgsDatasetCreator(DatasetCreator):
 			tokens = [tokens[i] for i in range(len(tokens)) if i in relevant_idxs]
 			bio_tags = [bio_tags[i] for i in range(len(bio_tags)) if i in relevant_idxs]
 
-		if len(tokens) == 0:
+		if len(tokens) == 0 or set(bio_tags) == {'O'}:
 			return
 
 		return BIOTaggedSentence(predicate, " ".join(tokens), " ".join(bio_tags))
