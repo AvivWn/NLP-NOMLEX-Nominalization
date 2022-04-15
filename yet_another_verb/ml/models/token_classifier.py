@@ -19,7 +19,7 @@ class TokenClassifier(LightningModule):
 	def __init__(
 			self, pretrained_model: str, labels: List[str],
 			lr: float, weight_decay: float, dropout: float, label_smoothing: float,
-			val_names: List[str]
+			val_names: List[str], freeze_embeddings: bool = False, freeze_layers: str = ""
 	):
 		super().__init__()
 		self.tagset = labels_to_tagset(labels)
@@ -33,6 +33,21 @@ class TokenClassifier(LightningModule):
 		self.loss = torch.nn.CrossEntropyLoss(ignore_index=IGNORED_LABEL_ID, label_smoothing=label_smoothing)
 
 		self.save_hyperparameters()
+		self._freeze_demanded()
+
+	def _freeze_demanded(self):
+		if self.hparams.freeze_embeddings:
+			for param in list(self.pretrained_model.embeddings.parameters()):
+				param.requires_grad = False
+			print("Froze Embedding Layer")
+
+		# freeze_layers is a string "1,2,3" representing layer number
+		if self.hparams.freeze_layers is not "":
+			layer_indexes = [int(x) for x in self.hparams.freeze_layers.split(",")]
+			for layer_idx in layer_indexes:
+				for param in list(self.pretrained_model.encoder.layer[layer_idx].parameters()):
+					param.requires_grad = False
+				print("Froze Layer: ", layer_idx)
 
 	def forward(self, token_ids, attention_mask):
 		hidden_state = self.pretrained_model(token_ids, attention_mask)[0]
