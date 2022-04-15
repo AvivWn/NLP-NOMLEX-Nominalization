@@ -11,6 +11,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from pytorch_lightning import LightningDataModule
 from transformers import AutoTokenizer
 
+from yet_another_verb.file_handlers import TXTFileHandler
 from yet_another_verb.file_handlers.csv_file_handler import CSVFileHandler
 from yet_another_verb.file_handlers.file_extensions import TORCH_EXTENSION, CSV_EXTENSION
 from yet_another_verb.file_handlers.tensor_dataset_file_handler import TensorDatasetFileHandler
@@ -65,10 +66,16 @@ class PretrainedDataModule(LightningDataModule, abc.ABC):
 	def _encode_data(self, df: pd.DataFrame) -> list:
 		raise NotImplementedError()
 
-	def _copy_dataset(self, dataset_name: str, dataset_type: str):
+	def _sample_dataset(self, dataset_name: str, dataset_type: str, dataset_size: Union[int, float]):
 		dataset_path = self._get_dataset_path(dataset_name)
-		cache_pdataset_path = self._get_cache_path(dataset_type, CSV_EXTENSION)
-		shutil.copy(dataset_path, cache_pdataset_path)
+		cache_dataset_path = self._get_cache_path(dataset_type, CSV_EXTENSION)
+
+		dataset_df = CSVFileHandler.load(dataset_path)
+		if isinstance(dataset_size, float):
+			dataset_size = dataset_size / len(dataset_df)
+
+		dataset_df = dataset_df[:dataset_size]
+		CSVFileHandler.save(cache_dataset_path, dataset_df)
 
 	def _setup_dataset(self, dataset_name: str) -> TensorDataset:
 		prepared_dataset = self._load_prepared_dataset(dataset_name)
@@ -89,7 +96,7 @@ class PretrainedDataModule(LightningDataModule, abc.ABC):
 
 		# store datasets in cache
 		self._split_raw_dataset(self.hparams.train_dir, TRAIN, CONTROL_VAL, val_size)
-		self._copy_dataset(self.hparams.val_dir, VAL)
+		self._sample_dataset(self.hparams.val_dir, VAL, self.hparams.val_size)
 
 		# encode datasets
 		self.val_dataset = self._setup_dataset(VAL)
