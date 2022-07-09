@@ -18,7 +18,10 @@ class MentionType(str, Enum):
 
 
 class ParsedOdinMentionRepresentation(ParsedRepresentation):
-	def __init__(self, document_id: str, sentence_id: int, in_document_prefix: int):
+	def __init__(
+			self, document_id: str, sentence_id: int, in_document_prefix: int,
+			arg_types: ArgumentTypes = None):
+		super().__init__(arg_types)
 		self.document_id = document_id
 		self.sentence_id = sentence_id
 		self.in_document_prefix = in_document_prefix
@@ -66,7 +69,7 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 	def _represent_predicate(self, words: ParsedWords, predicate_idx: int) -> int:
 		return predicate_idx
 
-	def _represent_extraction(self, extraction: Extraction, arg_types: ArgumentTypes = None) -> list:
+	def represent_single(self, extraction: Extraction) -> list:
 		args_idxs = set(chain(*[a.arg_idxs for a in extraction.args]))
 		start_idx, end_idx = self._get_tightest_range(args_idxs)
 		predicate_idx = extraction.predicate_idx
@@ -76,7 +79,7 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 
 		extraction_repr = [event_mention]
 		for arg in extraction.args:
-			if arg_types is None or arg.arg_type in arg_types:
+			if self.arg_types is None or arg.arg_type in self.arg_types:
 				arg_mention = self._represent_argument(extraction.words, predicate_idx, arg)
 
 				if arg.arg_tag not in event_mention["arguments"]:

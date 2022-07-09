@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 
-from yet_another_verb.arguments_extractor.extraction.representation.parsed_str_representation import \
-	ParsedStrRepresentation
+from yet_another_verb.arguments_extractor.extraction.representation.parsed_representation import \
+	ParsedRepresentation
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.utils.debug_utils import timeit
@@ -16,7 +16,13 @@ def extract(args: Namespace):
 
 	limited_idxs = None if args.word_idx is None else [args.word_idx]
 	multi_word_extraction = timeit(args_extractor.extract_multiword)(args.text, limited_idxs=limited_idxs)
-	str_repr = ParsedStrRepresentation().represent_dict(multi_word_extraction)
+
+	print("\nAll Extractions:")
+	str_repr = ParsedRepresentation().represent_by_word(multi_word_extraction)
+	print_multi_word_extraction(str_repr)
+
+	print("\nCombined Extractions:")
+	str_repr = ParsedRepresentation().represent_by_word(multi_word_extraction, combined=True)
 	print_multi_word_extraction(str_repr)
 
 

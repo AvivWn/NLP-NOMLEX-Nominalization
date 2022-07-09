@@ -1,4 +1,4 @@
-from typing import Set, List, Dict
+from typing import Set, List, Dict, Optional
 from dataclasses import dataclass, field
 from itertools import chain
 
@@ -14,6 +14,8 @@ class Extraction:
 	predicate_lemma: str
 	args: Set[ExtractedArgument]
 	typeless_args: Set[ExtractedArgument] = field(default_factory=set, compare=False)
+	undetermined_args: Set[ExtractedArgument] = field(default_factory=set, compare=False)
+
 	arg_by_range: Dict[ArgRange, ExtractedArgument] = field(default_factory=dict, compare=False)
 	arg_by_type: Dict[ArgumentType, ExtractedArgument] = field(default_factory=dict, compare=False)
 
@@ -44,6 +46,19 @@ class Extraction:
 	def fulfilled_constraints(self) -> List[ConstraintsMap]:
 		total_args = set.union(self.args, self.typeless_args)
 		return list(chain(*[arg.fulfilled_constraints for arg in total_args]))
+
+	@property
+	def predicate_type(self) -> Optional[ArgumentType]:
+		if self.predicate_idx not in self.arg_indices:
+			return None
+
+		predicate_args = [arg for arg in self.args if self.predicate_idx in arg.arg_idxs]
+		assert len(predicate_args) <= 1
+
+		if len(predicate_args) == 0:
+			return None
+
+		return predicate_args[0].arg_type
 
 	def tag_arg_by_range(self, idx_range: ArgRange, tag: str):
 		arg = self.arg_by_range.get(idx_range, None)

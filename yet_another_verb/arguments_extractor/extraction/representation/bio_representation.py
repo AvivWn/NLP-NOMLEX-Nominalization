@@ -6,7 +6,6 @@ from typeguard import typechecked
 
 from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.extraction import Extraction
-from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
 from yet_another_verb.arguments_extractor.extraction.representation.representation import \
 	ExtractionRepresentation, ArgumentTypes
 
@@ -18,8 +17,8 @@ class BIOTag(str, Enum):
 
 
 class BIORepresentation(ExtractionRepresentation):
-	def __init__(self, tag_predicate: bool):
-		super().__init__()
+	def __init__(self, tag_predicate: bool, arg_types: ArgumentTypes = None):
+		super().__init__(arg_types)
 		self.tag_predicate = tag_predicate
 
 	@typechecked
@@ -38,7 +37,7 @@ class BIORepresentation(ExtractionRepresentation):
 
 		return tag_by_idx
 
-	def _represent_extraction(self, extraction: Extraction, arg_types: ArgumentTypes = None) -> List[str]:
-		indx_tags_by_arg = super()._represent_extraction(extraction, arg_types)
+	def represent_single(self, extraction: Extraction) -> List[str]:
+		indx_tags_by_arg = super().represent_single(extraction)
 		tag_by_idx = dict(ChainMap(*indx_tags_by_arg.values()))  # combine
 		return [tag_by_idx.get(i, BIOTag.Out) for i, word in enumerate(extraction.words)]

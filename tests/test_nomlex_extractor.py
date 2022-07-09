@@ -52,7 +52,7 @@ class TestNomlexExtractor(TestCase):
 			self.parsing_by_text[text] = parsed_text
 			self.parsed_bin.add(parsed_text)
 
-		extractions_per_word = ParsedStrRepresentation().represent_dict(multi_word_extraction)
+		extractions_per_word = ParsedStrRepresentation().represent_by_word(multi_word_extraction)
 		print_multi_word_extraction(extractions_per_word)
 
 		assert len(extractions_per_word) == len(expected_extractions)

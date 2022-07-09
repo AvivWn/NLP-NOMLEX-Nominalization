@@ -42,7 +42,7 @@ def _represent_sentence_extraction(
 		document_id: str, sentence_id: int, sent_shift_idx: int
 ):
 	mentions_per_idx = ParsedOdinMentionRepresentation(document_id, sentence_id, sent_shift_idx). \
-		represent_combined_dict(multi_word_extraction, safe_combine=True)
+		represent_by_word(multi_word_extraction, combined=True)
 	mentions_per_idx = _shift_key_idx(mentions_per_idx, sent_shift_idx)
 
 	sorted_events = sorted(mentions_per_idx.keys(), key=lambda e: len(mentions_per_idx[e]), reverse=True)

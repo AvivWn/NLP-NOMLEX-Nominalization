@@ -1,5 +1,4 @@
-from typing import List, Callable, Any
-from copy import deepcopy
+from typing import Callable, Any
 
 from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
 
