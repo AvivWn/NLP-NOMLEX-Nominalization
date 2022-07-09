@@ -1,11 +1,10 @@
-import abc
 import os
 from os.path import join
-from typing import Optional
+from typing import Optional, Set
 
 from yet_another_verb.configuration import VERB_TRANSLATORS_CONFIG
-from yet_another_verb.file_handlers import JsonFileHandler
-from yet_another_verb.file_handlers.file_extensions import JSON_EXTENSION
+from yet_another_verb.data_handling import JsonFileHandler
+from yet_another_verb.data_handling.file.file_extensions import JSON_EXTENSION
 from yet_another_verb.nomlex.adaptation.entry.entry_division import devide_to_entries
 from yet_another_verb.nomlex.adaptation.entry.entry_simplification import simplify_entry
 from yet_another_verb.nomlex.constants import EntryProperty
@@ -14,7 +13,7 @@ from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
 
 
 class NomlexVerbTranslator(VerbTranslator):
-	def __init__(self, nomlex_version: str, **kwargs):
+	def __init__(self, nomlex_version: str = VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION, **kwargs):
 		self.json_entries = NomlexMaestro(nomlex_version).get_json_lexicon()
 
 		dictionary_path = join(
@@ -60,3 +59,11 @@ class NomlexVerbTranslator(VerbTranslator):
 
 	def translate(self, word: str) -> Optional[str]:
 		return self.verb_dictionary.get(word)
+
+	@property
+	def words(self) -> Set[str]:
+		return set(self.verb_dictionary.keys())
+
+	@property
+	def verbs(self) -> Set[str]:
+		return set(self.verb_dictionary.values())
