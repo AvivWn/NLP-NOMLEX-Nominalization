@@ -4,6 +4,8 @@ from typing import Optional, List, Union
 from yet_another_verb.arguments_extractor.extraction.comparators.extraction_matcher import ExtractionMatcher
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
+from yet_another_verb.nomlex.constants import POSTag
+from yet_another_verb.nomlex.constants.word_postag import VERB_POSTAGS, NOUN_POSTAGS
 
 
 class ArgsExtractor(abc.ABC):
@@ -14,7 +16,8 @@ class ArgsExtractor(abc.ABC):
 	@abc.abstractmethod
 	def _is_potential_predicate(
 			self, word_idx: int, words: list,
-			limited_predicates: Optional[list], allow_related_forms: bool
+			limited_predicates: Optional[list], limited_postags: Optional[list],
+			allow_related_forms: bool
 	) -> bool:
 		pass
 
@@ -33,6 +36,7 @@ class ArgsExtractor(abc.ABC):
 			self, sent: Union[str, list], *,
 			limited_idxs: Optional[List[int]] = None,
 			limited_predicates: Optional[List[str]] = None,
+			limited_postags: Optional[List[POSTag]] = NOUN_POSTAGS + VERB_POSTAGS,
 			references: Optional[Extractions] = None,
 			reference_matcher: Optional[ExtractionMatcher] = None,
 			allow_related_forms: bool = True
@@ -54,7 +58,7 @@ class ArgsExtractor(abc.ABC):
 			if limited_idxs is not None and i not in limited_idxs:
 				continue
 
-			if self._is_potential_predicate(i, words, limited_predicates, allow_related_forms):
+			if self._is_potential_predicate(i, words, limited_predicates, limited_postags, allow_related_forms):
 				extractions = self.extract(i, words)
 
 				if reference_matcher is not None:

@@ -33,10 +33,13 @@ class ConstraintsMap:
 		super().__setattr__(key, value)
 
 		if key == 'relatives_constraints':
-			self._update_included_args()
+			self.__post_init__()
 
 	def __hash__(self):
 		return hash(str(self))
+
+	def get_required_relative_maps(self) -> List['ConstraintsMap']:
+		return [relative_map for relative_map in self.relatives_constraints if relative_map.required]
 
 
 ORConstraintsMaps = List[ConstraintsMap]  # (constraint 1) OR (constraint 2) OR (...)

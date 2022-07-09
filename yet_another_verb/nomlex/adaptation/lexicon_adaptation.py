@@ -5,7 +5,7 @@ from itertools import chain
 
 from tqdm import tqdm
 
-from yet_another_verb.nomlex.representation.lexical_entry import LexicalEntry
+from yet_another_verb.nomlex.representation.lexical_entry import LexicalEntry, CombinedLexicalEntry
 from yet_another_verb.nomlex.representation.lexicon import Lexicon
 from yet_another_verb.nomlex.constants import LexiconType, EntryProperty, EntryType, LexiconTag
 from yet_another_verb.nomlex.adaptation.entry.entry_adaptation import adapt_entry
@@ -19,9 +19,9 @@ def add_to_lexicon(lexicon: Lexicon, entry: Optional[LexicalEntry]):
 		return
 
 	if entry.orth not in lexicon.entries.keys():
-		lexicon.entries[entry.orth] = []
+		lexicon.entries[entry.orth] = CombinedLexicalEntry(entry.orth, [])
 
-	lexicon.entries[entry.orth].append(entry)
+	lexicon.entries[entry.orth].entries.append(entry)
 
 
 def create_entry_from_dict(entry: dict, related_orths: List[str], ambiguous_forms: List[str]) -> LexicalEntry:
@@ -73,13 +73,15 @@ def adapt_entry_and_insert(lexicon: Lexicon, entry: dict):
 
 def update_related_orths(lexicon: Lexicon):
 	orths_by_orth = defaultdict(set)
-	for entry in list(chain(*lexicon.entries.values())):
-		orths_by_orth[entry.orth].update(entry.related_orths)
 
-	for entry in list(chain(*lexicon.entries.values())):
-		new_related_orths = list(set(chain(*[orths_by_orth[orth] for orth in [entry.orth] + entry.related_orths])))
-		new_related_orths.remove(entry.orth)
-		entry.related_orths = list(set(entry.related_orths + new_related_orths))
+	for entry in lexicon.entries.values():
+		orths_by_orth[entry.orth].update(entry.get_related_orths())
+
+	for combined_entry in lexicon.entries.values():
+		for entry in combined_entry.entries:
+			new_related_orths = list(set(chain(*[orths_by_orth[orth] for orth in [entry.orth] + entry.related_orths])))
+			new_related_orths.remove(entry.orth)
+			entry.related_orths = list(set(entry.related_orths + new_related_orths))
 
 
 def generate_adapted_lexicon(lexicon_entries: List[dict]) -> Lexicon:
@@ -97,6 +99,9 @@ def generate_adapted_lexicon(lexicon_entries: List[dict]) -> Lexicon:
 		for entry in devide_to_entries(raw_entry):
 			if not should_ommit_entry(entry):
 				adapt_entry_and_insert(adapted_lexicon, entry)
+
+	for adapted_entry in adapted_lexicon.entries.values():
+		adapted_entry.index_constraints_maps()
 
 	update_related_orths(adapted_lexicon)
 	return adapted_lexicon
