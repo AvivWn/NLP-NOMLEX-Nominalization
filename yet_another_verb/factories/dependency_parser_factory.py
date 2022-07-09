@@ -4,7 +4,7 @@ from typing import Optional
 from yet_another_verb.factories.factory import Factory
 from yet_another_verb.configuration import PARSING_CONFIG
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
-from yet_another_verb.dependency_parsing.spacy.spacy_parser import SpacyParser
+from yet_another_verb.dependency_parsing.parser_names import parser_by_engine
 
 
 class DependencyParserFactory(Factory):
@@ -13,8 +13,7 @@ class DependencyParserFactory(Factory):
 		self.params = kwargs
 
 	def __call__(self) -> DependencyParser:
-		if self.dependency_parsing_engine == "spacy":
-			return SpacyParser(**self.params)
+		return parser_by_engine[self.dependency_parsing_engine](**self.params)
 
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:

@@ -12,6 +12,8 @@ from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import Par
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
+from yet_another_verb.utils.debug_utils import timeit
+from yet_another_verb.utils.print_utils import print_if_verbose
 
 spacy.util.fix_random_seed()
 Token.set_extension("subtree_text", getter=lambda token: " ".join([node.text for node in token.subtree]))
@@ -23,15 +25,15 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 class SpacyParser(DependencyParser):
 	def __init__(self, parser_name: str = PARSING_CONFIG.PARSER_NAME, **kwargs):
 		self.parser_name = parser_name
-		self._parser = spacy.load(self.parser_name)
+		self._parser = timeit(spacy.load)(self.parser_name)
 		self._parser.tokenizer = self._create_custom_tokenizer()
 
 	def __call__(self, text: InputText, disable=None):
 		return self.parse(text, disable)
 
 	@property
-	def id(self) -> str:
-		return f"spacy-{self.parser_name}"
+	def name(self) -> str:
+		return self.parser_name
 
 	def _create_custom_tokenizer(self):
 		infixes = self._parser.Defaults.infixes
@@ -61,10 +63,9 @@ class SpacyParser(DependencyParser):
 		if isinstance(text, str):
 			d = SpacyParsedText(self._parser(text, disable=disable))
 
-			if VERBOSE_CONFIG.VERBOSE:
-				print("Dependencies:", [x.dep for x in d])
-				print("Heads:", [x.head for x in d])
-				print("Postags:", [x.tag for x in d])
+			print_if_verbose("Dependencies:", [x.dep for x in d])
+			print_if_verbose("Heads:", [x.head for x in d])
+			print_if_verbose("Postags:", [x.tag for x in d])
 
 			return d
 

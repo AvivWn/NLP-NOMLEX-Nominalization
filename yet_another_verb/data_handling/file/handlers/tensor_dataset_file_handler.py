@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import TensorDataset
 
-from yet_another_verb.file_handlers.file_handler import FileHandler
+from yet_another_verb.data_handling.file.handlers.file_handler import FileHandler
 
 
 class TensorDatasetFileHandler(FileHandler):

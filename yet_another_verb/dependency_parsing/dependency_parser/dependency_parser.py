@@ -14,7 +14,7 @@ class DependencyParser(abc.ABC):
 
 	@property
 	@abc.abstractmethod
-	def id(self) -> str: pass
+	def name(self) -> str: pass
 
 	@abc.abstractmethod
 	def parse(self, text: InputText) -> ParsedText: pass

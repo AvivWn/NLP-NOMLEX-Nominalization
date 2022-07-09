@@ -1,3 +1,6 @@
+from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
+
+
 def print_extracion(extraction_repr, indentation=""):
 	if not extraction_repr:
 		print(indentation + "-")
@@ -14,5 +17,10 @@ def print_multi_word_extraction(multi_word_extraction_repr):
 	indentation = " " * 4
 
 	for word, extraction_repr in multi_word_extraction_repr.items():
-		print(word + ":")
+		print(str(word) + ":")
 		print_extracion(extraction_repr, indentation)
+
+
+def print_if_verbose(*args):
+	if VERBOSE_CONFIG.VERBOSE:
+		print(*args)

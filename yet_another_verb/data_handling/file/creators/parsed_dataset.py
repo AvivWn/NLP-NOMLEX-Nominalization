@@ -4,10 +4,9 @@ from tqdm import tqdm
 
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
-from yet_another_verb.file_handlers import ParsedBinFileHandler
-from yet_another_verb.file_handlers.txt_file_handler import TXTFileHandler
+from yet_another_verb.data_handling import TXTFileHandler, ParsedBinFileHandler
 from yet_another_verb.utils.linguistic_utils import clean_sentence, is_english
-from yet_another_verb.ml.datasets_creator.dataset_creator import DatasetCreator
+from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 
 SENT_MIN_LEN = 3
 SENT_MAX_LEN = 35

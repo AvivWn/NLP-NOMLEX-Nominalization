@@ -1,6 +1,6 @@
 import json
 
-from yet_another_verb.file_handlers.file_handler import FileHandler
+from yet_another_verb.data_handling.file.handlers.file_handler import FileHandler
 
 
 class JsonFileHandler(FileHandler):

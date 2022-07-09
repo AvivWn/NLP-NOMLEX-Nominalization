@@ -8,8 +8,8 @@ from yet_another_verb.arguments_extractor.extraction.multi_word_extraction impor
 from yet_another_verb.arguments_extractor.extraction.representation.bio_representation import BIORepresentation
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
-from yet_another_verb.file_handlers import PKLFileHandler, CSVFileHandler
-from yet_another_verb.ml.datasets_creator.dataset_creator import DatasetCreator
+from yet_another_verb.data_handling import PKLFileHandler, CSVFileHandler
+from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
 
 BIOTaggedSentence = namedtuple("BIOTaggedSentence", "predicate words labels")
@@ -31,7 +31,7 @@ class BIOArgsDatasetCreator(DatasetCreator):
 		self.replace_in_sentence = replace_in_sentence
 		self.avoid_outside_tag = avoid_outside_tag  # avoid O
 
-		self.bio_representation = BIORepresentation(tag_predicate)
+		self.bio_representation = BIORepresentation(tag_predicate, arg_types=self.limited_types)
 
 	def _generate_bio_tagged_sentence(
 			self, words: ParsedText, predicate_idx: int, bio_tags: List[str]) -> Optional[BIOTaggedSentence]:
@@ -65,15 +65,13 @@ class BIOArgsDatasetCreator(DatasetCreator):
 	def extractions_to_bio_tags(self, multi_word_extractions: MultiWordExtractions) -> List[BIOTaggedSentence]:
 		bios = []
 
-		for multi_word_extraction in tqdm(multi_word_extractions, leave=False):
-			words = multi_word_extraction.words
+		for multi_word_ext in tqdm(multi_word_extractions, leave=False):
+			words = multi_word_ext.words
 
 			if not isinstance(words, ParsedText):
 				raise Exception("Cannot generate dataset from unparsed sentence.")
 
-			bio_tags_by_predicate = self.bio_representation.represent_combined_dict(
-				multi_word_extraction, arg_types=self.limited_types, safe_combine=True
-			)
+			bio_tags_by_predicate = self.bio_representation.represent_by_word(multi_word_ext, combined=True)
 
 			for predicate_idx, bio_tags in bio_tags_by_predicate.items():
 				if not self._should_filter(words[predicate_idx]):

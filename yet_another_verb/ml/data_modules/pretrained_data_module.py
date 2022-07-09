@@ -1,6 +1,5 @@
 import abc
 import os
-import shutil
 from os.path import join
 from typing import Optional, Union, List
 
@@ -11,11 +10,9 @@ from torch.utils.data import TensorDataset, DataLoader
 from pytorch_lightning import LightningDataModule
 from transformers import AutoTokenizer
 
-from yet_another_verb.file_handlers import TXTFileHandler
-from yet_another_verb.file_handlers.csv_file_handler import CSVFileHandler
-from yet_another_verb.file_handlers.file_extensions import TORCH_EXTENSION, CSV_EXTENSION
-from yet_another_verb.file_handlers.tensor_dataset_file_handler import TensorDatasetFileHandler
-from yet_another_verb.ml.data_files import TRAIN, VAL, CONTROL_VAL, TEST, DATASET
+from yet_another_verb.data_handling import CSVFileHandler, TensorDatasetFileHandler
+from yet_another_verb.data_handling.file.file_extensions import TORCH_EXTENSION, CSV_EXTENSION
+from yet_another_verb.ml.data_files import TRAIN, VAL, CONTROL_VAL, DATASET
 from yet_another_verb.ml.data_modules.defaults import N_DATA_LOADING_WORKERS
 from yet_another_verb.ml.utils import labels_to_tagset
 

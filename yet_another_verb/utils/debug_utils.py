@@ -1,6 +1,6 @@
 import time
 
-from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
+from yet_another_verb.utils.print_utils import print_if_verbose
 
 
 def timeit(method):
@@ -12,8 +12,7 @@ def timeit(method):
 			name = kw.get('log_name', method.__name__.upper())
 			kw['log_time'][name] = int((te - ts) * 1000)
 		else:
-			if VERBOSE_CONFIG.VERBOSE:
-				print('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
+			print_if_verbose('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
 			return result
 
 	return timed

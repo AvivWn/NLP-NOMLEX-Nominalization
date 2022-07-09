@@ -9,7 +9,7 @@ from yet_another_verb.arguments_extractor.extraction.representation.parsed_str_r
 	ParsedStrRepresentation
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
-from yet_another_verb.file_handlers import ParsedBinFileHandler
+from yet_another_verb.data_handling import ParsedBinFileHandler
 from yet_another_verb.utils.debug_utils import timeit
 from extracted_examples import EXTRACTIONS_BY_SENTENCE
 from config import PARSED_EXAMPLES_PATH

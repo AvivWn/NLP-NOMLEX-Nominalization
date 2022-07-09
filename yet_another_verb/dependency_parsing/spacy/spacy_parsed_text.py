@@ -1,10 +1,14 @@
-from typing import Union, Iterator
+from typing import Union, Iterator, TYPE_CHECKING
 
 from spacy.tokens import Doc, Token
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_word import SpacyParsedWord
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_span import SpacyParsedSpan
+
+
+if TYPE_CHECKING:
+	from yet_another_verb.dependency_parsing.spacy.spacy_parser import SpacyParser
 
 
 class SpacyParsedText(ParsedText):
@@ -50,6 +54,13 @@ class SpacyParsedText(ParsedText):
 	@property
 	def text(self) -> str:
 		return self._doc.text
+
+	def to_bytes(self) -> bytes:
+		return self._doc.to_bytes()
+
+	@staticmethod
+	def from_bytes(parser: 'SpacyParser', bytes_data) -> 'SpacyParsedText':
+		return SpacyParsedText(Doc(parser.vocab))
 
 	def get_inner(self) -> Doc:
 		return self._doc

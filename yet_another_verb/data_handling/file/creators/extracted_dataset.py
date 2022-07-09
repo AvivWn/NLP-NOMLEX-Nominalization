@@ -2,13 +2,12 @@ from typing import Iterator
 
 from tqdm import tqdm
 
-from yet_another_verb import ArgsExtractor
+from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtractions
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
-from yet_another_verb.file_handlers.pkl_file_handler import PKLFileHandler
-from yet_another_verb.file_handlers.parsed_bin_file_handler import ParsedBinFileHandler
-from yet_another_verb.ml.datasets_creator.dataset_creator import DatasetCreator
+from yet_another_verb.data_handling import ParsedBinFileHandler, PKLFileHandler
+from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 
 
 class ExtractedDatasetCreator(DatasetCreator):

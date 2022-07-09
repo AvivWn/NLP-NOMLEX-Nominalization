@@ -3,8 +3,8 @@ from nlp import load_dataset
 from nltk.tokenize import sent_tokenize
 from itertools import chain
 
-from .dataset_creator import DatasetCreator
-from yet_another_verb.file_handlers.txt_file_handler import TXTFileHandler
+from yet_another_verb.data_handling.dataset_creator import DatasetCreator
+from yet_another_verb.data_handling.file.handlers.txt_file_handler import TXTFileHandler
 from yet_another_verb.utils.linguistic_utils import clean_sentence
 
 

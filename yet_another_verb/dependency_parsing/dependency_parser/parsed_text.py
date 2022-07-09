@@ -1,8 +1,11 @@
 import abc
-from typing import Union, Iterator, List
+from typing import Union, Iterator, List, TYPE_CHECKING
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_span import ParsedSpan
+
+if TYPE_CHECKING:
+	from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import DependencyParser
 
 
 class ParsedText(abc.ABC, list):
@@ -34,6 +37,13 @@ class ParsedText(abc.ABC, list):
 	@property
 	@abc.abstractmethod
 	def text(self) -> str: pass
+
+	@abc.abstractmethod
+	def to_bytes(self) -> bytes: pass
+
+	@staticmethod
+	@abc.abstractmethod
+	def from_bytes(parser: 'DependencyParser', bytes_data) -> 'ParsedText': pass
 
 	@property
 	def words(self) -> List[str]:

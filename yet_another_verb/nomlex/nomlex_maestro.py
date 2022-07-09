@@ -2,11 +2,11 @@ import os
 from os.path import join
 from typing import List
 
-from yet_another_verb.file_handlers.file_extensions import TXT_EXTENSION, JSON_EXTENSION, PICKLE_EXTENSION
+from yet_another_verb.data_handling.file.file_extensions import TXT_EXTENSION, JSON_EXTENSION, PICKLE_EXTENSION
 from yet_another_verb.nomlex.lisp_to_json.lisp_to_json import lisps_to_jsons
 from yet_another_verb.nomlex.adaptation.lexicon_adaptation import generate_adapted_lexicon
 from yet_another_verb.nomlex.representation.lexicon import Lexicon
-from yet_another_verb.file_handlers import TXTFileHandler, JsonFileHandler, PKLFileHandler
+from yet_another_verb.data_handling import TXTFileHandler, JsonFileHandler, PKLFileHandler
 from yet_another_verb.configuration.extractors_config import EXTRACTORS_CONFIG
 
 
