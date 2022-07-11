@@ -1,10 +1,11 @@
 import os
 from os.path import join
-from typing import Optional, Set
+from typing import Optional, Set, Union
 
 from yet_another_verb.configuration import VERB_TRANSLATORS_CONFIG
-from yet_another_verb.data_handling import JsonFileHandler
-from yet_another_verb.data_handling.file.file_extensions import JSON_EXTENSION
+from yet_another_verb.data_handling import PKLFileHandler
+from yet_another_verb.data_handling.file.file_extensions import PICKLE_EXTENSION
+from yet_another_verb.dependency_parsing import POSTag, POSTaggedWord
 from yet_another_verb.nomlex.adaptation.entry.entry_division import devide_to_entries
 from yet_another_verb.nomlex.adaptation.entry.entry_simplification import simplify_entry
 from yet_another_verb.nomlex.constants import EntryProperty
@@ -18,13 +19,13 @@ class NomlexVerbTranslator(VerbTranslator):
 
 		dictionary_path = join(
 			VERB_TRANSLATORS_CONFIG.TRANSLATORS_CACHE_DIR, "nomlex-verb-translator",
-			f"{nomlex_version}.{JSON_EXTENSION}")
+			f"{nomlex_version}.{PICKLE_EXTENSION}")
 
 		if VERB_TRANSLATORS_CONFIG.USE_CACHE and os.path.exists(dictionary_path):
-			self.verb_dictionary = JsonFileHandler.load(dictionary_path)
+			self.verb_dictionary = PKLFileHandler.load(dictionary_path)
 		else:
 			self.verb_dictionary = self._generate_dictionary()
-			JsonFileHandler.save(dictionary_path, self.verb_dictionary)
+			PKLFileHandler.save(dictionary_path, self.verb_dictionary)
 
 	@staticmethod
 	def _add_to_dictionary(verb_dictionary: dict, entry: dict):
@@ -37,12 +38,12 @@ class NomlexVerbTranslator(VerbTranslator):
 		if verb is None or len(verb.split()) > 1:
 			return
 
-		verb_dictionary[verb] = verb
+		verb_dictionary[POSTaggedWord(verb, POSTag.VERB)] = verb
 
 		if orth is None or len(orth.split()) > 1:
 			return
 
-		verb_dictionary[orth] = verb
+		verb_dictionary[POSTaggedWord(orth, POSTag.NOUN)] = verb
 
 	def _generate_dictionary(self):
 		verb_dictionary = {}
@@ -54,14 +55,14 @@ class NomlexVerbTranslator(VerbTranslator):
 
 		return verb_dictionary
 
-	def is_transable(self, word: str) -> bool:
-		return word in self.verb_dictionary
+	def is_transable(self, word: str, postag: Union[POSTag, str]) -> bool:
+		return POSTaggedWord(word, postag) in self.verb_dictionary
 
-	def translate(self, word: str) -> Optional[str]:
-		return self.verb_dictionary.get(word)
+	def translate(self, word: str, postag: Union[POSTag, str]) -> Optional[str]:
+		return self.verb_dictionary.get(POSTaggedWord(word, postag))
 
 	@property
-	def words(self) -> Set[str]:
+	def supported_words(self) -> Set[POSTaggedWord]:
 		return set(self.verb_dictionary.keys())
 
 	@property

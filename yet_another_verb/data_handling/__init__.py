@@ -11,4 +11,4 @@ from yet_another_verb.data_handling.file.creators.parsed_dataset import ParsedDa
 from yet_another_verb.data_handling.file.creators.extracted_dataset import ExtractedDatasetCreator
 from yet_another_verb.data_handling.file.creators.bio_args_dataset import BIOArgsDatasetCreator
 
-# from yet_another_verb.data_handling.db.encoded_extractions.dataset_creator import EncodedExtractionsCreator
+from yet_another_verb.data_handling.db.encoded_extractions.dataset_creator import EncodedExtractionsCreator

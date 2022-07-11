@@ -1,19 +1,21 @@
 import abc
-from typing import Set
+from typing import Set, Union
+
+from yet_another_verb.dependency_parsing import POSTag, POSTaggedWord
 
 
 class VerbTranslator(abc.ABC):
 	@abc.abstractmethod
-	def is_transable(self, word: str) -> bool:
+	def is_transable(self, word: str, postag: Union[POSTag, str]) -> bool:
 		pass
 
 	@abc.abstractmethod
-	def translate(self, word: str) -> str:
+	def translate(self, word: str, postag: Union[POSTag, str]) -> str:
 		pass
 
 	@property
 	@abc.abstractmethod
-	def words(self) -> Set[str]:
+	def supported_words(self) -> Set[POSTaggedWord]:
 		pass
 
 	@property

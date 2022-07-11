@@ -35,13 +35,14 @@ class BIOArgsDatasetCreator(DatasetCreator):
 
 	def _generate_bio_tagged_sentence(
 			self, words: ParsedText, predicate_idx: int, bio_tags: List[str]) -> Optional[BIOTaggedSentence]:
-		predicate = words[predicate_idx].lemma
+		predicate = words[predicate_idx]
+		predicate_lemma = predicate.lemma
 		if self.use_base_verb:
-			predicate = self.verb_translator.translate(predicate)
+			predicate_lemma = self.verb_translator.translate(predicate_lemma, predicate.pos)
 
 		tokens = words.words
 		if self.replace_in_sentence:
-			tokens[predicate_idx] = predicate
+			tokens[predicate_idx] = predicate_lemma
 
 		if self.avoid_outside_tag:
 			relevant_idxs = [i for i in range(len(bio_tags)) if bio_tags[i] != 'O']
@@ -51,14 +52,14 @@ class BIOArgsDatasetCreator(DatasetCreator):
 		if len(tokens) == 0 or set(bio_tags) == {'O'}:
 			return
 
-		return BIOTaggedSentence(predicate, " ".join(tokens), " ".join(bio_tags))
+		return BIOTaggedSentence(predicate_lemma, " ".join(tokens), " ".join(bio_tags))
 
 	def _should_filter(self, predicate: ParsedWord) -> bool:
 		if self.limited_postags is not None:
 			if predicate.tag not in self.limited_postags and predicate.pos not in self.limited_postags:
 				return True
 
-		if not self.verb_translator.is_transable(predicate.lemma):
+		if not self.verb_translator.is_transable(predicate.lemma, predicate.pos):
 			return True
 
 		return False

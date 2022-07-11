@@ -3,12 +3,12 @@ from argparse import ArgumentParser, Namespace
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCreator,\
-	ExtractedDatasetCreator, BIOArgsDatasetCreator
+	ExtractedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
 from yet_another_verb.nomlex.constants.argument_type import PP_ARG_TYPES, NP_ARG_TYPES
-from yet_another_verb.nomlex.constants.word_postag import NOUN_POSTAGS
+from yet_another_verb.dependency_parsing import NOUN_POSTAGS
 from yet_another_verb.utils.debug_utils import timeit
 
 DATASET_TO_CREATOR = {
@@ -28,11 +28,11 @@ DATASET_TO_CREATOR = {
 		avoid_outside_tag=False,
 		tag_predicate=False,
 		verb_translator=VerbTranslatorFactory(**vars(args))()),
-	# "encoded-extraction": lambda args: EncodedExtractionsCreator(
-	# 	**vars(args),
-	# 	dependency_parser=DependencyParserFactory(**vars(args))(),
-	# 	args_extractor=ExtractorFactory(**vars(args))(),
-	# 	verb_translator=VerbTranslatorFactory(**vars(args))())
+	"encoded-extraction": lambda args: EncodedExtractionsCreator(
+		**vars(args),
+		dependency_parser=DependencyParserFactory(**vars(args))(),
+		args_extractor=ExtractorFactory(**vars(args))(),
+		verb_translator=VerbTranslatorFactory(**vars(args))())
 }
 
 
@@ -55,7 +55,7 @@ def main():
 	arg_parser.add_argument("--out-dataset-path", "-o", type=str, required=True)
 	arg_parser.add_argument("--in-dataset-path", "-i", type=str, default="")
 	arg_parser.add_argument("--verbose", "-v", action="store_true")
-	# arg_parser.add_argument("--model-name", type=str, default="")
+	arg_parser.add_argument("--model-name", type=str, default="")
 	arg_parser.add_argument("--device", type=str, default="cpu")
 
 	DependencyParserFactory.expand_parser(arg_parser)
@@ -63,11 +63,6 @@ def main():
 	VerbTranslatorFactory.expand_parser(arg_parser)
 
 	args, _ = arg_parser.parse_known_args()
-	# args.model_name = "bert-base-uncased"
-	# args.in_dataset_path = "/home/nlp/avivwn/thesis/data/wiki40b/parsed/en_ud_model_lg-2.0.0"
-	# args.out_dataset_path = "/home/nlp/avivwn/thesis/data/wiki40b/encoded-extractions.db"
-	# args.dataset_size = 10
-	# args.overwrite = True
 	VERBOSE_CONFIG.VERBOSE = args.verbose
 	create_dataset(args)
 
