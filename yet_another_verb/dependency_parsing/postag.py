@@ -2,6 +2,9 @@ from enum import Enum
 
 
 class POSTag(str, Enum):
+	#############################################
+	# Fine-grained POS-tags
+
 	CC = "CC"			# Coordinating conjunction
 	CD = "CD"			# Cardinal number
 	DT = "DT"			# Determiner
@@ -25,7 +28,6 @@ class POSTag(str, Enum):
 	RBR = "RBR"			# Adverb, comparative
 	RBS = "RBS"			# Adverb, superlative
 	RP = "RP"			# Particle
-	SYM = "SYM"			# Symbol
 	TO = "TO"			# to
 	UH = "UH"			# Interjection
 	VB = "VB"			# Verb, base form
@@ -38,6 +40,27 @@ class POSTag(str, Enum):
 	WP = "WP"			# Wh-pronoun
 	WP_POSS = "WP$"		# Possessive wh-pronoun
 	WRB = "WRB"			# Wh-adverb
+
+	#############################################
+	# Universal POS-tags
+	ADJ = "ADJ" 		# adjective
+	ADP = "ADP" 		# adposition
+	ADV = "ADV" 		# adverb
+	AUX = "AUX"			# auxiliary
+	CONJ = "CONJ"		# conjunction
+	CCONJ = "CCONJ"		# coordinating conjunction
+	DET = "DET"			# determiner
+	INTJ = "INTJ"		# interjection
+	NOUN = "NOUN"		# noun
+	NUM = "NUM"			# numeral
+	PART = "PART"		# particle
+	PRON = "PRON"		# pronoun
+	PROPN = "PROPN"		# proper noun
+	PUNCT = "PUNCT"		# punctuation
+	SCONJ = "SCONJ"		# subordinating conjunction
+	SYM = "SYM"			# symbol
+	VERB = "VERB"		# verb
+	X = "X"				# other
 
 
 POSTAGS = {t for t in POSTag}

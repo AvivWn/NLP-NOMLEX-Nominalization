@@ -1,5 +1,5 @@
 from itertools import chain, permutations, product
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Union
 from copy import deepcopy
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
@@ -41,7 +41,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 		word = words[word_idx]
 
 		if limited_postags is not None:
-			if word.tag not in limited_postags:
+			if word.tag not in limited_postags and word.pos not in limited_postags:
 				return False
 
 		if limited_predicates is None:
@@ -67,18 +67,14 @@ class NomlexArgsExtractor(ArgsExtractor):
 		return not lemmas.isdisjoint(limited_predicates)
 
 	@staticmethod
-	def _is_empty_or_contain(values: list, v):
-		return len(values) == 0 or v in values
-
-	@staticmethod
-	def _is_not_empty_and_disjoint(s1: set, s2: set):
-		return s1 != [] and set(s1).isdisjoint(s2)
+	def _is_not_empty_and_disjoint(l1: Union[list, set], l2: Union[list, set]):
+		return len(l1) > 0 and len(l2) > 0 and set(l1).isdisjoint(l2)
 
 	def _is_word_match_constraints(self, word: ParsedWord, constraints_map: ConstraintsMap) -> bool:
 		required_contraints = [
-			lambda: self._is_empty_or_contain(constraints_map.values, word.text),
-			lambda: self._is_empty_or_contain(constraints_map.postags, word.tag),
-			lambda: self._is_empty_or_contain(constraints_map.word_relations, word.dep)
+			lambda: not self._is_not_empty_and_disjoint(constraints_map.values, {word.text}),
+			lambda: not self._is_not_empty_and_disjoint(constraints_map.postags, {word.tag, word.pos}),
+			lambda: not self._is_not_empty_and_disjoint(constraints_map.dep_relations, {word.dep})
 		]
 
 		return all(constraint() is True for constraint in required_contraints)
@@ -87,17 +83,17 @@ class NomlexArgsExtractor(ArgsExtractor):
 	def _filter_word_relatives(word: ParsedWord, constraints_map: ConstraintsMap) -> List[ParsedWord]:
 		relevant_relations, relevant_postags, relevant_values = set(), set(), set()
 		for m in constraints_map.relatives_constraints:
-			relevant_relations.update(m.word_relations)
+			relevant_relations.update(m.dep_relations)
 			relevant_postags.update(m.postags)
 			relevant_values.update(m.values)
 
 			# is JOKER
-			if len(m.postags) == 0 and len(m.word_relations) == 0 and len(m.values) == 0:
+			if len(m.postags) == 0 and len(m.dep_relations) == 0 and len(m.values) == 0:
 				return [relative for relative in word.children]
 
 		relevant_checkers = [
 			lambda relative: relative.dep in relevant_relations,
-			lambda relative: relative.tag in relevant_postags,
+			lambda relative: relative.tag in relevant_postags or relative.pos in relevant_postags,
 			lambda relative: relative.text in relevant_values
 		]
 
@@ -159,12 +155,12 @@ class NomlexArgsExtractor(ArgsExtractor):
 		existing_relations, existing_postags, existing_values = set(), set(), set()
 		for word in relatives:
 			existing_relations.add(word.dep)
-			existing_postags.add(word.tag)
+			existing_postags.update([word.tag, word.pos])
 			existing_values.add(word.text)
 
 		required_constraints_checkers = [
 			lambda x: self._is_not_empty_and_disjoint(x.values, existing_values),
-			lambda x: self._is_not_empty_and_disjoint(x.word_relations, existing_relations),
+			lambda x: self._is_not_empty_and_disjoint(x.dep_relations, existing_relations),
 			lambda x: self._is_not_empty_and_disjoint(x.postags, existing_postags)
 		]
 

@@ -26,7 +26,7 @@ class IndexedConstraintsMaps:
 			map_idx: int):
 		values = constraints_map.values if len(constraints_map.values) > 0 else [None]
 		postags = constraints_map.postags if len(constraints_map.postags) > 0 else [None]
-		relations = constraints_map.word_relations if len(constraints_map.word_relations) > 0 else [None]
+		relations = constraints_map.dep_relations if len(constraints_map.dep_relations) > 0 else [None]
 
 		for value, postag, relation in product(values, postags, relations):
 			word_property = WordProperty(value=value, postag=postag, relation=relation)
@@ -57,7 +57,7 @@ class IndexedConstraintsMaps:
 	@staticmethod
 	def _get_relevants_idxs_in_mapping(property_mapping: Dict[WordProperty, Set[int]], word: ParsedWord) -> Set[int]:
 		relevant_idxs = set()
-		for value, postag, relation in product([word.text, None], [word.tag, None], [word.dep, None]):
+		for value, postag, relation in product([word.text, None], [word.tag, word.pos, None], [word.dep, None]):
 			word_property = WordProperty(value=value, postag=postag, relation=relation)
 			relevant_idxs.update(property_mapping[word_property])
 

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class WordRelation(str, Enum):
+class DepRelation(str, Enum):
 	NMOD = "nmod"
 	NSUBJ = "nsubj"
 	NSUBJPASS = "nsubjpass"
@@ -25,4 +25,4 @@ class WordRelation(str, Enum):
 	AUXPASS = "auxpass"
 
 
-WORD_RELATIONS = {r for r in WordRelation}
+DEP_RELATIONS = {r for r in DepRelation}

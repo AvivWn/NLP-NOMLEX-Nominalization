@@ -4,7 +4,8 @@ from itertools import chain
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
-from yet_another_verb.nomlex.constants import ArgumentType, WordRelation, POSTag
+from yet_another_verb.dependency_parsing import DepRelation, POSTag
+from yet_another_verb.nomlex.constants import ArgumentType
 
 
 @dataclass_json
@@ -12,7 +13,7 @@ from yet_another_verb.nomlex.constants import ArgumentType, WordRelation, POSTag
 class ConstraintsMap:
 	arg_type: Optional[ArgumentType] = field(default=None)
 
-	word_relations: List[WordRelation] = field(default_factory=list)
+	dep_relations: List[DepRelation] = field(default_factory=list)
 	postags: List[POSTag] = field(default_factory=list)
 	values: List[str] = field(default_factory=list)
 	required: bool = field(default=True)

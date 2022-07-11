@@ -3,10 +3,9 @@ from copy import deepcopy
 from itertools import chain
 from collections import defaultdict
 
-from yet_another_verb.nomlex.constants import LexiconType, ArgumentValue, ArgumentType, \
-	WordRelation, POSTag, SubcatType
-from yet_another_verb.nomlex.constants.word_postag import NOUN_POSTAGS, VERB_POSTAGS, \
-	ADVERB_POSTAGS, ADJECTIVE_POSTAGS
+from yet_another_verb.nomlex.constants import LexiconType, ArgumentValue, ArgumentType, SubcatType
+from yet_another_verb.dependency_parsing import NOUN_POSTAGS, VERB_POSTAGS, ADVERB_POSTAGS, ADJECTIVE_POSTAGS, POSTag, \
+	DepRelation
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap, ORConstraintsMaps, ANDConstraintsMaps
 
 TO_PREP = "to"
@@ -36,57 +35,57 @@ def _expand_constraints_separately(constraint_maps: ORConstraintsMaps, relatives
 
 def _get_mark_map(values: List[str], arg_type: ArgumentType, postags: List[POSTag] = None) -> ConstraintsMap:
 	postags = [] if postags is None else postags
-	return ConstraintsMap(word_relations=[WordRelation.MARK], values=values, postags=postags, arg_type=arg_type)
+	return ConstraintsMap(dep_relations=[DepRelation.MARK], values=values, postags=postags, arg_type=arg_type)
 
 
 def _get_advmod_map(values: List[str], arg_type: ArgumentType, postags: List[POSTag] = None) -> ConstraintsMap:
 	postags = [] if postags is None else postags
-	return ConstraintsMap(word_relations=[WordRelation.ADVMOD], values=values, postags=postags, arg_type=arg_type)
+	return ConstraintsMap(dep_relations=[DepRelation.ADVMOD], values=values, postags=postags, arg_type=arg_type)
 
 
-def _get_np_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+def _get_np_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
 	return [ConstraintsMap(
-		word_relations=word_relations, postags=NOUN_POSTAGS + [POSTag.PRP_POSS], arg_type=arg_type,
+		dep_relations=dep_relations, postags=NOUN_POSTAGS + [POSTag.PRP_POSS], arg_type=arg_type,
 		relatives_constraints=[ConstraintsMap(values=["'s", "'", "’s", "’"], required=False)]
 	)]
 
 
 def _get_possessive_maps(arg_type: ArgumentType) -> ORConstraintsMaps:
-	possessive_relations = [WordRelation.NSUBJ, WordRelation.NMOD_POSS]
+	possessive_relations = [DepRelation.NSUBJ, DepRelation.NMOD_POSS]
 
 	return [
 		ConstraintsMap(
-			word_relations=possessive_relations,
+			dep_relations=possessive_relations,
 			postags=[POSTag.PRP_POSS],
 			arg_type=arg_type),
 		ConstraintsMap(
-			word_relations=possessive_relations,
+			dep_relations=possessive_relations,
 			postags=NOUN_POSTAGS,
 			relatives_constraints=[ConstraintsMap(values=["'s", "'", "’s", "’"])],
 			arg_type=arg_type)
 	]
 
 
-def _get_adjective_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return [ConstraintsMap(word_relations=word_relations, postags=ADJECTIVE_POSTAGS, arg_type=arg_type)]
+def _get_adjective_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return [ConstraintsMap(dep_relations=dep_relations, postags=ADJECTIVE_POSTAGS, arg_type=arg_type)]
 
 
 def _get_adverb_maps(arg_type: ArgumentType):
-	return [ConstraintsMap(word_relations=[WordRelation.ADVMOD], postags=ADVERB_POSTAGS, arg_type=arg_type)]
+	return [ConstraintsMap(dep_relations=[DepRelation.ADVMOD], postags=ADVERB_POSTAGS, arg_type=arg_type)]
 
 
-def _get_to_inf_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+def _get_to_inf_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
 	return [ConstraintsMap(
-		word_relations=word_relations,
+		dep_relations=dep_relations,
 		postags=[POSTag.VB],
 		relatives_constraints=[_get_mark_map(["to"], arg_type, [POSTag.TO])],
 		arg_type=arg_type
 	), ConstraintsMap(
-		# word_relations=word_relations,
+		# dep_relations=dep_relations,
 		relatives_constraints=[
 			_get_mark_map(["to"], arg_type, [POSTag.TO]),
 			ConstraintsMap(
-				word_relations=[WordRelation.COP],
+				dep_relations=[DepRelation.COP],
 				postags=[POSTag.VB],
 				values=["be"],
 				arg_type=arg_type
@@ -97,22 +96,22 @@ def _get_to_inf_maps(word_relations: List[WordRelation], arg_type: ArgumentType)
 
 
 def _get_ing_maps(
-		word_relations: List[WordRelation],
+		dep_relations: List[DepRelation],
 		arg_type: ArgumentType,
 		possessive: bool = False) -> ORConstraintsMaps:
 	possessive_constraints = [] if not possessive else _get_possessive_maps(arg_type)
 
 	maps = [
 		ConstraintsMap(
-			word_relations=word_relations,
+			dep_relations=dep_relations,
 			postags=[POSTag.VBG],
 			arg_type=arg_type
 		),
 		ConstraintsMap(
-			word_relations=word_relations + [WordRelation.NMOD],
+			dep_relations=dep_relations + [DepRelation.NMOD],
 			relatives_constraints=[
 				ConstraintsMap(
-					word_relations=[WordRelation.COP],
+					dep_relations=[DepRelation.COP],
 					postags=[POSTag.VBG],
 					values=["being"],
 					arg_type=arg_type
@@ -126,7 +125,7 @@ def _get_ing_maps(
 
 
 def _get_sbar_maps(
-		word_relations: List[WordRelation],
+		dep_relations: List[DepRelation],
 		arg_type: ArgumentType,
 		relatives_constraints: ANDConstraintsMaps = None,
 		tensed_only: bool = False,
@@ -138,7 +137,7 @@ def _get_sbar_maps(
 
 	if tensed_only:
 		relatives_constraints += [ConstraintsMap(
-			word_relations=[WordRelation.NSUBJ, WordRelation.NSUBJPASS],
+			dep_relations=[DepRelation.NSUBJ, DepRelation.NSUBJPASS],
 			postags=NOUN_POSTAGS,
 			arg_type=arg_type
 		)]
@@ -147,14 +146,14 @@ def _get_sbar_maps(
 		relatives_constraints += [_get_mark_map(["to"], arg_type, [POSTag.TO])]
 
 	return [ConstraintsMap(
-		word_relations=word_relations,
+		dep_relations=dep_relations,
 		postags=[POSTag.VB] if untensed_only else VERB_POSTAGS,
 		relatives_constraints=relatives_constraints,
 		arg_type=arg_type
 	), ConstraintsMap(
-		word_relations=word_relations,
+		dep_relations=dep_relations,
 		relatives_constraints=relatives_constraints + [ConstraintsMap(
-			word_relations=[WordRelation.COP],
+			dep_relations=[DepRelation.COP],
 			postags=VERB_POSTAGS,
 			values=["is", "are", "am", "was", "were", "be"],
 			arg_type=arg_type
@@ -163,106 +162,106 @@ def _get_sbar_maps(
 	)]
 
 
-def _get_that_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_mark_map(["that"], arg_type)], tensed_only=True)
+def _get_that_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_mark_map(["that"], arg_type)], tensed_only=True)
 
 
-def _get_whether_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_mark_map(["whether"], arg_type)])
+def _get_whether_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_mark_map(["whether"], arg_type)])
 
 
-def _get_what_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [ConstraintsMap(
+def _get_what_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [ConstraintsMap(
 		values=["what"],
-		word_relations=[WordRelation.NSUBJ, WordRelation.DOBJ],
+		dep_relations=[DepRelation.NSUBJ, DepRelation.DOBJ],
 		arg_type=arg_type
 	)])
 
 
-def _get_if_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_mark_map(["if"], arg_type)])
+def _get_if_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_mark_map(["if"], arg_type)])
 
 
-def _get_where_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_advmod_map(["where"], arg_type)])
+def _get_where_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_advmod_map(["where"], arg_type)])
 
 
-def _get_when_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_advmod_map(["when"], arg_type)])
+def _get_when_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_advmod_map(["when"], arg_type)])
 
 
-def _get_how_much_or_many_s_maps(word_relations: List[WordRelation], aux_value: str, arg_type: ArgumentType) -> ORConstraintsMaps:
+def _get_how_much_or_many_s_maps(dep_relations: List[DepRelation], aux_value: str, arg_type: ArgumentType) -> ORConstraintsMaps:
 	how_s_map = _get_advmod_map(["how"], arg_type)
 
 	how_much_or_many_s_map = ConstraintsMap(
-		word_relations=[WordRelation.ADVMOD, WordRelation.AMOD],
+		dep_relations=[DepRelation.ADVMOD, DepRelation.AMOD],
 		values=[aux_value],
 		relatives_constraints=[how_s_map],
 		arg_type=arg_type
 	)
 
 	return _get_sbar_maps(
-		word_relations,
+		dep_relations,
 		arg_type,
 		[ConstraintsMap(
-			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
+			dep_relations=[DepRelation.DOBJ, DepRelation.NSUBJ, DepRelation.NSUBJPASS],
 			relatives_constraints=[how_much_or_many_s_map],
 			arg_type=arg_type
 		)]
 	) + _get_sbar_maps(
-		word_relations,
+		dep_relations,
 		arg_type,
 		[ConstraintsMap(
-			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
+			dep_relations=[DepRelation.DOBJ, DepRelation.NSUBJ, DepRelation.NSUBJPASS],
 			relatives_constraints=[how_s_map],
 			arg_type=arg_type,
 			values=[aux_value]
 		)]
 	) + _get_sbar_maps(
-		word_relations,
+		dep_relations,
 		arg_type,
 		[how_s_map] + [ConstraintsMap(
-			word_relations=[WordRelation.DOBJ, WordRelation.NSUBJ, WordRelation.NSUBJPASS],
+			dep_relations=[DepRelation.DOBJ, DepRelation.NSUBJ, DepRelation.NSUBJPASS],
 			arg_type=arg_type,
 			values=[aux_value]
 		)]
-	) + _get_sbar_maps(word_relations, arg_type, [how_much_or_many_s_map]) + \
+	) + _get_sbar_maps(dep_relations, arg_type, [how_much_or_many_s_map]) + \
 		[ConstraintsMap(
-				word_relations=[WordRelation.NMOD],
+				dep_relations=[DepRelation.NMOD],
 				postags=NOUN_POSTAGS,
 				arg_type=arg_type,
 				relatives_constraints=[how_much_or_many_s_map]
 		)]
 
 
-def _get_how_much_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_how_much_or_many_s_maps(word_relations, "much", arg_type)
+def _get_how_much_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_how_much_or_many_s_maps(dep_relations, "much", arg_type)
 
 
-def _get_how_many_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	return _get_how_much_or_many_s_maps(word_relations, "many", arg_type)
+def _get_how_many_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	return _get_how_much_or_many_s_maps(dep_relations, "many", arg_type)
 
 
-def _get_how_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType, untensed_only: bool = False) -> ORConstraintsMaps:
-	return _get_sbar_maps(word_relations, arg_type, [_get_advmod_map(["how"], arg_type)], untensed_only=untensed_only)
+def _get_how_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType, untensed_only: bool = False) -> ORConstraintsMaps:
+	return _get_sbar_maps(dep_relations, arg_type, [_get_advmod_map(["how"], arg_type)], untensed_only=untensed_only)
 
 
-def _get_as_if_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
-	if_mwe_map = ConstraintsMap(word_relations=[WordRelation.MWE], values=["if"], arg_type=arg_type)
+def _get_as_if_s_maps(dep_relations: List[DepRelation], arg_type: ArgumentType) -> ORConstraintsMaps:
+	if_mwe_map = ConstraintsMap(dep_relations=[DepRelation.MWE], values=["if"], arg_type=arg_type)
 
-	if_mark_map = ConstraintsMap(word_relations=[WordRelation.MARK], values=["if"], arg_type=arg_type)
-	as_mark_map = ConstraintsMap(word_relations=[WordRelation.MARK], values=["as"], arg_type=arg_type)
+	if_mark_map = ConstraintsMap(dep_relations=[DepRelation.MARK], values=["if"], arg_type=arg_type)
+	as_mark_map = ConstraintsMap(dep_relations=[DepRelation.MARK], values=["as"], arg_type=arg_type)
 	return _get_sbar_maps(
-		word_relations,
+		dep_relations,
 		arg_type,
 		[ConstraintsMap(
-			word_relations=[WordRelation.MARK],
+			dep_relations=[DepRelation.MARK],
 			values=["as"],
 			relatives_constraints=[if_mwe_map],
 			arg_type=arg_type
 		)]
 	) + _get_sbar_maps(
-		word_relations,
+		dep_relations,
 		arg_type,
 		[if_mark_map, as_mark_map]
 	)
@@ -270,7 +269,7 @@ def _get_as_if_s_maps(word_relations: List[WordRelation], arg_type: ArgumentType
 
 def _get_particle_maps(values: List[str], arg_type: ArgumentType) -> ORConstraintsMaps:
 	return [ConstraintsMap(
-		word_relations=[WordRelation.PRT, WordRelation.COMPOUND_PRT],
+		dep_relations=[DepRelation.PRT, DepRelation.COMPOUND_PRT],
 		values=values,
 		postags=[POSTag.RP],
 		arg_type=arg_type)
@@ -279,132 +278,132 @@ def _get_particle_maps(values: List[str], arg_type: ArgumentType) -> ORConstrain
 
 ARG_CONSTRAINTS = {
 	LexiconType.VERB: {
-		ArgumentValue.NSUBJ: lambda arg_type: _get_np_maps([WordRelation.NSUBJ], arg_type),
-		ArgumentValue.NSUBJPASS: lambda arg_type: _get_np_maps([WordRelation.NSUBJPASS], arg_type),
-		ArgumentValue.DOBJ: lambda arg_type: _get_np_maps([WordRelation.DOBJ], arg_type),
-		ArgumentValue.IOBJ: lambda arg_type: _get_np_maps([WordRelation.IOBJ], arg_type),
+		ArgumentValue.NSUBJ: lambda arg_type: _get_np_maps([DepRelation.NSUBJ], arg_type),
+		ArgumentValue.NSUBJPASS: lambda arg_type: _get_np_maps([DepRelation.NSUBJPASS], arg_type),
+		ArgumentValue.DOBJ: lambda arg_type: _get_np_maps([DepRelation.DOBJ], arg_type),
+		ArgumentValue.IOBJ: lambda arg_type: _get_np_maps([DepRelation.IOBJ], arg_type),
 
 		ArgumentValue.ADMOD: lambda arg_type: _get_adverb_maps(arg_type),
 
-		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([WordRelation.ADVCL, WordRelation.XCOMP], arg_type),
-		ArgumentValue.ING: lambda arg_type: _get_ing_maps([WordRelation.ADVCL, WordRelation.CCOMP, WordRelation.XCOMP], arg_type),
-		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([WordRelation.CCOMP], arg_type, possessive=True),
+		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([DepRelation.ADVCL, DepRelation.XCOMP], arg_type),
+		ArgumentValue.ING: lambda arg_type: _get_ing_maps([DepRelation.ADVCL, DepRelation.CCOMP, DepRelation.XCOMP], arg_type),
+		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([DepRelation.CCOMP], arg_type, possessive=True),
 
-		ArgumentValue.SBAR: lambda arg_type: _get_sbar_maps([WordRelation.CCOMP], arg_type, tensed_only=True),
-		ArgumentValue.THAT_S: lambda arg_type: _get_that_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.IF_S: lambda arg_type: _get_if_s_maps([WordRelation.ADVCL], arg_type),
-		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.WHERE_S: lambda arg_type: _get_where_s_maps([WordRelation.CCOMP, WordRelation.ADVCL], arg_type),
-		ArgumentValue.WHEN_S: lambda arg_type: _get_when_s_maps([WordRelation.CCOMP, WordRelation.ADVCL], arg_type),
-		ArgumentValue.HOW_MANY_S: lambda arg_type: _get_how_many_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.HOW_MUCH_S: lambda arg_type: _get_how_much_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.HOW_S: lambda arg_type: _get_how_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.HOW_TO_INF: lambda arg_type: _get_how_s_maps([WordRelation.XCOMP, WordRelation.CCOMP], arg_type, untensed_only=True),
-		ArgumentValue.AS_IF_S: lambda arg_type: _get_as_if_s_maps([WordRelation.ADVCL], arg_type),
+		ArgumentValue.SBAR: lambda arg_type: _get_sbar_maps([DepRelation.CCOMP], arg_type, tensed_only=True),
+		ArgumentValue.THAT_S: lambda arg_type: _get_that_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.IF_S: lambda arg_type: _get_if_s_maps([DepRelation.ADVCL], arg_type),
+		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.WHERE_S: lambda arg_type: _get_where_s_maps([DepRelation.CCOMP, DepRelation.ADVCL], arg_type),
+		ArgumentValue.WHEN_S: lambda arg_type: _get_when_s_maps([DepRelation.CCOMP, DepRelation.ADVCL], arg_type),
+		ArgumentValue.HOW_MANY_S: lambda arg_type: _get_how_many_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.HOW_MUCH_S: lambda arg_type: _get_how_much_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.HOW_S: lambda arg_type: _get_how_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.HOW_TO_INF: lambda arg_type: _get_how_s_maps([DepRelation.XCOMP, DepRelation.CCOMP], arg_type, untensed_only=True),
+		ArgumentValue.AS_IF_S: lambda arg_type: _get_as_if_s_maps([DepRelation.ADVCL], arg_type),
 	},
 	LexiconType.NOUN: {
-		ArgumentValue.NSUBJ: lambda arg_type: _get_np_maps([WordRelation.NSUBJ], arg_type),
-		ArgumentValue.N_N_MOD: lambda arg_type: _get_np_maps([WordRelation.COMPOUND], arg_type),
+		ArgumentValue.NSUBJ: lambda arg_type: _get_np_maps([DepRelation.NSUBJ], arg_type),
+		ArgumentValue.N_N_MOD: lambda arg_type: _get_np_maps([DepRelation.COMPOUND], arg_type),
 		ArgumentValue.DET_POSS: lambda arg_type: _get_possessive_maps(arg_type),
 
 		ArgumentValue.ADMOD: lambda arg_type: _get_adverb_maps(arg_type),
-		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([WordRelation.AMOD], arg_type),
+		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([DepRelation.AMOD], arg_type),
 
-		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.ING: lambda arg_type: _get_ing_maps([WordRelation.ACL, WordRelation.XCOMP], arg_type),
-		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([WordRelation.ACL], arg_type, possessive=True),
+		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.ING: lambda arg_type: _get_ing_maps([DepRelation.ACL, DepRelation.XCOMP], arg_type),
+		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([DepRelation.ACL], arg_type, possessive=True),
 
-		ArgumentValue.SBAR: lambda arg_type: _get_that_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.THAT_S: lambda arg_type: _get_that_s_maps([WordRelation.CCOMP], arg_type),
-		ArgumentValue.AS_IF_S: lambda arg_type: _get_as_if_s_maps([WordRelation.ADVCL], arg_type),
+		ArgumentValue.SBAR: lambda arg_type: _get_that_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.THAT_S: lambda arg_type: _get_that_s_maps([DepRelation.CCOMP], arg_type),
+		ArgumentValue.AS_IF_S: lambda arg_type: _get_as_if_s_maps([DepRelation.ADVCL], arg_type),
 	}
 }
 
 
 PREPOSITIONAL_ARG_CONSTRAINTS = {
 	LexiconType.VERB: {
-		ArgumentValue.NP: lambda arg_type: _get_np_maps([WordRelation.NMOD], arg_type),
+		ArgumentValue.NP: lambda arg_type: _get_np_maps([DepRelation.NMOD], arg_type),
 
-		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([WordRelation.ADVCL], arg_type),
+		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([DepRelation.ADVCL], arg_type),
 
-		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([WordRelation.ADVCL], arg_type),
-		ArgumentValue.ING: lambda arg_type: _get_ing_maps([WordRelation.ADVCL, WordRelation.XCOMP], arg_type),
-		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([WordRelation.ADVCL], arg_type, possessive=True),
+		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([DepRelation.ADVCL], arg_type),
+		ArgumentValue.ING: lambda arg_type: _get_ing_maps([DepRelation.ADVCL, DepRelation.XCOMP], arg_type),
+		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([DepRelation.ADVCL], arg_type, possessive=True),
 
-		ArgumentValue.IF_S: lambda arg_type: _get_if_s_maps([WordRelation.ADVCL], arg_type),
-		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([WordRelation.ADVCL], arg_type),
-		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([WordRelation.ADVCL], arg_type),
+		ArgumentValue.IF_S: lambda arg_type: _get_if_s_maps([DepRelation.ADVCL], arg_type),
+		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([DepRelation.ADVCL], arg_type),
+		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([DepRelation.ADVCL], arg_type),
 	},
 	LexiconType.NOUN: {
-		ArgumentValue.NP: lambda arg_type: _get_np_maps([WordRelation.NMOD], arg_type),
+		ArgumentValue.NP: lambda arg_type: _get_np_maps([DepRelation.NMOD], arg_type),
 
-		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([WordRelation.ACL], arg_type),
+		ArgumentValue.AJMOD: lambda arg_type: _get_adjective_maps([DepRelation.ACL], arg_type),
 
-		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.ING: lambda arg_type: _get_ing_maps([WordRelation.ACL, WordRelation.ADVCL], arg_type),
-		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([WordRelation.ACL, WordRelation.ADVCL], arg_type, possessive=True),
+		ArgumentValue.TO_INF: lambda arg_type: _get_to_inf_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.ING: lambda arg_type: _get_ing_maps([DepRelation.ACL, DepRelation.ADVCL], arg_type),
+		ArgumentValue.POSSING: lambda arg_type: _get_ing_maps([DepRelation.ACL, DepRelation.ADVCL], arg_type, possessive=True),
 
-		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.WHERE_S: lambda arg_type: _get_where_s_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.WHEN_S: lambda arg_type: _get_when_s_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.HOW_MANY_S: lambda arg_type: _get_how_many_s_maps([WordRelation.ACL, WordRelation.NMOD], arg_type),
-		ArgumentValue.HOW_MUCH_S: lambda arg_type: _get_how_much_s_maps([WordRelation.ACL, WordRelation.NMOD], arg_type),
-		ArgumentValue.HOW_S: lambda arg_type: _get_how_s_maps([WordRelation.ACL], arg_type),
-		ArgumentValue.HOW_TO_INF: lambda arg_type: _get_how_s_maps([WordRelation.ACL], arg_type, untensed_only=True),
+		ArgumentValue.WHAT_S: lambda arg_type: _get_what_s_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.WHETHER_S: lambda arg_type: _get_whether_s_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.WHERE_S: lambda arg_type: _get_where_s_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.WHEN_S: lambda arg_type: _get_when_s_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.HOW_MANY_S: lambda arg_type: _get_how_many_s_maps([DepRelation.ACL, DepRelation.NMOD], arg_type),
+		ArgumentValue.HOW_MUCH_S: lambda arg_type: _get_how_much_s_maps([DepRelation.ACL, DepRelation.NMOD], arg_type),
+		ArgumentValue.HOW_S: lambda arg_type: _get_how_s_maps([DepRelation.ACL], arg_type),
+		ArgumentValue.HOW_TO_INF: lambda arg_type: _get_how_s_maps([DepRelation.ACL], arg_type, untensed_only=True),
 	}
 }
 
 
 PREP_RELATIONS = {
-	ArgumentType.SUBJ: [WordRelation.CASE],
-	ArgumentType.OBJ: [WordRelation.CASE],
-	ArgumentType.IND_OBJ: [WordRelation.CASE],
-	ArgumentType.NP: [WordRelation.CASE],
-	ArgumentType.PP: [WordRelation.CASE],
-	ArgumentType.PP1: [WordRelation.CASE],
-	ArgumentType.PP2: [WordRelation.CASE],
-	ArgumentType.MODIFIER: [WordRelation.CASE, WordRelation.MARK, WordRelation.ADVMOD],
-	ArgumentType.ING: [WordRelation.MARK],
-	ArgumentType.TO_INF: [WordRelation.MARK],
-	ArgumentType.SBAR: [WordRelation.MARK],
+	ArgumentType.SUBJ: [DepRelation.CASE],
+	ArgumentType.OBJ: [DepRelation.CASE],
+	ArgumentType.IND_OBJ: [DepRelation.CASE],
+	ArgumentType.NP: [DepRelation.CASE],
+	ArgumentType.PP: [DepRelation.CASE],
+	ArgumentType.PP1: [DepRelation.CASE],
+	ArgumentType.PP2: [DepRelation.CASE],
+	ArgumentType.MODIFIER: [DepRelation.CASE, DepRelation.MARK, DepRelation.ADVMOD],
+	ArgumentType.ING: [DepRelation.MARK],
+	ArgumentType.TO_INF: [DepRelation.MARK],
+	ArgumentType.SBAR: [DepRelation.MARK],
 }
 
 
 NP_ING_COMPLEX = lambda arg_type1, arg_type2: {
 	LexiconType.VERB: lambda preps:
 	_get_maps_with_preps(arg_type2, preps, _expand_constraints_separately(
-			_get_ing_maps([WordRelation.CCOMP, WordRelation.XCOMP], arg_type2),
-			_get_np_maps([WordRelation.NSUBJ], arg_type1))) +
+			_get_ing_maps([DepRelation.CCOMP, DepRelation.XCOMP], arg_type2),
+			_get_np_maps([DepRelation.NSUBJ], arg_type1))) +
 	_expand_constraints_separately(
-			_get_ing_maps([WordRelation.CCOMP, WordRelation.XCOMP], arg_type2),
-			_get_maps_with_preps(arg_type1, preps, _get_np_maps([WordRelation.NSUBJ], arg_type1))) +
+			_get_ing_maps([DepRelation.CCOMP, DepRelation.XCOMP], arg_type2),
+			_get_maps_with_preps(arg_type1, preps, _get_np_maps([DepRelation.NSUBJ], arg_type1))) +
 	_get_maps_with_preps(arg_type1, preps, _expand_constraints_separately(
-			_get_np_maps([WordRelation.DOBJ], arg_type1),
-			_get_ing_maps([WordRelation.ACL], arg_type2))),
+			_get_np_maps([DepRelation.DOBJ], arg_type1),
+			_get_ing_maps([DepRelation.ACL], arg_type2))),
 	LexiconType.NOUN: lambda preps:
 	_get_maps_with_preps(arg_type2, preps, _expand_constraints_separately(
-			_get_ing_maps([WordRelation.ACL, WordRelation.ADVCL, WordRelation.XCOMP], arg_type2),
-			_get_np_maps([WordRelation.NSUBJ], arg_type1))) +
+			_get_ing_maps([DepRelation.ACL, DepRelation.ADVCL, DepRelation.XCOMP], arg_type2),
+			_get_np_maps([DepRelation.NSUBJ], arg_type1))) +
 	_expand_constraints_separately(
-			_get_ing_maps([WordRelation.ACL, WordRelation.ADVCL, WordRelation.XCOMP], arg_type2),
-			_get_maps_with_preps(arg_type1, preps, _get_np_maps([WordRelation.NSUBJ], arg_type1))) +
+			_get_ing_maps([DepRelation.ACL, DepRelation.ADVCL, DepRelation.XCOMP], arg_type2),
+			_get_maps_with_preps(arg_type1, preps, _get_np_maps([DepRelation.NSUBJ], arg_type1))) +
 	_get_maps_with_preps(arg_type1, preps, _expand_constraints_separately(
-			_get_np_maps([WordRelation.NMOD], arg_type1),
-			_get_ing_maps([WordRelation.ACL], arg_type2)))
+			_get_np_maps([DepRelation.NMOD], arg_type1),
+			_get_ing_maps([DepRelation.ACL], arg_type2)))
 }
 
 P_NP_ING_COMPLEX = lambda preps: \
 	_get_maps_with_preps(ArgumentType.PP, preps, _expand_constraints_separately(
-		_get_np_maps([WordRelation.NMOD], ArgumentType.PP),
-		_get_ing_maps([WordRelation.ACL], ArgumentType.ING))) + \
+		_get_np_maps([DepRelation.NMOD], ArgumentType.PP),
+		_get_ing_maps([DepRelation.ACL], ArgumentType.ING))) + \
 	_expand_constraints_separately(
-		_get_ing_maps([WordRelation.ACL], ArgumentType.ING),
-		_get_maps_with_preps(ArgumentType.PP, preps, _get_np_maps([WordRelation.NSUBJ], ArgumentType.PP))) + \
+		_get_ing_maps([DepRelation.ACL], ArgumentType.ING),
+		_get_maps_with_preps(ArgumentType.PP, preps, _get_np_maps([DepRelation.NSUBJ], ArgumentType.PP))) + \
 	_get_maps_with_preps(ArgumentType.PP, preps, _expand_constraints_separately(
-		_get_ing_maps([WordRelation.ACL], ArgumentType.ING),
-		_get_np_maps([WordRelation.NSUBJ], ArgumentType.PP)))
+		_get_ing_maps([DepRelation.ACL], ArgumentType.ING),
+		_get_np_maps([DepRelation.NSUBJ], ArgumentType.PP)))
 
 COMPLEX_ARG_CONSTRAINTS = {
 	(ArgumentType.NP, ArgumentType.ING): {
@@ -438,11 +437,11 @@ def _get_with_more_constraints(constraints_map: ConstraintsMap, relatives_constr
 
 
 def _choose_relations_for_prep(
-		word_relations: Optional[List[WordRelation]] = None,
+		dep_relations: Optional[List[DepRelation]] = None,
 		arg_type: Optional[ArgumentType] = None
-) -> List[WordRelation]:
-	if word_relations is not None:
-		return word_relations
+) -> List[DepRelation]:
+	if dep_relations is not None:
+		return dep_relations
 
 	if arg_type is not None:
 		return PREP_RELATIONS[arg_type]
@@ -466,12 +465,12 @@ def _choose_postags_for_prep(
 def _get_constraints_with_one_worded_prep(
 		constraints_map: ConstraintsMap, arg_type: ArgumentType,
 		prep: str, prep_arg_type: Optional[ArgumentType] = None,
-		postags: Optional[List[POSTag]] = None, word_relations: Optional[List[WordRelation]] = None
+		postags: Optional[List[POSTag]] = None, dep_relations: Optional[List[DepRelation]] = None
 ) -> ConstraintsMap:
 	return _get_with_more_constraints(
 		constraints_map,
 		[ConstraintsMap(
-			word_relations=_choose_relations_for_prep(word_relations, arg_type),
+			dep_relations=_choose_relations_for_prep(dep_relations, arg_type),
 			values=[prep],
 			postags=_choose_postags_for_prep(prep, postags, arg_type),
 			arg_type=prep_arg_type
@@ -482,7 +481,7 @@ def _get_constraints_with_one_worded_prep(
 def _get_constraints_with_one_worded_preps(
 		constraints_map: ConstraintsMap, arg_type: ArgumentType,
 		preps: List[str], prep_arg_type: Optional[ArgumentType] = None,
-		postags: Optional[List[POSTag]] = None, word_relations: Optional[List[WordRelation]] = None
+		postags: Optional[List[POSTag]] = None, dep_relations: Optional[List[DepRelation]] = None
 ) -> ORConstraintsMaps:
 	postags = postags if postags is not None else []
 	ing_preps, to_preps, as_preps, other_preps = [], [], [], []
@@ -503,7 +502,7 @@ def _get_constraints_with_one_worded_preps(
 		constraints_maps.append(_get_with_more_constraints(
 			constraints_map,
 			[ConstraintsMap(
-				word_relations=_choose_relations_for_prep(word_relations, arg_type),
+				dep_relations=_choose_relations_for_prep(dep_relations, arg_type),
 				values=other_preps,
 				postags=postags,
 				arg_type=prep_arg_type
@@ -512,19 +511,19 @@ def _get_constraints_with_one_worded_preps(
 
 	if len(to_preps) > 0:
 		constraints_maps.append(_get_constraints_with_one_worded_prep(
-			constraints_map, arg_type, TO_PREP, prep_arg_type, postags, word_relations)
+			constraints_map, arg_type, TO_PREP, prep_arg_type, postags, dep_relations)
 		)
 
 	if len(as_preps) > 0:
 		constraints_maps.append(_get_constraints_with_one_worded_prep(
-			constraints_map, arg_type, AS_PREP, prep_arg_type, postags, word_relations)
+			constraints_map, arg_type, AS_PREP, prep_arg_type, postags, dep_relations)
 		)
 
 	if len(ing_preps) > 0:
 		modified_constraints_map = deepcopy(constraints_map)
-		modified_constraints_map.word_relations = [WordRelation.CCOMP]
+		modified_constraints_map.dep_relations = [DepRelation.CCOMP]
 		constraints_maps.append(ConstraintsMap(
-			word_relations=constraints_map.word_relations,
+			dep_relations=constraints_map.dep_relations,
 			values=ing_preps,
 			postags=postags + [POSTag.VBG],
 			arg_type=prep_arg_type,
@@ -549,7 +548,7 @@ def _get_constraints_with_two_words_prep(
 
 	return [
 		ConstraintsMap(
-			word_relations=[WordRelation.ADVMOD],
+			dep_relations=[DepRelation.ADVMOD],
 			values=[words[0]],
 			relatives_constraints=[deepcopy(second_word_constraint)],
 			arg_type=prep_arg_type
@@ -558,18 +557,18 @@ def _get_constraints_with_two_words_prep(
 			constraints_map=deepcopy(second_word_constraint),
 			arg_type=arg_type,
 			prep=words[0],
-			word_relations=[WordRelation.CASE, WordRelation.MARK],
+			dep_relations=[DepRelation.CASE, DepRelation.MARK],
 			postags=_choose_postags_for_prep(words[0], [POSTag.IN], arg_type),
 			prep_arg_type=prep_arg_type
 		),
 		_get_with_more_constraints(
 			constraints_map,
 			relatives_constraints=[ConstraintsMap(
-				word_relations=[WordRelation.CASE, WordRelation.MARK],
+				dep_relations=[DepRelation.CASE, DepRelation.MARK],
 				values=[words[0]],
 				arg_type=prep_arg_type,
 				relatives_constraints=[ConstraintsMap(
-					word_relations=[WordRelation.MWE],
+					dep_relations=[DepRelation.MWE],
 					values=[words[1]],
 					arg_type=prep_arg_type
 				)],
@@ -583,12 +582,12 @@ def _get_constraints_with_three_words_prep(
 		prep: str, prep_arg_type: Optional[ArgumentType] = None
 ):
 	constraints_map_copy = deepcopy(constraints_map)
-	constraints_map_copy.word_relations += [WordRelation.ACL]
+	constraints_map_copy.dep_relations += [DepRelation.ACL]
 
 	words = prep.split()
 	return [
 		ConstraintsMap(
-			word_relations=[WordRelation.NMOD],
+			dep_relations=[DepRelation.NMOD],
 			values=[words[1]],
 			arg_type=prep_arg_type,
 			relatives_constraints=[
@@ -597,7 +596,7 @@ def _get_constraints_with_three_words_prep(
 					_choose_postags_for_prep(words[2], [POSTag.IN], arg_type)
 				),
 				ConstraintsMap(
-					word_relations=[WordRelation.CASE, WordRelation.MARK],
+					dep_relations=[DepRelation.CASE, DepRelation.MARK],
 					values=[words[0]], arg_type=prep_arg_type)
 			]
 		)

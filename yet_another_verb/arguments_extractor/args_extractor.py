@@ -4,8 +4,7 @@ from typing import Optional, List, Union
 from yet_another_verb.arguments_extractor.extraction.comparators.extraction_matcher import ExtractionMatcher
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
-from yet_another_verb.nomlex.constants import POSTag
-from yet_another_verb.nomlex.constants.word_postag import VERB_POSTAGS, NOUN_POSTAGS
+from yet_another_verb.dependency_parsing import VERB_POSTAGS, NOUN_POSTAGS, POSTag
 
 
 class ArgsExtractor(abc.ABC):
@@ -16,7 +15,7 @@ class ArgsExtractor(abc.ABC):
 	@abc.abstractmethod
 	def _is_potential_predicate(
 			self, word_idx: int, words: list,
-			limited_predicates: Optional[list], limited_postags: Optional[list],
+			limited_predicates: Optional[list], limited_postags: Optional[List[POSTag]],
 			allow_related_forms: bool
 	) -> bool:
 		pass

@@ -8,16 +8,19 @@ from yet_another_verb.arguments_extractor.extraction.extraction import Extractio
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_odin_mention_representation import \
 	ParsedOdinMentionRepresentation
+from yet_another_verb.dependency_parsing import POSTag
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.representations import parsed_to_odin
 from yet_another_verb import ArgsExtractor
 
-NOUN_POS = 'NOUN'
-VERB_POS = 'VERB'
 
-
-def _filter_events_by_pos(events: List[int], parsed_sent: ParsedText, part_of_speech: str, shift_index: int):
-	return [e for e in events if parsed_sent[e - shift_index].pos == part_of_speech]
+def _filter_events_by_pos(events: List[int], parsed_sent: ParsedText, part_of_speech: POSTag, shift_index: int):
+	filtered = []
+	for e in events:
+		parsed_e = parsed_sent[e - shift_index]
+		if part_of_speech in {parsed_e.pos, parsed_e.tag}:
+			filtered.append(e)
+	return filtered
 
 
 def _shift_key_idx(thing_by_idx: Dict[int, Any], shift_index: int) -> Dict[int, Any]:
@@ -46,8 +49,8 @@ def _represent_sentence_extraction(
 	mentions_per_idx = _shift_key_idx(mentions_per_idx, sent_shift_idx)
 
 	sorted_events = sorted(mentions_per_idx.keys(), key=lambda e: len(mentions_per_idx[e]), reverse=True)
-	sorted_noun_events = _filter_events_by_pos(sorted_events, parsed_sent, NOUN_POS, sent_shift_idx)
-	sorted_verb_events = _filter_events_by_pos(sorted_events, parsed_sent, VERB_POS, sent_shift_idx)
+	sorted_noun_events = _filter_events_by_pos(sorted_events, parsed_sent, POSTag.NOUN, sent_shift_idx)
+	sorted_verb_events = _filter_events_by_pos(sorted_events, parsed_sent, POSTag.VERB, sent_shift_idx)
 
 	return mentions_per_idx, sorted_noun_events, sorted_verb_events
 

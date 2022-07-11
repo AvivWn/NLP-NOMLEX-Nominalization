@@ -1,11 +1,11 @@
 from collections import namedtuple
-from itertools import product, chain
+from itertools import product
 from copy import deepcopy
 from typing import List, Dict, Callable
 
 from yet_another_verb.nomlex.constants import LexiconType, EntryProperty, SubcatType, \
-	SubcatProperty, ArgumentType, ArgumentValue, WordRelation
-from yet_another_verb.nomlex.constants.word_postag import NOUN_POSTAGS, VERB_POSTAGS
+	SubcatProperty, ArgumentType, ArgumentValue
+from yet_another_verb.dependency_parsing import NOUN_POSTAGS, VERB_POSTAGS, DepRelation
 from yet_another_verb.nomlex.constants.subcat_property import SUBCAT_PROPERTIES
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 from yet_another_verb.nomlex.adaptation.argument.arg_enrichment import enrich_arguments
@@ -173,7 +173,7 @@ def _get_predicate_base_constraint_map(
 				value_pair_by_arg.get(ArgumentType.OBJ, None) == ArgumentValue.NSUBJPASS
 		)
 
-	extra_constraints = [ConstraintsMap(word_relations=[WordRelation.AUXPASS])] if is_passive_voice else []
+	extra_constraints = [ConstraintsMap(dep_relations=[DepRelation.AUXPASS])] if is_passive_voice else []
 	return ConstraintsMap(
 		arg_type=arg_type,
 		postags=VERB_POSTAGS if lexicon_type == LexiconType.VERB else NOUN_POSTAGS,

@@ -54,8 +54,9 @@ class BIOArgsDatasetCreator(DatasetCreator):
 		return BIOTaggedSentence(predicate, " ".join(tokens), " ".join(bio_tags))
 
 	def _should_filter(self, predicate: ParsedWord) -> bool:
-		if self.limited_postags is not None and predicate.tag not in self.limited_postags:
-			return True
+		if self.limited_postags is not None:
+			if predicate.tag not in self.limited_postags and predicate.pos not in self.limited_postags:
+				return True
 
 		if not self.verb_translator.is_transable(predicate.lemma):
 			return True
