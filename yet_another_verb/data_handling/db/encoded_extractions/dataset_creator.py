@@ -3,7 +3,6 @@ from os.path import isdir, join
 from os import listdir
 from typing import Iterator, List, Optional
 from itertools import chain
-import pickle
 
 import torch
 from tqdm import tqdm
@@ -13,6 +12,7 @@ from pony.orm import db_session
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
 from yet_another_verb.data_handling import ParsedBinFileHandler
+from yet_another_verb.data_handling.binary.pkl_handler import PKLHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_model, get_sentence, \
@@ -108,7 +108,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 	def _store_encoding(self, doc: ParsedText, sentence_entity: Sentence, model_entity: Model):
 		if Encoding.get(sentence=sentence_entity, model=model_entity) is None:
 			encoding = self._get_sentence_encoding(doc.tokenized_text)
-			Encoding(sentence=sentence_entity, model=model_entity, binary=pickle.dumps(encoding))
+			Encoding(sentence=sentence_entity, model=model_entity, binary=PKLHandler.dumps(encoding))
 
 	@staticmethod
 	def _store_parsing(doc: ParsedText, sentence_entity: Sentence, parser_entity: Parser):
@@ -130,7 +130,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 			Extraction(
 				predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity,
-				binary=pickle.dumps(extractions))
+				binary=PKLHandler.dumps(extractions))
 
 	def _store_extractions_by_predicates(
 			self, doc: ParsedText, multi_word_extraction: MultiWordExtraction,

@@ -1,6 +1,7 @@
 import pickle
 
 from yet_another_verb.data_handling.file.handlers.file_handler import FileHandler
+from yet_another_verb._bw_alias import *
 
 
 class PKLFileHandler(FileHandler):

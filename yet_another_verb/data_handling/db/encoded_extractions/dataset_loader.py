@@ -1,11 +1,11 @@
 from typing import Optional, List
 from collections import Counter
 
-import pickle
 import torch
 from pony.orm import db_session
 
 from yet_another_verb.arguments_extractor.extraction import Extractions
+from yet_another_verb.data_handling.binary.pkl_handler import PKLHandler
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_limited_extractions, \
 	get_limited_parsings, get_limited_encodings, get_extracted_predicates, get_extractor
@@ -26,7 +26,7 @@ class EncodedExtractionsLoader:
 		if len(encodings) == 0:
 			return None
 
-		return pickle.loads(encodings[0])
+		return PKLHandler.loads(encodings[0])
 
 	@db_session
 	def get_extractions(
@@ -43,7 +43,7 @@ class EncodedExtractionsLoader:
 				continue
 
 			parsing = dependency_parser.from_bytes(parsings[0].binary)
-			multiple_exts = pickle.loads(ext_entity.binary)
+			multiple_exts = PKLHandler.loads(ext_entity.binary)
 
 			for ext in multiple_exts:
 				ext.words = parsing
