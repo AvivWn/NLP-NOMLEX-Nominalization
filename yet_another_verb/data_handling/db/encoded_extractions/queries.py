@@ -3,7 +3,7 @@ from typing import Optional, Type, Union, List
 from pony.orm.core import Entity
 
 from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, \
-	Model, Verb, PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser
+	Model, Verb, PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Extraction, Parsing
 
 
 def get_entity_by_params(entity_type: Type[Entity], generate_missing, **kwargs) -> Optional[Entity]:
@@ -73,3 +73,49 @@ def get_extracted_predicates(extractor: Extractor) -> List[PredicateInSentence]:
 		predicates.append(extraction.predicate_in_sentence)
 
 	return predicates
+
+
+def get_limited_predicates(verb: str, postag: str) -> List[Predicate]:
+	verb_entity = get_verb(verb)
+	postag_entity = get_part_of_speech(postag)
+
+	if verb_entity is None or postag_entity is None:
+		return []
+
+	return [p for p in verb_entity.predicates if p.part_of_speech == postag_entity]
+
+
+def get_limited_encodings(sentence: str, model: str) -> List[Encoding]:
+	model_entity = get_model(model)
+	sentence_entity = get_sentence(sentence)
+
+	if model_entity is None or sentence_entity is None:
+		return []
+
+	return [enc for enc in sentence_entity.encodings if enc.model == model_entity]
+
+
+def get_limited_extractions(verb: str, postag: str, extractor: str) -> List[Extraction]:
+	extractor_entity = get_extractor(extractor)
+
+	if extractor_entity is None:
+		return []
+
+	predicates = get_limited_predicates(verb, postag)
+
+	extractions = []
+	for predicate in predicates:
+		for predicate_in_sentence in predicate.predicates_in_sentences:
+			extractions += [ext for ext in predicate_in_sentence.extractions if ext.extractor == extractor_entity]
+
+	return extractions
+
+
+def get_limited_parsings(sentence: Union[str, Sentence], engine: str, parser: str) -> List[Parsing]:
+	sentence_entity = sentence if isinstance(sentence, Sentence) else get_sentence(sentence)
+	parser_entity = get_parser(engine, parser)
+
+	if sentence_entity is None or parser_entity is None:
+		return []
+
+	return [pars for pars in sentence_entity.parsings if pars.parser == parser_entity]

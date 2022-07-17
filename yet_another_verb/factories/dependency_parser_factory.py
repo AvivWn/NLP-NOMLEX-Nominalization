@@ -8,8 +8,8 @@ from yet_another_verb.dependency_parsing.parser_names import parser_by_engine
 
 
 class DependencyParserFactory(Factory):
-	def __init__(self, dependency_parsing_engine: str = PARSING_CONFIG.PARSING_ENGINE, **kwargs):
-		self.dependency_parsing_engine = dependency_parsing_engine
+	def __init__(self, parsing_engine: str = PARSING_CONFIG.PARSING_ENGINE, **kwargs):
+		self.dependency_parsing_engine = parsing_engine
 		self.params = kwargs
 
 	def __call__(self) -> DependencyParser:
@@ -19,7 +19,7 @@ class DependencyParserFactory(Factory):
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:
 		arg_parser = DependencyParserFactory._expand_optional_parser(arg_parser)
 		arg_parser.add_argument(
-			'--dependency-parsing-engine', '-e', default=PARSING_CONFIG.PARSING_ENGINE,
+			'--parsing-engine', '-e', default=PARSING_CONFIG.PARSING_ENGINE,
 			help="The engine which will parse the sentences"
 		)
 		arg_parser.add_argument(

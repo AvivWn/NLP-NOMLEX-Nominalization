@@ -1,7 +1,7 @@
 from collections import Counter
 from os.path import isdir, join
 from os import listdir
-from typing import Iterator
+from typing import Iterator, List, Optional
 from itertools import chain
 import pickle
 
@@ -16,9 +16,10 @@ from yet_another_verb.arguments_extractor.extraction.multi_word_extraction impor
 from yet_another_verb.data_handling import ParsedBinFileHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
-from yet_another_verb.data_handling.db.encoded_extractions.queries import *
+from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_model, get_sentence, \
+	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_idxs_in_sentence, get_parser
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Extraction, \
-	Encoding, Parser, Parsing
+	Encoding, Parser, Parsing, Sentence, Model, Extractor
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
@@ -37,6 +38,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 			verb_translator: VerbTranslator,
 			model_name: str, device: str,
 			limited_pos: List[POSTag] = None,
+			limited_words: List[str] = None,
 			dataset_size=None, **kwargs
 	):
 		super().__init__(dataset_size)
@@ -53,13 +55,14 @@ class EncodedExtractionsCreator(DatasetCreator):
 		self.model.eval()
 
 		self.limited_pos = limited_pos
+		self.limited_words = limited_words
 
 	def _load_parsed_dataset(self, in_dataset_path):
 		in_dataset_paths = [in_dataset_path]
 		extend_with_parser_id = True
 
 		if isdir(in_dataset_path):
-			in_dataset_paths = [join(in_dataset_path, file_name) for file_name in listdir(in_dataset_path)]
+			in_dataset_paths = [join(in_dataset_path, file_name) for file_name in listdir(in_dataset_path)[:1]]
 			extend_with_parser_id = False
 
 		parsed_datasets = []
@@ -70,6 +73,9 @@ class EncodedExtractionsCreator(DatasetCreator):
 		return chain(*parsed_datasets)
 
 	def _is_relevant_predicate(self, postagged_word: POSTaggedWord, predicate_counter: Optional[Counter] = None) -> bool:
+		if self.limited_words is not None and postagged_word.word not in self.limited_words:
+			return False
+
 		if self.limited_pos is not None and postagged_word.postag not in self.limited_pos:
 			return False
 
@@ -133,12 +139,16 @@ class EncodedExtractionsCreator(DatasetCreator):
 			predicate_counter: Counter):
 		for predicate_idx, extractions in multi_word_extraction.extractions_per_idx.items():
 			predicate = doc[predicate_idx]
-			predicate_counter[predicate] += 1
+			postagged_word = POSTaggedWord(predicate.lemma, predicate.pos)
+
+			if postagged_word not in predicate_counter:
+				continue
+
+			predicate_counter[postagged_word] += 1
 
 			self._store_extractions(extractions, doc.words, predicate, extractor_entity, sentence_entity)
-
-			if self.has_reached_size(range(predicate_counter[predicate])):
-				predicate_counter.pop(predicate)
+			if predicate_counter[postagged_word] >= self.dataset_size:
+				predicate_counter.pop(postagged_word)
 
 	@db_session
 	def _store_encoded_extractions(self, db_communicator: SQLiteCommunicator, docs: Iterator[ParsedText]):
@@ -149,7 +159,8 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 		predicate_counter = self._get_predicate_counter(extractor_entity)
 
-		for doc in tqdm(docs, leave=False):
+		loop_status = tqdm(docs, leave=False)
+		for doc in loop_status:
 			limited_idxs = {w.i for w in doc if self._is_relevant_predicate(POSTaggedWord(w.lemma, w.pos), predicate_counter)}
 			if len(limited_idxs) == 0:
 				continue
@@ -170,6 +181,8 @@ class EncodedExtractionsCreator(DatasetCreator):
 			timeit(db_communicator.commit)()
 			if len(predicate_counter) == 0:
 				break
+
+			loop_status.set_description(f"Missing: {len(predicate_counter)}")
 
 	def create_dataset(self, out_dataset_path):
 		in_parsed_dataset = self._load_parsed_dataset(self.in_dataset_path)

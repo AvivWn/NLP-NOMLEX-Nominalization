@@ -53,10 +53,8 @@ class ArgsExtractor(abc.ABC):
 		if not self._is_potential_sentence(words, limited_predicates, allow_related_forms):
 			return MultiWordExtraction(words, extractions_per_idx)
 
-		for i in range(len(words)):
-			if limited_idxs is not None and i not in limited_idxs:
-				continue
-
+		idxs = range(len(words)) if limited_idxs is None else limited_idxs
+		for i in idxs:
 			if self._is_potential_predicate(i, words, limited_predicates, limited_postags, allow_related_forms):
 				extractions = self.extract(i, words)
 

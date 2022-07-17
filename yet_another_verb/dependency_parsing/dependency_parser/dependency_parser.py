@@ -19,4 +19,7 @@ class DependencyParser(abc.ABC):
 	@abc.abstractmethod
 	def parse(self, text: InputText) -> ParsedText: pass
 
+	@abc.abstractmethod
+	def from_bytes(self, bytes_data) -> ParsedText: pass
+
 	def generate_parsed_bin(self) -> 'ParsedBin': pass

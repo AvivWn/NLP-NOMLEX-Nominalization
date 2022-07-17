@@ -1,4 +1,4 @@
-from pony.orm import *
+from pony.orm import PrimaryKey, Required, Set, Database
 
 _db = Database()
 encoded_extractions_db = _db
