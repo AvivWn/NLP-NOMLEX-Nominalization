@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
 from yet_another_verb.dependency_parsing import DepRelation, POSTag
-from yet_another_verb.nomlex.constants import ArgumentType
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 
 
 @dataclass_json

@@ -1,7 +1,8 @@
 from typing import List, Dict, Union
 from itertools import chain
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentType
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 Preps = List[str]
 PrepsByLexicon = Dict[LexiconType, Preps]

@@ -1,6 +1,7 @@
 from typing import List, Union
 
-from yet_another_verb.nomlex.constants import NomType, ArgumentType
+from yet_another_verb.nomlex.constants import NomType
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 # The name of the argument that correspond to the nominalization
 NOM_TYPE_AS_ARG_TYPE = {

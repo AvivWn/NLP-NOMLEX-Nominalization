@@ -5,8 +5,7 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from yet_another_verb.arguments_extractor.extractors.nomlex_args_extractor import NomlexArgsExtractor
-from yet_another_verb.arguments_extractor.extraction.representation.parsed_str_representation import \
-	ParsedStrRepresentation
+from yet_another_verb.arguments_extractor.extraction.representation import ParsedStrRepresentation
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.data_handling import ParsedBinFileHandler

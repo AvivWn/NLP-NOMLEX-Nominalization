@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from yet_another_verb.nomlex.constants import SubcatType, ArgumentType, EntryProperty
+from yet_another_verb.nomlex.constants import SubcatType, EntryProperty
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 ARG_PLURAL = {
 	ArgumentType.SUBJ: [SubcatType.NOM_INTRANS_RECIP]

@@ -1,9 +1,9 @@
 from typing import Dict, Union, List
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, \
-	ArgumentType, ArgumentValue
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentValue
 from yet_another_verb.nomlex.adaptation.argument.arg_renaming import rename_argument
 from yet_another_verb.nomlex.adaptation.modifications import get_default_arg_values
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 def get_adapted_argument(

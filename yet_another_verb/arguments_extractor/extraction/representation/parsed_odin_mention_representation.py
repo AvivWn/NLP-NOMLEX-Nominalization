@@ -1,13 +1,12 @@
 from enum import Enum
-from typing import Set
+from typing import Set, Optional
 from itertools import chain
 
 from typeguard import typechecked
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction
-from yet_another_verb.arguments_extractor.extraction.representation.representation import ArgumentTypes
+from yet_another_verb.arguments_extractor.extraction import Extraction, ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentTypes
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_representation import \
 	ParsedRepresentation
 
@@ -20,7 +19,7 @@ class MentionType(str, Enum):
 class ParsedOdinMentionRepresentation(ParsedRepresentation):
 	def __init__(
 			self, document_id: str, sentence_id: int, in_document_prefix: int,
-			arg_types: ArgumentTypes = None):
+			arg_types: Optional[ArgumentTypes] = None):
 		super().__init__(arg_types)
 		self.document_id = document_id
 		self.sentence_id = sentence_id

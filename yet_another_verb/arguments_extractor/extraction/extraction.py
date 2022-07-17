@@ -2,8 +2,8 @@ from typing import Set, List, Dict, Optional
 from dataclasses import dataclass, field
 from itertools import chain
 
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument, ArgRange
-from yet_another_verb.nomlex.constants import ArgumentType
+from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 
 

@@ -1,7 +1,8 @@
 from typing import List, Dict, Union
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentType, ArgumentValue
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentValue
 from yet_another_verb.nomlex.constants.lexicon_type import LEXICON_TYPES
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 ArgValues = List[ArgumentValue]
 ArgValuesByLexicon = Dict[LexiconType, ArgValues]

@@ -1,9 +1,8 @@
 from collections import defaultdict
 from typing import Tuple, Set
 
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, Extraction, Extractions, \
+	MultiWordExtraction
 
 
 def is_predicate_arg(arg, predicate_idx):

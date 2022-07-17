@@ -1,7 +1,6 @@
 from argparse import ArgumentParser, Namespace
 
-from yet_another_verb.arguments_extractor.extraction.representation.parsed_representation import \
-	ParsedRepresentation
+from yet_another_verb.arguments_extractor.extraction.representation import ParsedRepresentation
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.utils.debug_utils import timeit

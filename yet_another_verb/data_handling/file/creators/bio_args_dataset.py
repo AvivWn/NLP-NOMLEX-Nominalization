@@ -4,8 +4,8 @@ from collections import namedtuple
 import pandas as pd
 from tqdm import tqdm
 
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtractions
-from yet_another_verb.arguments_extractor.extraction.representation.bio_representation import BIORepresentation
+from yet_another_verb.arguments_extractor.extraction import MultiWordExtractions
+from yet_another_verb.arguments_extractor.extraction.representation import BIORepresentation
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.data_handling import PKLFileHandler, CSVFileHandler

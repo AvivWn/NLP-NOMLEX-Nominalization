@@ -3,7 +3,7 @@ from typing import List
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
-from yet_another_verb.nomlex.constants import ArgumentType
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 @dataclass_json

@@ -1,6 +1,7 @@
 from typing import Dict, List
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentType, ArgumentValue
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentValue
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 NotConstraint = Dict[ArgumentType, Dict[ArgumentValue, List[str]]]
 

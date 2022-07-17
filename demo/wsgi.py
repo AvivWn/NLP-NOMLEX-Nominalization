@@ -12,7 +12,7 @@ import numpy as np
 from bottle import route, run, request, static_file
 
 from yet_another_verb.arguments_extractor.extraction.comparators.arg_type_matcher import ArgTypeMatcher
-from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
+from yet_another_verb.arguments_extractor.extraction import Extractions
 from yet_another_verb import NomlexArgsExtractor
 from demo.dynamic_extractions_info import DynamicExtractionsInfo
 from demo.handle_specified_tags import parse_specified_tags, translate_char_ranges_to_word_ranges

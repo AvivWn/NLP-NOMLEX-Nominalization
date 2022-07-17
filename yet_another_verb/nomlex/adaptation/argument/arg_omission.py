@@ -1,4 +1,4 @@
-from yet_another_verb.nomlex.constants.argument_type import ARGUMENT_TYPES
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ARGUMENT_TYPES
 
 
 def is_supported_arg_type(arg_type: str) -> bool:

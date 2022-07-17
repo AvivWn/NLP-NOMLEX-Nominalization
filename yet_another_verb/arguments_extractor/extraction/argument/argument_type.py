@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List
 
 
 class ArgumentType(str, Enum):
@@ -27,3 +28,5 @@ class ArgumentType(str, Enum):
 ARGUMENT_TYPES = [t for t in ArgumentType]
 NP_ARG_TYPES = [ArgumentType.OBJ, ArgumentType.SUBJ, ArgumentType.IND_OBJ, ArgumentType.NP]
 PP_ARG_TYPES = [ArgumentType.PP, ArgumentType.PP1, ArgumentType.PP2]
+
+ArgumentTypes = List[ArgumentType]

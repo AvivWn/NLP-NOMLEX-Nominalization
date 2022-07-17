@@ -1,6 +1,7 @@
 from typing import Dict
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentType
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 ARG_RENAMINGS = {
 	SubcatType.NOM_PP_PP: {

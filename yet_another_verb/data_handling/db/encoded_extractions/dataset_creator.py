@@ -11,8 +11,7 @@ from transformers import AutoModel, AutoTokenizer
 from pony.orm import db_session
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
-from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
 from yet_another_verb.data_handling import ParsedBinFileHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator

@@ -1,6 +1,6 @@
 from typing import Callable, Any
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions
 
 
 def _choose_first_by_order(extractions: Extractions, order: Callable[[Extraction], Any], reverse: bool) -> Extractions:

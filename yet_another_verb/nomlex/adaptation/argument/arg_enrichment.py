@@ -1,9 +1,10 @@
 from yet_another_verb.nomlex.constants import LexiconType, NomTypeProperty, \
-	EntryProperty, SubcatType, SubcatProperty, ArgumentType, ArgumentValue
+	EntryProperty, SubcatType, SubcatProperty, ArgumentValue
 from yet_another_verb.nomlex.adaptation.argument.arg_renaming import rename_argument
 from yet_another_verb.nomlex.adaptation.modifications import get_default_preps_by_arg, \
 	get_compatible_args, get_as_arg_type
 from yet_another_verb.nomlex.adaptation.subcat.subcat_simplification import add_args_requirement
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 def enrich_preps_from_nom_subc(subcat: dict, subcat_type: SubcatType, lexicon_type: LexiconType):

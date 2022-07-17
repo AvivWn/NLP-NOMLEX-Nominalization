@@ -1,6 +1,7 @@
 from typing import Union
 
-from yet_another_verb.nomlex.constants import SubcatProperty, ArgumentType
+from yet_another_verb.nomlex.constants import SubcatProperty
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 def _update_requirements(old_type: Union[str, ArgumentType], new_type: Union[str, ArgumentType, None], subcat: dict):

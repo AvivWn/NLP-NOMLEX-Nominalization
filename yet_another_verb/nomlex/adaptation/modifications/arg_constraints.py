@@ -3,10 +3,11 @@ from copy import deepcopy
 from itertools import chain
 from collections import defaultdict
 
-from yet_another_verb.nomlex.constants import LexiconType, ArgumentValue, ArgumentType, SubcatType
+from yet_another_verb.nomlex.constants import LexiconType, ArgumentValue, SubcatType
 from yet_another_verb.dependency_parsing import NOUN_POSTAGS, VERB_POSTAGS, ADVERB_POSTAGS, ADJECTIVE_POSTAGS, POSTag, \
 	DepRelation
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap, ORConstraintsMaps, ANDConstraintsMaps
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 TO_PREP = "to"
 AS_PREP = "as"

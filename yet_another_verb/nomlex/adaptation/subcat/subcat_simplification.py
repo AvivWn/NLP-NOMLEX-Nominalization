@@ -1,13 +1,14 @@
 from typing import List
 
 from yet_another_verb.nomlex.constants import LexiconType, LexiconTag, \
-	EntryProperty, SubcatType, SubcatProperty, ArgumentType, ArgumentValue
+	EntryProperty, SubcatType, SubcatProperty, ArgumentValue
 from yet_another_verb.nomlex.adaptation.argument.arg_renaming import rename_argument
 from yet_another_verb.nomlex.adaptation.argument.arg_simplification import simplify_subject, \
 	simplify_object, simplify_preps, simplify_ind_object, simplify_particle, simplify_argument
 from yet_another_verb.nomlex.adaptation.argument.arg_adaptation import get_adapted_argument
 from yet_another_verb.nomlex.adaptation.modifications import get_default_requires, \
 	get_default_optionals, get_argument_renamings, get_extra_not_constraints
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 def _is_subcat_requires_object(entry: dict, subcat_type: SubcatType):

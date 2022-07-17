@@ -3,8 +3,7 @@ from typing import List, Optional, Iterable, Union
 from copy import deepcopy
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, ArgumentType, ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.utils.filters import prefer_by_n_args, uniqify, \
 	prefer_by_constraints
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
@@ -12,7 +11,6 @@ from yet_another_verb.dependency_parsing.dependency_parser.input_text import Inp
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
-from yet_another_verb.nomlex.constants import ArgumentType
 from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap

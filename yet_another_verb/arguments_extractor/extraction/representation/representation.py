@@ -2,17 +2,15 @@ import abc
 from typing import List, Optional, TypeVar, Union
 
 from yet_another_verb.arguments_extractor.extraction.utils.combination import combine_extractions
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
-from yet_another_verb.nomlex.constants.argument_type import ArgumentType
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, ExtractedArgument, \
+	MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentTypes
 
-ArgumentTypes = Optional[List[ArgumentType]]
 ExtractionRepr = TypeVar("ExtractionRepr")
 
 
 class ExtractionRepresentation(abc.ABC):
-	def __init__(self, arg_types: ArgumentTypes = None):
+	def __init__(self, arg_types: Optional[ArgumentTypes] = None):
 		self.arg_types = arg_types
 
 	@abc.abstractmethod

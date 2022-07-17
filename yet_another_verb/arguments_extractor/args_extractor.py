@@ -2,8 +2,7 @@ import abc
 from typing import Optional, List, Union
 
 from yet_another_verb.arguments_extractor.extraction.comparators.extraction_matcher import ExtractionMatcher
-from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
 from yet_another_verb.dependency_parsing import VERB_POSTAGS, NOUN_POSTAGS, POSTag
 
 

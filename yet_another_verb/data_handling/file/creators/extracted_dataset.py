@@ -3,7 +3,7 @@ from typing import Iterator
 from tqdm import tqdm
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtractions
+from yet_another_verb.arguments_extractor.extraction import MultiWordExtractions
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.data_handling import ParsedBinFileHandler, PKLFileHandler

@@ -1,8 +1,7 @@
 import re
 from typing import Dict, Tuple, List
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
-from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 
 TAG_GRP = "tag"

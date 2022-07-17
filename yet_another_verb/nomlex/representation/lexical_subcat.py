@@ -3,9 +3,10 @@ from typing import Dict
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
-from yet_another_verb.nomlex.constants import SubcatType, ArgumentType
+from yet_another_verb.nomlex.constants import SubcatType
 from yet_another_verb.nomlex.representation.lexical_argument import LexicalArgument
 from yet_another_verb.nomlex.representation.constraints_map import ORConstraintsMaps
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 
 @dataclass_json

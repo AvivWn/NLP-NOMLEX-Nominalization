@@ -1,6 +1,7 @@
 from typing import List
 
-from yet_another_verb.nomlex.constants import LexiconType, SubcatType, ArgumentType
+from yet_another_verb.nomlex.constants import LexiconType, SubcatType
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 SUBCAT_REQUIRED_ARGS = {
 	SubcatType.NOM_PART: {

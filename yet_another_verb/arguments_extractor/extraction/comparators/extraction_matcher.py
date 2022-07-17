@@ -1,8 +1,7 @@
 import abc
 from typing import Optional, Dict
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, ExtractedArgument
 
 ArgsMapping = Dict[ExtractedArgument, ExtractedArgument]
 

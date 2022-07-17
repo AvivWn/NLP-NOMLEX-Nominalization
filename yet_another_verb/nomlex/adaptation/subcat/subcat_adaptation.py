@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import List, Dict, Callable
 
 from yet_another_verb.nomlex.constants import LexiconType, EntryProperty, SubcatType, \
-	SubcatProperty, ArgumentType, ArgumentValue
+	SubcatProperty, ArgumentValue
 from yet_another_verb.dependency_parsing import NOUN_POSTAGS, VERB_POSTAGS, DepRelation
 from yet_another_verb.nomlex.constants.subcat_property import SUBCAT_PROPERTIES
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
@@ -19,6 +19,7 @@ from yet_another_verb.nomlex.representation.lexical_argument import LexicalArgum
 from yet_another_verb.nomlex.representation.lexical_subcat import LexicalSubcat
 from yet_another_verb.nomlex.adaptation.modifications.arg_properties import get_plural_property, \
 	get_subjunct_property, get_controlled_args
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 ArgValuePair = namedtuple('ArgValuePair', ['value', 'preps'])
 ArgCombination = Dict[ArgumentType, ArgValuePair]

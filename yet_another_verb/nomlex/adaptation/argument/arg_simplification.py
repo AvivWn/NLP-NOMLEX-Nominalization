@@ -3,8 +3,9 @@ from typing import Union
 
 from yet_another_verb.nomlex.constants.argument_value import ARGUMENT_VALUES
 from yet_another_verb.nomlex.constants import LexiconType, LexiconTag, NomTypeProperty, EntryProperty
-from yet_another_verb.nomlex.constants import SubcatType, ArgumentType, ArgumentValue
+from yet_another_verb.nomlex.constants import SubcatType, ArgumentValue
 from yet_another_verb.nomlex.adaptation.argument.arg_renaming import rename_argument
+from yet_another_verb.arguments_extractor.extraction import ArgumentType
 
 P_DIR_REPLACEMENTS = [
 	"down", "across", "from", "into", "off", "onto",

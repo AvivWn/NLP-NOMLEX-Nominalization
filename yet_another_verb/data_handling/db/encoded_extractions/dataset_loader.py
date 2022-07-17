@@ -5,7 +5,7 @@ import pickle
 import torch
 from pony.orm import db_session
 
-from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
+from yet_another_verb.arguments_extractor.extraction import Extractions
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_limited_extractions, \
 	get_limited_parsings, get_limited_encodings, get_extracted_predicates, get_extractor

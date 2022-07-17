@@ -6,6 +6,5 @@ from yet_another_verb.nomlex.constants.entry_property import EntryProperty
 from yet_another_verb.nomlex.constants.entry_type import EntryType
 from yet_another_verb.nomlex.constants.subcat_type import SubcatType
 from yet_another_verb.nomlex.constants.subcat_property import SubcatProperty
-from yet_another_verb.nomlex.constants.argument_type import ArgumentType
 from yet_another_verb.nomlex.constants.argument_value import ArgumentValue
 from yet_another_verb.nomlex.constants.argument_property import ArgumentProperty

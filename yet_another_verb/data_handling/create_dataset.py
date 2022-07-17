@@ -7,7 +7,7 @@ from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCrea
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
-from yet_another_verb.nomlex.constants.argument_type import PP_ARG_TYPES, NP_ARG_TYPES
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import PP_ARG_TYPES, NP_ARG_TYPES
 from yet_another_verb.dependency_parsing import NOUN_POSTAGS
 from yet_another_verb.utils.debug_utils import timeit
 

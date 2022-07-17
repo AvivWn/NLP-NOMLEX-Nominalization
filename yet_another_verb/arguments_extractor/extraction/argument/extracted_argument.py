@@ -1,8 +1,8 @@
 from typing import Set, Optional, List, Tuple, Union
 from dataclasses import dataclass, field
 
-from yet_another_verb.nomlex.constants import ArgumentType
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 
 ArgRange = Tuple[int, int]
 

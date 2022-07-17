@@ -1,13 +1,13 @@
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import ChainMap
 
 from typeguard import typechecked
 
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
-from yet_another_verb.arguments_extractor.extraction.extraction import Extraction
+from yet_another_verb.arguments_extractor.extraction import Extraction, ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.representation.representation import \
-	ExtractionRepresentation, ArgumentTypes
+	ExtractionRepresentation
+from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentTypes
 
 
 class BIOTag(str, Enum):
@@ -17,7 +17,7 @@ class BIOTag(str, Enum):
 
 
 class BIORepresentation(ExtractionRepresentation):
-	def __init__(self, tag_predicate: bool, arg_types: ArgumentTypes = None):
+	def __init__(self, tag_predicate: bool, arg_types: Optional[ArgumentTypes] = None):
 		super().__init__(arg_types)
 		self.tag_predicate = tag_predicate
 

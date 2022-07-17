@@ -1,7 +1,7 @@
 from typeguard import typechecked
 
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
-from yet_another_verb.arguments_extractor.extraction.extracted_argument import ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_representation import \
 	ParsedRepresentation
 
