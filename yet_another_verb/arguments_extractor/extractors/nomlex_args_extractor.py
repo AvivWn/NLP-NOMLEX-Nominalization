@@ -16,6 +16,7 @@ from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 from yet_another_verb.configuration import EXTRACTORS_CONFIG
 from yet_another_verb.utils.debug_utils import timeit, print_if_verbose
+from yet_another_verb.utils.hashing_utils import consistent_hash
 
 
 class NomlexArgsExtractor(ArgsExtractor):
@@ -131,7 +132,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 		for other_arg in args:
 			if other_arg.arg_type == constraints_map.arg_type:
 				# if new_arg.arg_type is not None:
-				new_arg.arg_idxs.update(other_arg.arg_idxs)
+				new_arg.arg_idxs += other_arg.arg_idxs
 				new_arg.fulfilled_constraints += other_arg.fulfilled_constraints
 			else:
 				other_args_idxs.update(other_arg.arg_idxs)
@@ -139,10 +140,10 @@ class NomlexArgsExtractor(ArgsExtractor):
 				if other_arg.arg_type not in combined_args_by_type:
 					combined_args_by_type[other_arg.arg_type] = other_arg
 				else:
-					combined_args_by_type[other_arg.arg_type].arg_idxs.update(other_arg.arg_idxs)
+					combined_args_by_type[other_arg.arg_type].arg_idxs += other_arg.arg_idxs
 					combined_args_by_type[other_arg.arg_type].fulfilled_constraints += other_arg.fulfilled_constraints
 
-		new_arg.arg_idxs = new_arg.arg_idxs - other_args_idxs
+		new_arg.arg_idxs = list(set(new_arg.arg_idxs) - other_args_idxs)
 		return list(combined_args_by_type.values())
 
 	def _has_matching_potential(self, relatives: List[ParsedWord], constraints_map: ConstraintsMap) -> bool:
@@ -194,9 +195,9 @@ class NomlexArgsExtractor(ArgsExtractor):
 			if relatives_matched_args_combinations is not None:
 				matched_args_combinations += relatives_matched_args_combinations
 
-		arg_idxs = set(word.subtree_indices) if predicate != word else set()
+		arg_idxs = word.subtree_indices if predicate != word else []
 		new_arg = ExtractedArgument(
-			arg_idxs=arg_idxs.union({word.i}),
+			arg_idxs=list(set(arg_idxs + [word.i])),
 			arg_type=constraints_map.arg_type if is_match_constraints else None,
 			fulfilled_constraints=[constraints_map] if is_match_constraints else []
 		)
@@ -205,10 +206,6 @@ class NomlexArgsExtractor(ArgsExtractor):
 			matched_args_combinations[i] = self._get_combined_args(deepcopy(matched_args), deepcopy(new_arg), constraints_map)
 
 		return matched_args_combinations
-
-	@staticmethod
-	def _filter_typless_args(extracted_args: List[ExtractedArgument]):
-		return [arg for arg in extracted_args if arg.arg_type is not None]
 
 	@staticmethod
 	def _reorder_numbered_args(extracted_args: List[ExtractedArgument]):
@@ -250,9 +247,17 @@ class NomlexArgsExtractor(ArgsExtractor):
 				self._reorder_numbered_args(matched_args)
 
 				if any(arg.arg_type is not None for arg in matched_args):
-					extraction = Extraction(words=words, predicate_idx=word_idx, predicate_lemma=word.lemma, args=set(matched_args))
+					extraction = Extraction(
+						words=words, predicate_idx=word_idx, predicate_lemma=word.lemma,
+						args=list(set(matched_args)),
+						fulfilled_constraints=constraints_map
+					)
 					extractions.append(extraction)
 					max_num_of_args = max(max_num_of_args, len(extraction))
+
+		# Order extractions by constraints (for consistency)
+		extractions = sorted(extractions, key=lambda e: consistent_hash(
+			str(e.fulfilled_constraints) + str(e.args) + str(e.typeless_args)))
 
 		for filter_func in [uniqify, prefer_by_n_args, prefer_by_constraints]:
 			extractions = filter_func(extractions)

@@ -47,7 +47,7 @@ def combine_extractions(extractions: Extractions, safe_combine=False) -> Extract
 
 	return Extraction(
 		words=words, predicate_idx=predicate_idx, predicate_lemma=predicate_lemma,
-		args=determined, undetermined_args=undetermined)
+		args=list(determined), undetermined_args=list(undetermined))
 
 
 def combine_extractions_by_word(multi_word_ext: MultiWordExtraction, safe_combine=False) -> MultiWordExtraction:

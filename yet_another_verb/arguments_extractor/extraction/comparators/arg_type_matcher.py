@@ -9,9 +9,9 @@ class ArgTypeMatcher(ExtractionMatcher):
 	def _map_args(self, extraction: Extraction, reference: Extraction) -> Optional[ArgsMapping]:
 		args_mapping = {}
 		for arg in extraction.args:
-			if arg.arg_type not in reference.arg_by_type.keys():
+			if arg.arg_type not in reference.arg_types:
 				return None
 
-			args_mapping[arg] = reference.arg_by_type[arg.arg_type]
+			args_mapping[arg] = reference.get_arg_by_type(arg.arg_type)
 
 		return args_mapping

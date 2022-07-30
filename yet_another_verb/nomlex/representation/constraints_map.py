@@ -1,4 +1,4 @@
-from typing import List, Set, Optional
+from typing import List, Optional
 from itertools import chain
 
 from dataclasses import dataclass, field
@@ -18,26 +18,28 @@ class ConstraintsMap:
 	values: List[str] = field(default_factory=list)
 	required: bool = field(default=True)
 
-	included_args: Set[ArgumentType] = field(default_factory=set)
 	relatives_constraints: List['ConstraintsMap'] = field(default_factory=list)
 
 	def _update_included_args(self):
-		self.included_args.update(chain(*[c.included_args for c in self.relatives_constraints]))
+		included_args = set(chain(*[c.included_args for c in self.relatives_constraints]))
 
 		if self.arg_type is not None:
-			self.included_args.add(self.arg_type)
+			included_args.add(self.arg_type)
 
-	def __post_init__(self):
-		self._update_included_args()
+		self._included_args = list(included_args)
 
 	def __setattr__(self, key: str, value: List['ConstraintsMap']):
 		super().__setattr__(key, value)
 
 		if key == 'relatives_constraints':
-			self.__post_init__()
+			self._update_included_args()
 
 	def __hash__(self):
 		return hash(str(self))
+
+	@property
+	def included_args(self) -> List[ArgumentType]:
+		return self._included_args
 
 	def get_required_relative_maps(self) -> List['ConstraintsMap']:
 		return [relative_map for relative_map in self.relatives_constraints if relative_map.required]

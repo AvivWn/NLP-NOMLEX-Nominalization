@@ -14,7 +14,7 @@ def prefer_by_n_args(extractions: Extractions) -> Extractions:
 
 
 def prefer_by_constraints(extractions: Extractions) -> Extractions:
-	return _choose_first_by_order(extractions, lambda e: len(e.fulfilled_constraints), reverse=True)
+	return _choose_first_by_order(extractions, lambda e: len(e.fulfilled_constraints_by_args), reverse=True)
 
 
 def uniqify(extractions: Extractions) -> Extractions:
