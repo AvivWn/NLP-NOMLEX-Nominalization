@@ -52,7 +52,8 @@ class SpacyParsedText(ParsedText):
 		return self._doc.text
 
 	def to_bytes(self) -> bytes:
-		return self._doc.to_bytes()
+		# strings attribute is inconsistent between runs
+		return self._doc.to_bytes(exclude=["strings"])
 
 	def get_inner(self) -> Doc:
 		return self._doc

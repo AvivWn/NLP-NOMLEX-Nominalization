@@ -15,7 +15,8 @@ from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 from yet_another_verb.configuration import EXTRACTORS_CONFIG
-from yet_another_verb.utils.debug_utils import timeit, print_if_verbose
+from yet_another_verb.utils.debug_utils import timeit
+from yet_another_verb.utils.print_utils import print_as_title_if_verbose
 from yet_another_verb.utils.hashing_utils import consistent_hash
 
 
@@ -230,7 +231,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 		if word_entry is None:
 			return []
 
-		print_if_verbose(f"{'-'*10} {word.text} ({word.lemma}, {word.pos}) {'-'*10}")
+		print_as_title_if_verbose(f"{word.text} ({word.lemma}, {word.pos})")
 		relevant_constraints_maps = word_entry.get_relevant_constraints_maps(word=word, order_by_potential=True)
 
 		extractions = []

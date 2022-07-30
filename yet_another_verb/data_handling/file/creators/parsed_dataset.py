@@ -54,7 +54,6 @@ class ParsedDatasetCreator(DatasetCreator):
 
 	def is_dataset_exist(self, out_dataset_path) -> bool:
 		dependency_related_path = self.parsed_bin_file_handler.extend_file_name(out_dataset_path)
-
 		return isfile(dependency_related_path)
 
 	def create_dataset(self, out_dataset_path):

@@ -3,7 +3,7 @@ import os
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.data_handling import BinaryFileHandler
-from yet_another_verb.dependency_parsing.parser_names import engine_by_parser
+from yet_another_verb.dependency_parsing.parser_names import extended_path_by_parser
 
 
 class ParsedBinFileHandler(BinaryFileHandler):
@@ -13,7 +13,7 @@ class ParsedBinFileHandler(BinaryFileHandler):
 		self.extend_with_parser_id = extend_with_parser_id
 
 	def extend_file_name(self, file_path: str) -> str:
-		return f"{file_path}-{engine_by_parser[type(self.parser)]}-{self.parser.name}"
+		return extended_path_by_parser(file_path, self.parser)
 
 	def load(self, file_path: str) -> ParsedBin:
 		if self.extend_with_parser_id:

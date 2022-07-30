@@ -76,7 +76,7 @@ class SpacyParser(DependencyParser):
 
 		return SpacyParsedText(doc)
 
-	def from_bytes(self, bytes_data) -> SpacyParsedText:
+	def from_bytes(self, bytes_data: bytes) -> SpacyParsedText:
 		return SpacyParsedText(Doc(self.vocab).from_bytes(bytes_data))
 
 	@property

@@ -22,7 +22,7 @@ class ParsedBin(abc.ABC):
 	def to_bytes(self) -> bytes: pass
 
 	@abc.abstractmethod
-	def from_bytes(self, bytes_data): pass
+	def from_bytes(self, bytes_data: bytes): pass
 
 	def get_parsing_by_text(self) -> Dict[str, ParsedText]:
 		return {doc.text: doc for doc in self.get_parsed_texts()}

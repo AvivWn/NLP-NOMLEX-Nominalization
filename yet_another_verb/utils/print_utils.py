@@ -24,3 +24,7 @@ def print_multi_word_extraction(multi_word_extraction_repr):
 def print_if_verbose(*args):
 	if VERBOSE_CONFIG.VERBOSE:
 		print(*args)
+
+
+def print_as_title_if_verbose(*args):
+	print_if_verbose(f"{'-'*10}", *args, f"{'-'*10}")

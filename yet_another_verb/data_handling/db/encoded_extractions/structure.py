@@ -17,14 +17,12 @@ T_PARSING = 'Parsing'
 
 
 class Extractor(_db.Entity):
-	id = PrimaryKey(int, auto=True)
-	extractor = Required(str, unique=True)
+	extractor = PrimaryKey(str)
 	extractions = Set(T_EXTRACTION)
 
 
 class Model(_db.Entity):
-	id = PrimaryKey(int, auto=True)
-	model = Required(str, unique=True)
+	model = PrimaryKey(str)
 	encodings = Set(T_ENCODING)
 
 
@@ -36,22 +34,19 @@ class Parser(_db.Entity):
 
 
 class Sentence(_db.Entity):
-	id = PrimaryKey(int, auto=True)
-	text = Required(str)
+	text = PrimaryKey(str)
 	predicates = Set(T_PREDICATE_IN_SENTENCE)
 	encodings = Set(T_ENCODING)
 	parsings = Set(T_PARSING)
 
 
 class Verb(_db.Entity):
-	id = PrimaryKey(int, auto=True)
-	lemma = Required(str, unique=True)
+	lemma = PrimaryKey(str)
 	predicates = Set(T_PREDICATE)
 
 
 class PartOfSpeech(_db.Entity):
-	id = PrimaryKey(int, auto=True)
-	part_of_speech = Required(str, unique=True)
+	part_of_speech = PrimaryKey(str)
 	predicates = Set(T_PREDICATE)
 
 

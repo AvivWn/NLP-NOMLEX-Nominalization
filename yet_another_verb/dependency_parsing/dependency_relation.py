@@ -26,3 +26,6 @@ class DepRelation(str, Enum):
 
 
 DEP_RELATIONS = {r for r in DepRelation}
+
+# backward compatability object name
+WordRelation = DepRelation

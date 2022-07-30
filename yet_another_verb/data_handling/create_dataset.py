@@ -1,62 +1,70 @@
+from os import makedirs
+from os.path import join
 from argparse import ArgumentParser, Namespace
 
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
-from yet_another_verb.data_handling.dataset_creator import DatasetCreator
-from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCreator,\
-	ExtractedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator
+from yet_another_verb.data_handling.creators_configs import DatasetConfig, DATASET_CONFIGS_BY_TYPE, \
+	DATASET_CREATORS_BY_TYPE, EXTENSION_BY_CREATOR_TYPE, DIR_BY_CREATORE_TYPE
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
-from yet_another_verb.arguments_extractor.extraction.argument.argument_type import PP_ARG_TYPES, NP_ARG_TYPES
-from yet_another_verb.dependency_parsing import NOUN_POSTAGS
 from yet_another_verb.utils.debug_utils import timeit
+from yet_another_verb.utils.print_utils import print_if_verbose, print_as_title_if_verbose
 
-DATASET_TO_CREATOR = {
-	"wiki40b": lambda args: WikiDatasetCreator(**vars(args)),
-	"ud-parsed": lambda args: ParsedDatasetCreator(
-		**vars(args),
-		dependency_parser=DependencyParserFactory(**vars(args))()),
-	"extracted": lambda args: ExtractedDatasetCreator(
-		**vars(args),
-		args_extractor=ExtractorFactory(**vars(args))(),
-		dependency_parser=DependencyParserFactory(**vars(args))()),
-	"bio-args": lambda args: BIOArgsDatasetCreator(
-		**vars(args),
-		limited_postags=NOUN_POSTAGS,  # VERB_POSTAGS
-		limited_types=NP_ARG_TYPES + PP_ARG_TYPES,
-		use_base_verb=True,
-		avoid_outside_tag=False,
-		tag_predicate=False,
-		verb_translator=VerbTranslatorFactory(**vars(args))()),
-	"encoded-extraction": lambda args: EncodedExtractionsCreator(
-		**vars(args),
-		dependency_parser=DependencyParserFactory(**vars(args))(),
-		args_extractor=ExtractorFactory(**vars(args))(),
-		verb_translator=VerbTranslatorFactory(**vars(args))())
-}
+
+def show_args(args: Namespace):
+	print_as_title_if_verbose("Parameters")
+	for arg, value in vars(args).items():
+		print_if_verbose(f"{arg}: {value}")
+
+
+def get_output_path(data_dir: str, basename: str, dataset_config: DatasetConfig) -> str:
+	output_dir = join(data_dir, DIR_BY_CREATORE_TYPE.get(dataset_config.creator_type, ""), dataset_config.subdir_name)
+	makedirs(output_dir, exist_ok=True)
+
+	file_extension = EXTENSION_BY_CREATOR_TYPE[dataset_config.creator_type]
+	return join(output_dir, f"{basename}.{file_extension}")
 
 
 def create_dataset(args: Namespace):
-	out_path = args.out_dataset_path
+	show_args(args)
 
-	dataset_creator: DatasetCreator = DATASET_TO_CREATOR[args.dataset_type](args)
+	for dataset_config in DATASET_CONFIGS_BY_TYPE[args.dataset_type]:
+		creator_type = dataset_config.creator_type
+		creator_generator = DATASET_CREATORS_BY_TYPE.get(creator_type, lambda x: creator_type(**x))
 
-	if not args.overwrite and dataset_creator.is_dataset_exist(out_path):
-		return
+		creator_args = vars(args)
+		creator_args.update(dataset_config.args)
+		dataset_creator = creator_generator(creator_args)
 
-	timeit(dataset_creator.create_dataset)(out_path)
+		out_path = get_output_path(args.data_dir, args.out_dataset_basename, dataset_config)
+		print_if_verbose(f"{type(dataset_creator).__name__}: {args.in_dataset_path} -> {out_path}")
+
+		try:
+			if args.overwrite or not dataset_creator.is_dataset_exist(out_path):
+				timeit(dataset_creator.create_dataset)(out_path)
+				print_if_verbose("Generated Successfully")
+			elif args.append:
+				timeit(dataset_creator.append_dataset)(out_path)
+				print_if_verbose("Appended Successfully")
+			else:
+				print_if_verbose("Skipped")
+		except NotImplementedError:
+			print_if_verbose("Skipped")
+
+		args.in_dataset_path = out_path
 
 
 def main():
 	arg_parser = ArgumentParser()
-	arg_parser.add_argument("--dataset-type", choices=DATASET_TO_CREATOR.keys(), default="encoded-extraction")
+	arg_parser.add_argument("--dataset-type", choices=DATASET_CONFIGS_BY_TYPE.keys(), required=True)
 	arg_parser.add_argument("--overwrite", "-w", action="store_true")
+	arg_parser.add_argument("--append", "-a", action="store_true")
 	arg_parser.add_argument("--dataset-size", "-s", type=int, default=None)
-	arg_parser.add_argument("--out-dataset-path", "-o", type=str, required=True)
 	arg_parser.add_argument("--in-dataset-path", "-i", type=str, default="")
+	arg_parser.add_argument("--out-dataset-basename", "-o", type=str, required=True)
+	arg_parser.add_argument("--data-dir", "-d", type=str, default="")
 	arg_parser.add_argument("--verbose", "-v", action="store_true")
-	arg_parser.add_argument("--model-name", type=str, default="")
-	arg_parser.add_argument("--device", type=str, default="cpu")
 
 	DependencyParserFactory.expand_parser(arg_parser)
 	ExtractorFactory.expand_parser(arg_parser)

@@ -1,4 +1,4 @@
-from typing import Optional, Type, Union, List
+from typing import Optional, Type, Union, List, Iterator
 
 from pony.orm.core import Entity
 
@@ -95,7 +95,7 @@ def get_limited_encodings(sentence: str, model: str) -> List[Encoding]:
 	return [enc for enc in sentence_entity.encodings if enc.model == model_entity]
 
 
-def get_limited_extractions(verb: str, postag: str, extractor: str) -> List[Extraction]:
+def get_limited_extractions(verb: str, postag: str, extractor: str) -> Iterator[Extraction]:
 	extractor_entity = get_extractor(extractor)
 
 	if extractor_entity is None:
@@ -103,12 +103,11 @@ def get_limited_extractions(verb: str, postag: str, extractor: str) -> List[Extr
 
 	predicates = get_limited_predicates(verb, postag)
 
-	extractions = []
 	for predicate in predicates:
 		for predicate_in_sentence in predicate.predicates_in_sentences:
-			extractions += [ext for ext in predicate_in_sentence.extractions if ext.extractor == extractor_entity]
-
-	return extractions
+			extractions = [ext for ext in predicate_in_sentence.extractions if ext.extractor == extractor_entity]
+			for ext in extractions:
+				yield ext
 
 
 def get_limited_parsings(sentence: Union[str, Sentence], engine: str, parser: str) -> List[Parsing]:

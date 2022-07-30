@@ -14,4 +14,5 @@ class TensorDatasetFileHandler(FileHandler):
 
 	@staticmethod
 	def save(file_path: str, data: TensorDataset):
+		FileHandler._make_relevant_dirs(file_path)
 		torch.save(data, file_path)
