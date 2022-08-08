@@ -87,7 +87,7 @@ class EncodedExtractionsLoader:
 
 		extractions = []
 		extraction_entities = extractor_entity.extractions
-		for ext_entity in tqdm(extraction_entities, leav=False):
+		for ext_entity in tqdm(extraction_entities, leave=False):
 			raw_ext = self._get_raw_extraction(ext_entity)
 			extractions.append(raw_ext)
 
