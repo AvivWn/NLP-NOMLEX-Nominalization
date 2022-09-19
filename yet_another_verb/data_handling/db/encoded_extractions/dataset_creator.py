@@ -11,17 +11,17 @@ from transformers import AutoModel, AutoTokenizer
 from pony.orm import db_session
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
-from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
-from yet_another_verb.data_handling import ParsedBinFileHandler, PKLBytesHandler, TorchBytesHandler
+from yet_another_verb.arguments_extractor.extraction import MultiWordExtraction
+from yet_another_verb.data_handling import ParsedBinFileHandler, TorchBytesHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_model, get_sentence, \
-	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_idxs_in_sentence, get_parser
-from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Extraction, \
+	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_idxs_in_sentence, get_parser, \
+	generate_extraction
+from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, \
 	Encoding, Parser, Parsing, Sentence, Model, Extractor
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
-from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing import POSTag, engine_by_parser
 from yet_another_verb.dependency_parsing.postagged_word import POSTaggedWord
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
@@ -115,7 +115,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 		return predicate_counter
 
 	def _get_sentence_encoding(self, sentence: str) -> torch.Tensor:
-		tokenized = self.tokenizer(sentence.split(), return_tensors="pt", is_split_into_words=True)
+		tokenized = self.tokenizer(sentence.split(), return_tensors="pt", is_split_into_words=True, add_special_tokens=True)
 		tokenized = tokenized.to(self.device)
 
 		with torch.no_grad():
@@ -131,23 +131,6 @@ class EncodedExtractionsCreator(DatasetCreator):
 		if Parsing.get(sentence=sentence_entity, parser=parser_entity) is None:
 			Parsing(sentence=sentence_entity, parser=parser_entity, binary=doc.to_bytes())
 
-	def _store_extractions(
-			self, extractions: Extractions, words: List[str], predicate: ParsedWord,
-			extractor_entity: Extractor, sentence_entity: Sentence):
-		assert len(extractions) > 0
-
-		verb = self.verb_translator.translate(predicate.lemma, predicate.pos)
-		predicate_entity = get_predicate(verb, predicate.pos, predicate.lemma, generate_missing=True)
-		predicate_in_sentence = get_predicate_in_sentence(sentence_entity, predicate_entity, predicate.i, generate_missing=True)
-
-		if Extraction.get(predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity) is None:
-			for extraction in extractions:
-				extraction.words = words
-
-			Extraction(
-				predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity,
-				binary=PKLBytesHandler.saves(extractions))
-
 	def _store_extractions_by_predicates(
 			self, doc: ParsedText, multi_word_extraction: MultiWordExtraction,
 			extractor_entity: Extractor, sentence_entity: Sentence,
@@ -161,7 +144,11 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 			predicate_counter[postagged_word] += 1
 
-			self._store_extractions(extractions, doc.words, predicate, extractor_entity, sentence_entity)
+			verb = self.verb_translator.translate(predicate.lemma, predicate.pos)
+			predicate_entity = get_predicate(verb, predicate.pos, predicate.lemma, generate_missing=True)
+			predicate_in_sentence = get_predicate_in_sentence(sentence_entity, predicate_entity, predicate.i, generate_missing=True)
+			generate_extraction(extractions, doc.words, predicate_in_sentence, extractor_entity)
+
 			if self.has_reached_size(predicate_counter[postagged_word]):
 				predicate_counter.pop(postagged_word)
 

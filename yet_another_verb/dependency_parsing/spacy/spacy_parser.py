@@ -69,7 +69,8 @@ class SpacyParser(DependencyParser):
 			return d
 
 		# parse a tokenized sentence
-		doc = self._parser.tokenizer.tokens_from_list(text)
+		assert isinstance(text, list)
+		doc = Doc(self.vocab, words=text)
 		for name, proc in self._parser.pipeline:
 			if name not in disable:
 				doc = proc(doc)

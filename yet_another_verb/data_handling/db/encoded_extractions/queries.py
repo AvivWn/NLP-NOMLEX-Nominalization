@@ -2,8 +2,11 @@ from typing import Optional, Type, Union, List, Iterator
 
 from pony.orm.core import Entity
 
+from yet_another_verb.arguments_extractor.extraction import Extractions
+from yet_another_verb.data_handling import PKLBytesHandler
 from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, \
 	Model, Verb, PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Extraction, Parsing
+from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 
 
 def get_entity_by_params(entity_type: Type[Entity], generate_missing, **kwargs) -> Optional[Entity]:
@@ -118,3 +121,19 @@ def get_limited_parsings(sentence: Union[str, Sentence], engine: str, parser: st
 		return []
 
 	return [pars for pars in sentence_entity.parsings if pars.parser == parser_entity]
+
+
+def generate_extraction(
+		extractions: Extractions, words: List[str], predicate_in_sentence: ParsedWord,
+		extractor_entity: Extractor):
+	assert len(extractions) > 0
+
+	if Extraction.get(predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity) is None:
+		for extraction in extractions:
+			extraction.words = words
+
+		Extraction(
+			predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity,
+			binary=PKLBytesHandler.saves(extractions))
+
+

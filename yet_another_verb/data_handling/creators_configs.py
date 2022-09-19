@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any
 
+import torch.cuda
+
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import NP_ARG_TYPES, PP_ARG_TYPES
 from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCreator, \
 	ExtractedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator, ShuffledLinesDatasetCreator, \
-	CombinedSQLitesDatasetCreator
+	CombinedSQLitesDatasetCreator, EncodedExtractionsExpander
 from yet_another_verb.data_handling.file.file_extensions import TXT_EXTENSION, PARSED_EXTENSION, EXTRACTED_EXTENSION, \
 	CSV_EXTENSION, DB_EXTENSION
 from yet_another_verb.dependency_parsing import NOUN_POSTAGS, POSTag
@@ -27,6 +29,7 @@ EXTENSION_BY_CREATOR_TYPE = {
 	ExtractedDatasetCreator: EXTRACTED_EXTENSION,
 	BIOArgsDatasetCreator: CSV_EXTENSION,
 	EncodedExtractionsCreator: DB_EXTENSION,
+	EncodedExtractionsExpander: DB_EXTENSION,
 	CombinedSQLitesDatasetCreator: DB_EXTENSION
 }
 
@@ -35,6 +38,7 @@ DIR_BY_CREATORE_TYPE = {
 	ExtractedDatasetCreator: "extracted",
 	BIOArgsDatasetCreator: "bio-args",
 	EncodedExtractionsCreator: "encoded-extractions",
+	EncodedExtractionsExpander: "encoded-extractions",
 	CombinedSQLitesDatasetCreator: "encoded-extractions"
 }
 
@@ -50,6 +54,12 @@ DATASET_CREATORS_BY_TYPE = {
 		**kwargs,
 		verb_translator=VerbTranslatorFactory(**kwargs)()),
 	EncodedExtractionsCreator: lambda kwargs: EncodedExtractionsCreator(
+		**kwargs,
+		dependency_parser=DependencyParserFactory(**kwargs)(),
+		args_extractor=ExtractorFactory(**kwargs)(),
+		verb_translator=VerbTranslatorFactory(**kwargs)(),
+	),
+	EncodedExtractionsExpander: lambda kwargs: EncodedExtractionsExpander(
 		**kwargs,
 		dependency_parser=DependencyParserFactory(**kwargs)(),
 		args_extractor=ExtractorFactory(**kwargs)(),
@@ -77,6 +87,11 @@ LIMITED_WORDS = [
 UD_PARSED_CONFIGS = [DatasetConfig(ParsedDatasetCreator, "en_ud_model_lg-2.0.0")]
 NOMLEX_EXTRACTED_CONFIG = UD_PARSED_CONFIGS + [DatasetConfig(ExtractedDatasetCreator, "nomlex")]
 
+COMMON_MODEL_PARAMS = {
+	"model_name": "roberta-large",  # "bert-base-uncased",
+	"device": "cuda" if torch.cuda.is_available() else "cpu"
+}
+
 DATASET_CONFIGS_BY_TYPE = {
 	"wiki40b": [DatasetConfig(WikiDatasetCreator)],
 	"shuffled": [DatasetConfig(ShuffledLinesDatasetCreator)],
@@ -99,22 +114,25 @@ DATASET_CONFIGS_BY_TYPE = {
 		DatasetConfig(
 			EncodedExtractionsCreator,
 			"all",
-			{
-				"model_name": "bert-base-uncased",
-				"device": "cuda"
-			}
+			COMMON_MODEL_PARAMS
 		)],
 
-	"encoded-extractions/limited-verbs": UD_PARSED_CONFIGS + [
+	"encoded-extractions/limited-words": UD_PARSED_CONFIGS + [
 		DatasetConfig(
 			EncodedExtractionsCreator,
-			"limited-verbs",
+			"limited-words",
 			{
-				"limited_postags": [POSTag.VERB],
+				**COMMON_MODEL_PARAMS,
+				"limited_postags": [POSTag.VERB, POSTag.NOUN],
 				"limited_words": LIMITED_WORDS,
-				"model_name": "bert-base-uncased",
-				"device": "cuda"
 			})],
+
+	"encoded-extractions/expand": [
+		DatasetConfig(
+			EncodedExtractionsExpander,
+			"limited-words",
+			COMMON_MODEL_PARAMS
+		)],
 
 	"combined-sqlite": [DatasetConfig(CombinedSQLitesDatasetCreator)],
 }

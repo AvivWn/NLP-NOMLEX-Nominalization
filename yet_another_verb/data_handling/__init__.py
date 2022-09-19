@@ -18,4 +18,5 @@ from yet_another_verb.data_handling.file.creators.extracted_dataset import Extra
 from yet_another_verb.data_handling.file.creators.bio_args_dataset import BIOArgsDatasetCreator
 
 from yet_another_verb.data_handling.db.encoded_extractions.dataset_creator import EncodedExtractionsCreator
+from yet_another_verb.data_handling.db.encoded_extractions.dataset_expander import EncodedExtractionsExpander
 from yet_another_verb.data_handling.db.combined_sqlite_dataset import CombinedSQLitesDatasetCreator

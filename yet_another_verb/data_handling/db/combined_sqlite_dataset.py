@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from shutil import copyfile
 from typing import List
@@ -11,6 +12,7 @@ from yet_another_verb.utils.debug_utils import timeit
 from yet_another_verb.utils.print_utils import print_if_verbose
 
 MAX_ATTACH_DB = 9
+os.environ["SQLITE_TEMPDIR"] = "/home/nlp/avivwn/tmpdir"
 
 
 class CombinedSQLitesDatasetCreator(DatasetCreator):
@@ -32,6 +34,8 @@ class CombinedSQLitesDatasetCreator(DatasetCreator):
 			cur = conn.cursor()
 
 			conn.execute("PRAGMA synchronous = OFF;")
+			conn.execute("PRAGMA journal_mode = OFF;")
+			# conn.execute("PRAGMA temp_stroe_directory = './tmp';")
 			conn.commit()
 
 			attaches = []
