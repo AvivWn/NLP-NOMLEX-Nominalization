@@ -85,14 +85,14 @@ def get_limited_predicates(verb: str, postag: str) -> List[Predicate]:
 	return [p for p in verb_entity.predicates if p.part_of_speech == postag_entity]
 
 
-def get_limited_encodings(sentence: str, model: str) -> List[Encoding]:
-	model_entity = get_model(model)
-	sentence_entity = get_sentence(sentence)
+def get_limited_encodings(sentence: Union[str, Sentence], model: Union[str, Model]) -> List[Encoding]:
+	model_entity = model if isinstance(model, Model) else get_model(model)
+	sentence_entity = sentence if isinstance(sentence, Sentence) else get_sentence(sentence)
 
 	if model_entity is None or sentence_entity is None:
 		return []
 
-	return [enc for enc in sentence_entity.encodings if enc.model == model_entity]
+	return sentence_entity.encodings.select(lambda enc: enc.model == model_entity)
 
 
 def get_limited_extractions(verb: str, postag: str, extractor: str) -> Iterator[Extraction]:

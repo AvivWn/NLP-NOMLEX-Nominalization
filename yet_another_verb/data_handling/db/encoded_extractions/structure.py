@@ -34,7 +34,7 @@ class Parser(_db.Entity):
 
 
 class Sentence(_db.Entity):
-	text = PrimaryKey(str)
+	text = PrimaryKey(str)  # Actually means a tokenized text
 	predicates = Set(T_PREDICATE_IN_SENTENCE)
 	encodings = Set(T_ENCODING)
 	parsings = Set(T_PARSING)
