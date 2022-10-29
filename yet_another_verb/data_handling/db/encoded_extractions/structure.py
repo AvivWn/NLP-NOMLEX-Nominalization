@@ -4,39 +4,42 @@ _db = Database()
 encoded_extractions_db = _db
 
 T_EXTRACTOR = 'Extractor'
-T_MODEl = 'Model'
-T_PARSER = 'Parser'
-T_VERB = 'VERB'
-T_PART_OF_SPEECH = 'PartOfSpeech'
+T_ENCODER = 'Encoder'
 T_PREDICATE = 'Predicate'
-T_SENTENCE = 'Sentence'
 T_PREDICATE_IN_SENTENCE = 'PredicateInSentence'
-T_EXTRACTION = 'Extraction'
+T_EXTRACTED_ARGUMENT = 'ExtractedArgument'
+T_ARGUMENT = 'Argument'
 T_ENCODING = 'Encoding'
 T_PARSING = 'Parsing'
-
-
-class Extractor(_db.Entity):
-	extractor = PrimaryKey(str)
-	extractions = Set(T_EXTRACTION)
-
-
-class Model(_db.Entity):
-	model = PrimaryKey(str)
-	encodings = Set(T_ENCODING)
 
 
 class Parser(_db.Entity):
 	engine = Required(str)
 	parser = Required(str)
+	extractor = Set(T_EXTRACTOR)
+	encoder = Set(T_ENCODER)
 	parsings = Set(T_PARSING)
 	PrimaryKey(engine, parser)
 
 
-class Sentence(_db.Entity):
-	text = PrimaryKey(str)  # Actually means a tokenized text
-	predicates = Set(T_PREDICATE_IN_SENTENCE)
+class Extractor(_db.Entity):
+	extractor = Required(str)
+	parser = Required(Parser)
+	extracted_arguments = Set(T_EXTRACTED_ARGUMENT)
+	PrimaryKey(extractor, parser)
+
+
+class Encoder(_db.Entity):
+	model = Required(str)
+	encoding_level = Required(str)  # head-idx, start-idx, ...
+	parser = Required(Parser)
 	encodings = Set(T_ENCODING)
+	PrimaryKey(model, encoding_level, parser)
+
+
+class Sentence(_db.Entity):
+	text = PrimaryKey(str)
+	predicates = Set(T_PREDICATE_IN_SENTENCE)
 	parsings = Set(T_PARSING)
 
 
@@ -50,6 +53,11 @@ class PartOfSpeech(_db.Entity):
 	predicates = Set(T_PREDICATE)
 
 
+class ArgumentType(_db.Entity):
+	argument_type = PrimaryKey(str)
+	extracted_arguments = Set(T_EXTRACTED_ARGUMENT)
+
+
 class Predicate(_db.Entity):
 	verb = Required(Verb)
 	part_of_speech = Required(PartOfSpeech)
@@ -61,23 +69,32 @@ class Predicate(_db.Entity):
 class PredicateInSentence(_db.Entity):
 	sentence = Required(Sentence)
 	predicate = Required(Predicate)
-	word_index = Required(int)
-	extractions = Set(T_EXTRACTION)
-	PrimaryKey(sentence, predicate, word_index)
+	word_idx = Required(int)
+	arguments = Set(T_ARGUMENT)
+	PrimaryKey(sentence, word_idx, predicate)
 
 
-class Extraction(_db.Entity):
+class Argument(_db.Entity):
 	predicate_in_sentence = Required(PredicateInSentence)
+	start_idx = Required(int)
+	end_idx = Required(int)
+	extracted_arguments = Set(T_EXTRACTED_ARGUMENT)
+	encodings = Set(T_ENCODING)
+	PrimaryKey(predicate_in_sentence, start_idx, end_idx)
+
+
+class ExtractedArgument(_db.Entity):
+	argument = Required(Argument)
 	extractor = Required(Extractor)
-	binary = Required(bytes)
-	PrimaryKey(predicate_in_sentence, extractor)
+	argument_type = Required(ArgumentType)
+	PrimaryKey(argument, extractor, argument_type)
 
 
 class Encoding(_db.Entity):
-	sentence = Required(Sentence)
-	model = Required(Model)
+	argument = Required(Argument)
+	encoder = Required(Encoder)
 	binary = Required(bytes)
-	PrimaryKey(sentence, model)
+	PrimaryKey(argument, encoder)
 
 
 class Parsing(_db.Entity):

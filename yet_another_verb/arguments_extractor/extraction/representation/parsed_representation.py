@@ -1,5 +1,6 @@
 from typeguard import typechecked
 
+from yet_another_verb.arguments_extractor.extraction.utils.parsed_argument import get_argument_in_parsed_text
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_span import ParsedSpan
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
@@ -15,5 +16,4 @@ class ParsedRepresentation(ExtractionRepresentation):
 
 	@typechecked
 	def _represent_argument(self, words: ParsedWords, predicate_idx: int, argument: ExtractedArgument) -> ParsedSpan:
-		min_idx, max_idx = argument.tightest_range
-		return words[min_idx: max_idx + 1]
+		return get_argument_in_parsed_text(argument, words)

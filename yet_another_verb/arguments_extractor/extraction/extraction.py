@@ -2,6 +2,8 @@ from typing import Set, List, Optional
 from dataclasses import dataclass, field
 from itertools import chain
 
+from collections import namedtuple
+
 from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
@@ -104,3 +106,6 @@ class Extraction:
 
 
 Extractions = List[Extraction]
+
+# TODO: integrate the encodings in the Extraction and ExtractedArgument classes
+EncodedExtraction = namedtuple('EncodedExtraction', ['extraction', 'encoded_args'])

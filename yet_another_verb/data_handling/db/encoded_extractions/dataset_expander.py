@@ -7,10 +7,10 @@ from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.data_handling import TorchBytesHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
-from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_model, \
-	get_predicate_in_sentence, get_predicate, get_parser, generate_extraction
+from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_encoder, \
+	get_predicate_in_sentence, get_predicate, get_parser
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, \
-	Encoding, Parser, Parsing, Sentence, Model, Extractor
+	Encoding, Parser, Parsing, Sentence, Encoder, Extractor
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing import engine_by_parser
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
@@ -46,7 +46,7 @@ class EncodedExtractionsExpander(DatasetCreator):
 		with torch.no_grad():
 			return self.model(**tokenized)[0][0].cpu()
 
-	def _expand_encodings(self, sentence_entity: Sentence, model_entity: Model):
+	def _expand_encodings(self, sentence_entity: Sentence, model_entity: Encoder):
 		if Encoding.get(sentence=sentence_entity, model=model_entity) is None:
 			encoding = self._get_sentence_encoding(sentence_entity.text)
 			Encoding(sentence=sentence_entity, model=model_entity, binary=TorchBytesHandler.saves(encoding))
@@ -75,12 +75,12 @@ class EncodedExtractionsExpander(DatasetCreator):
 			verb = self.verb_translator.translate(predicate.lemma, predicate.pos)
 			predicate_entity = get_predicate(verb, predicate.pos, predicate.lemma, generate_missing=True)
 			predicate_in_sentence = get_predicate_in_sentence(sentence_entity, predicate_entity, predicate.i, generate_missing=True)
-			generate_extraction(extractions, doc.words, predicate_in_sentence, extractor_entity)
+			# generate_extraction(extractions, doc.words, predicate_in_sentence, extractor_entity)
 
 	@db_session
 	def _expand_dataset(self, db_communicator: SQLiteCommunicator):
 		extractor_entity = get_extractor(EXTRACTORS_CONFIG.EXTRACTOR, generate_missing=True)
-		model_entity = get_model(self.model_name, generate_missing=True)
+		model_entity = get_encoder(self.model_name, generate_missing=True)
 		parser_entity = get_parser(
 			engine_by_parser[type(self.dependency_parser)], self.dependency_parser.name, generate_missing=True)
 

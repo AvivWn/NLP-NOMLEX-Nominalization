@@ -5,21 +5,23 @@ from typing import Iterator, List, Optional, Set
 from itertools import chain
 
 import os
-import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 from pony.orm import db_session
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.arguments_extractor.extraction import MultiWordExtraction
-from yet_another_verb.data_handling import ParsedBinFileHandler, TorchBytesHandler
+from yet_another_verb.arguments_extractor.extraction.utils.combination import combine_extractions
+from yet_another_verb.data_handling import ParsedBinFileHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
-from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_model, get_sentence, \
+from yet_another_verb.data_handling.db.encoded_extractions.encodings import EncodingLevel, ENCODER_BY_LEVEL, \
+	ArgumentEncoder
+from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_encoder, get_sentence, \
 	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_idxs_in_sentence, get_parser, \
-	generate_extraction
-from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, \
-	Encoding, Parser, Parsing, Sentence, Model, Extractor
+	insert_encoded_arguments
+from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Parser, \
+	Parsing, Sentence, Encoder, Extractor
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing import POSTag, engine_by_parser
@@ -36,6 +38,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 			args_extractor: ArgsExtractor,
 			verb_translator: VerbTranslator,
 			model_name: str, device: str,
+			encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX,
 			limited_postags: List[POSTag] = None,
 			limited_words: List[str] = None,
 			dataset_size=None, **kwargs
@@ -48,6 +51,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 		self.verb_translator = verb_translator
 
 		self.model_name = model_name
+		self.encoding_level = encoding_level
 		self.device = device
 		self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 		self.model = AutoModel.from_pretrained(model_name).to(self.device)
@@ -89,7 +93,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 		if len(limited_idxs) == 0:
 			return limited_idxs
 
-		sentence_entity = get_sentence(doc.tokenized_text)
+		sentence_entity = get_sentence(doc.text)
 		if sentence_entity is not None:
 			already_extracted_idxs = get_extracted_idxs_in_sentence(sentence_entity, extractor_entity)
 			limited_idxs = limited_idxs.difference(already_extracted_idxs)
@@ -114,18 +118,6 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 		return predicate_counter
 
-	def _get_sentence_encoding(self, sentence: str) -> torch.Tensor:
-		tokenized = self.tokenizer(sentence.split(), return_tensors="pt", is_split_into_words=True, add_special_tokens=True)
-		tokenized = tokenized.to(self.device)
-
-		with torch.no_grad():
-			return self.model(**tokenized)[0][0].cpu()
-
-	def _store_encoding(self, doc: ParsedText, sentence_entity: Sentence, model_entity: Model):
-		if Encoding.get(sentence=sentence_entity, model=model_entity) is None:
-			encoding = self._get_sentence_encoding(doc.tokenized_text)
-			Encoding(sentence=sentence_entity, model=model_entity, binary=TorchBytesHandler.saves(encoding))
-
 	@staticmethod
 	def _store_parsing(doc: ParsedText, sentence_entity: Sentence, parser_entity: Parser):
 		if Parsing.get(sentence=sentence_entity, parser=parser_entity) is None:
@@ -134,7 +126,9 @@ class EncodedExtractionsCreator(DatasetCreator):
 	def _store_extractions_by_predicates(
 			self, doc: ParsedText, multi_word_extraction: MultiWordExtraction,
 			extractor_entity: Extractor, sentence_entity: Sentence,
-			predicate_counter: Counter):
+			encoder_entity: Encoder, argument_encoder: ArgumentEncoder,
+			predicate_counter: Counter
+	):
 		for predicate_idx, extractions in multi_word_extraction.extractions_per_idx.items():
 			predicate = doc[predicate_idx]
 			postagged_word = POSTaggedWord(predicate.lemma, predicate.pos)
@@ -147,17 +141,19 @@ class EncodedExtractionsCreator(DatasetCreator):
 			verb = self.verb_translator.translate(predicate.lemma, predicate.pos)
 			predicate_entity = get_predicate(verb, predicate.pos, predicate.lemma, generate_missing=True)
 			predicate_in_sentence = get_predicate_in_sentence(sentence_entity, predicate_entity, predicate.i, generate_missing=True)
-			generate_extraction(extractions, doc.words, predicate_in_sentence, extractor_entity)
+
+			combined_extraction = combine_extractions(extractions, safe_combine=False)
+			insert_encoded_arguments(combined_extraction.args, extractor_entity, predicate_in_sentence, encoder_entity, argument_encoder)
 
 			if self.has_reached_size(predicate_counter[postagged_word]):
 				predicate_counter.pop(postagged_word)
 
 	@db_session
 	def _store_encoded_extractions(self, db_communicator: SQLiteCommunicator, docs: Iterator[ParsedText]):
-		extractor_entity = get_extractor(EXTRACTORS_CONFIG.EXTRACTOR, generate_missing=True)
-		model_entity = get_model(self.model_name, generate_missing=True)
 		parser_entity = get_parser(
 			engine_by_parser[type(self.dependency_parser)], self.dependency_parser.name, generate_missing=True)
+		extractor_entity = get_extractor(EXTRACTORS_CONFIG.EXTRACTOR, parser_entity, generate_missing=True)
+		encoder_entity = get_encoder(self.model_name, self.encoding_level, parser_entity, generate_missing=True)
 
 		predicate_counter = self._get_predicate_counter(extractor_entity)
 
@@ -168,11 +164,13 @@ class EncodedExtractionsCreator(DatasetCreator):
 			if len(multi_word_extraction.extractions_per_idx) == 0:
 				continue
 
-			sentence_entity = timeit(get_sentence)(doc.tokenized_text, generate_missing=True)
-			timeit(self._store_encoding)(doc, sentence_entity, model_entity)
+			sentence_entity = timeit(get_sentence)(doc.text, generate_missing=True)
+			arg_encoder = ENCODER_BY_LEVEL.get(self.encoding_level)(self.tokenizer, self.model, self.device, doc)
+
 			timeit(self._store_parsing)(doc, sentence_entity, parser_entity)
 			timeit(self._store_extractions_by_predicates)(
-				doc, multi_word_extraction, extractor_entity, sentence_entity, predicate_counter)
+				doc, multi_word_extraction, extractor_entity, sentence_entity,
+				encoder_entity, arg_encoder, predicate_counter)
 
 			timeit(db_communicator.commit)()
 			if len(predicate_counter) == 0:

@@ -1,33 +1,35 @@
-from typing import Optional, Type, Union, List, Iterator
+from typing import Optional, Type, Union, List
 
 from pony.orm.core import Entity
 
-from yet_another_verb.arguments_extractor.extraction import Extractions
-from yet_another_verb.data_handling import PKLBytesHandler
-from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, \
-	Model, Verb, PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Extraction, Parsing
-from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
+from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
+from yet_another_verb.data_handling import TorchBytesHandler
+from yet_another_verb.data_handling.db.encoded_extractions.encodings import ArgumentEncoder
+from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, Encoder, Verb, \
+	PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Argument, ExtractedArgument, ArgumentType, \
+	Parsing
 
 
-def get_entity_by_params(entity_type: Type[Entity], generate_missing, **kwargs) -> Optional[Entity]:
-	entity = entity_type.get(**kwargs)
+def get_entity_by_params(entity_type: Type[Entity], generate_missing, properties=None, **primary_keys) -> Optional[Entity]:
+	properties = {} if properties is None else properties
+	entity = entity_type.get(**primary_keys)
 
 	if entity is None and generate_missing:
-		entity = entity_type(**kwargs)
+		entity = entity_type(**primary_keys, **properties)
 
 	return entity
 
 
-def get_extractor(extractor: str, generate_missing=False) -> Optional[Extractor]:
-	return get_entity_by_params(Extractor, generate_missing, extractor=extractor)
-
-
-def get_model(model: str, generate_missing=False) -> Optional[Model]:
-	return get_entity_by_params(Model, generate_missing, model=model)
-
-
-def get_parser(engine: str, parser: str, generate_missing=False) -> Optional[Model]:
+def get_parser(engine: str, parser: str, generate_missing=False) -> Optional[Parser]:
 	return get_entity_by_params(Parser, generate_missing, engine=engine, parser=parser)
+
+
+def get_extractor(extractor: str, parser: Parser, generate_missing=False) -> Optional[Extractor]:
+	return get_entity_by_params(Extractor, generate_missing, extractor=extractor, parser=parser)
+
+
+def get_encoder(model: str, encoding_level: str, parser: Parser, generate_missing=False) -> Optional[Encoder]:
+	return get_entity_by_params(Encoder, generate_missing, model=model, encoding_level=encoding_level, parser=parser)
 
 
 def get_sentence(text: str, generate_missing=False) -> Optional[Sentence]:
@@ -42,6 +44,10 @@ def get_part_of_speech(pos: str, generate_missing=False) -> Optional[PartOfSpeec
 	return get_entity_by_params(PartOfSpeech, generate_missing, part_of_speech=pos)
 
 
+def get_argument_type(argument_type: str, generate_missing=False) -> Optional[ArgumentType]:
+	return get_entity_by_params(ArgumentType, generate_missing, argument_type=argument_type)
+
+
 def get_predicate(
 		verb: Union[Verb, str], pos: Union[PartOfSpeech, str],
 		lemma: str, generate_missing=False) -> Optional[Predicate]:
@@ -52,30 +58,50 @@ def get_predicate(
 
 def get_predicate_in_sentence(
 		sentence: Sentence, predicate: Predicate,
-		word_index: int, generate_missing=False) -> Optional[PredicateInSentence]:
+		word_idx: int, generate_missing=False) -> Optional[PredicateInSentence]:
 	return get_entity_by_params(
 		PredicateInSentence, generate_missing,
-		sentence=sentence, predicate=predicate, word_index=word_index)
+		sentence=sentence, predicate=predicate, word_idx=word_idx)
+
+
+def get_argument(
+		extracted_arg: ExtractedArgument,
+		predicate_in_sentence: PredicateInSentence, generate_missing=False) -> Optional[Argument]:
+	start_idx, end_idx = extracted_arg.tightest_range
+	return get_entity_by_params(
+		Argument, generate_missing,
+		predicate_in_sentence=predicate_in_sentence,
+		start_idx=start_idx, end_idx=end_idx)
+
+
+def get_extracted_argument(
+		arg: Argument, extractor: Extractor, arg_type: Union[str, ArgumentType],
+		generate_missing=False) -> Optional[ExtractedArgument]:
+	arg_type = arg_type if isinstance(arg_type, ArgumentType) else get_argument_type(arg_type, generate_missing)
+	return get_entity_by_params(
+		ExtractedArgument, generate_missing,
+		argument=arg, extractor=extractor, argument_type=arg_type)
 
 
 def get_extracted_idxs_in_sentence(sentence: Sentence, extractor: Extractor) -> List[int]:
 	extracted_idxs = []
 
 	for predicate_in_sentence in sentence.predicates:
-		relevant_extractions = [e for e in predicate_in_sentence.extractions if e.extractor == extractor]
-		if len(relevant_extractions) > 0:
-			extracted_idxs.append(predicate_in_sentence.word_index)
+		for arg in predicate_in_sentence.arguments:
+			if any(e.extractor == extractor for e in arg.extracted_arguments):
+				extracted_idxs.append(predicate_in_sentence.word_idx)
 
 	return extracted_idxs
 
 
 def get_extracted_predicates(extractor: Extractor) -> List[PredicateInSentence]:
-	predicates = []
+	extracted_predicates = []
 
-	for extraction in extractor.extractions:
-		predicates.append(extraction.predicate_in_sentence)
+	for extracted_arg in extractor.extracted_arguments:
+		for arg in extracted_arg.arguments:
+			extracted_predicates.append(arg.predicate_in_sentence)
 
-	return predicates
+	return extracted_predicates
 
 
 def get_limited_predicates(verb: str, postag: str) -> List[Predicate]:
@@ -88,52 +114,27 @@ def get_limited_predicates(verb: str, postag: str) -> List[Predicate]:
 	return [p for p in verb_entity.predicates if p.part_of_speech == postag_entity]
 
 
-def get_limited_encodings(sentence: Union[str, Sentence], model: Union[str, Model]) -> List[Encoding]:
-	model_entity = model if isinstance(model, Model) else get_model(model)
+def get_limited_encodings(argument: Argument, encoder: Encoder) -> List[Encoding]:
+	return argument.encodings.select(lambda enc: enc.encoder == encoder)
+
+
+def get_limited_parsings(sentence: Union[str, Sentence], parser: Parser) -> List[Parsing]:
 	sentence_entity = sentence if isinstance(sentence, Sentence) else get_sentence(sentence)
 
-	if model_entity is None or sentence_entity is None:
+	if sentence_entity is None:
 		return []
 
-	return sentence_entity.encodings.select(lambda enc: enc.model == model_entity)
+	return [pars for pars in sentence_entity.parsings if pars.parser == parser]
 
 
-def get_limited_extractions(verb: str, postag: str, extractor: str) -> Iterator[Extraction]:
-	extractor_entity = get_extractor(extractor)
+def insert_encoded_arguments(
+		arguments: List[ExtractedArgument], extractor_entity: Extractor, predicate_in_sentence: PredicateInSentence,
+		encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
+	for extracted_arg in arguments:
+		argument_entity = get_argument(extracted_arg, predicate_in_sentence, generate_missing=True)
+		get_extracted_argument(argument_entity, extractor_entity, extracted_arg.arg_type, generate_missing=True)
 
-	if extractor_entity is None:
-		return []
-
-	predicates = get_limited_predicates(verb, postag)
-
-	for predicate in predicates:
-		for predicate_in_sentence in predicate.predicates_in_sentences:
-			extractions = [ext for ext in predicate_in_sentence.extractions if ext.extractor == extractor_entity]
-			for ext in extractions:
-				yield ext
-
-
-def get_limited_parsings(sentence: Union[str, Sentence], engine: str, parser: str) -> List[Parsing]:
-	sentence_entity = sentence if isinstance(sentence, Sentence) else get_sentence(sentence)
-	parser_entity = get_parser(engine, parser)
-
-	if sentence_entity is None or parser_entity is None:
-		return []
-
-	return [pars for pars in sentence_entity.parsings if pars.parser == parser_entity]
-
-
-def generate_extraction(
-		extractions: Extractions, words: List[str], predicate_in_sentence: ParsedWord,
-		extractor_entity: Extractor):
-	assert len(extractions) > 0
-
-	if Extraction.get(predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity) is None:
-		for extraction in extractions:
-			extraction.words = words
-
-		Extraction(
-			predicate_in_sentence=predicate_in_sentence, extractor=extractor_entity,
-			binary=PKLBytesHandler.saves(extractions))
-
-
+		if Encoding.get(argument=argument_entity, encoder=encoder_entity) is None:
+			argument_encoding = arg_encoder.encode(extracted_arg)
+			binary_encoding = TorchBytesHandler.saves(argument_encoding)
+			Encoding(argument=argument_entity, encoder=encoder_entity, binary=binary_encoding)
