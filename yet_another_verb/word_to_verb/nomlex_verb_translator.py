@@ -14,12 +14,12 @@ from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
 
 
 class NomlexVerbTranslator(VerbTranslator):
-	def __init__(self, nomlex_version: str = VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION, **kwargs):
-		self.json_entries = NomlexMaestro(nomlex_version).get_json_lexicon()
+	def __init__(self, translator_nomlex_version: str = VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION, **kwargs):
+		self.json_entries = NomlexMaestro(translator_nomlex_version).get_json_lexicon()
 
 		dictionary_path = join(
 			VERB_TRANSLATORS_CONFIG.TRANSLATORS_CACHE_DIR, "nomlex-verb-translator",
-			f"{nomlex_version}.{PICKLE_EXTENSION}")
+			f"{translator_nomlex_version}.{PICKLE_EXTENSION}")
 
 		if VERB_TRANSLATORS_CONFIG.USE_CACHE and os.path.exists(dictionary_path):
 			self.verb_dictionary = PKLFileHandler.load(dictionary_path)

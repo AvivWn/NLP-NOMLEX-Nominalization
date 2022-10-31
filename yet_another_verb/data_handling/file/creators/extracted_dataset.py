@@ -5,8 +5,7 @@ from tqdm import tqdm
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.arguments_extractor.extraction import MultiWordExtractions
-from yet_another_verb.dependency_parsing.compressed_parsed_text import CompressedParsedText
-from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
+from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.data_handling import ParsedBinFileHandler, ExtractedFileHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
@@ -15,12 +14,11 @@ from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 class ExtractedDatasetCreator(DatasetCreator):
 	def __init__(
 			self, in_dataset_path: str,
-			args_extractor: ArgsExtractor, dependency_parser: DependencyParser,
+			args_extractor: ArgsExtractor,
 			dataset_size=None, **kwargs
 	):
 		super().__init__(dataset_size)
 		self.in_dataset_path = in_dataset_path
-		self.dependency_parser = dependency_parser
 		self.args_extractor = args_extractor
 
 	@staticmethod
@@ -60,20 +58,16 @@ class ExtractedDatasetCreator(DatasetCreator):
 
 		return multi_word_extractions
 
-	def _get_generated_data(
-			self, ignored_sentences: Set[str] = None, extracted_predicates: List[int] = None) -> MultiWordExtractions:
-		parsed_bin = ParsedBinFileHandler(self.dependency_parser).load(self.in_dataset_path)
-		in_dataset = parsed_bin.get_parsed_texts()
-		return self._sents_to_extractions(in_dataset, ignored_sentences, extracted_predicates)
-
 	def append_dataset(self, out_dataset_path: str):
 		multi_word_extractions: MultiWordExtractions = ExtractedFileHandler(keep_compressed=True).load(out_dataset_path)
 		extracted_sentences = self._get_all_extracted_sentences(multi_word_extractions)
 		extracted_predicates = list(chain(*[ext.extractions_per_idx.keys() for ext in multi_word_extractions]))
 
-		out_dataset = self._get_generated_data(extracted_sentences, extracted_predicates)
-		ExtractedFileHandler(self.dependency_parser).save(out_dataset_path, multi_word_extractions + out_dataset)
+		in_parsed_bin = ParsedBinFileHandler().load(self.in_dataset_path)
+		out_dataset = self._sents_to_extractions(in_parsed_bin.get_parsed_texts(), extracted_sentences, extracted_predicates)
+		ExtractedFileHandler(in_parsed_bin.parser).save(out_dataset_path, multi_word_extractions + out_dataset)
 
 	def create_dataset(self, out_dataset_path: str):
-		out_dataset = self._get_generated_data()
-		ExtractedFileHandler(self.dependency_parser).save(out_dataset_path, out_dataset)
+		in_parsed_bin = ParsedBinFileHandler().load(self.in_dataset_path)
+		out_dataset = self._sents_to_extractions(in_parsed_bin.get_parsed_texts(), None, None)
+		ExtractedFileHandler(in_parsed_bin.parser).save(out_dataset_path, out_dataset)

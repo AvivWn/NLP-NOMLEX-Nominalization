@@ -1,8 +1,12 @@
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
+
+if TYPE_CHECKING:
+	from yet_another_verb.sentence_encoding.encoding import Encoding
+
 
 ArgRange = Tuple[int, int]
 
@@ -13,6 +17,7 @@ class ExtractedArgument:
 	arg_type: Optional[ArgumentType] = field(default=None)
 	arg_tag: Optional[Union[str, ArgumentType]] = field(default=None)
 	fulfilled_constraints: List[ConstraintsMap] = field(default_factory=list, compare=False)
+	encoding: Optional['Encoding'] = field(default=None)
 
 	def __post_init__(self):
 		self.arg_tag = self.arg_type

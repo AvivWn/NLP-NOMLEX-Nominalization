@@ -4,7 +4,7 @@ from pony.orm.core import Entity
 
 from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
 from yet_another_verb.data_handling import TorchBytesHandler
-from yet_another_verb.data_handling.db.encoded_extractions.encodings import ArgumentEncoder
+from yet_another_verb.sentence_encoding.argument_encoding.arg_encoder import ArgumentEncoder
 from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, Encoder, Verb, \
 	PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Argument, ExtractedArgument, ArgumentType, \
 	Parsing
@@ -28,8 +28,8 @@ def get_extractor(extractor: str, parser: Parser, generate_missing=False) -> Opt
 	return get_entity_by_params(Extractor, generate_missing, extractor=extractor, parser=parser)
 
 
-def get_encoder(model: str, encoding_level: str, parser: Parser, generate_missing=False) -> Optional[Encoder]:
-	return get_entity_by_params(Encoder, generate_missing, model=model, encoding_level=encoding_level, parser=parser)
+def get_encoder(framework: str, encoder: str, encoding_level: str, parser: Parser, generate_missing=False) -> Optional[Encoder]:
+	return get_entity_by_params(Encoder, generate_missing, framework=framework, encoder=encoder, encoding_level=encoding_level, parser=parser)
 
 
 def get_sentence(text: str, generate_missing=False) -> Optional[Sentence]:
@@ -98,8 +98,7 @@ def get_extracted_predicates(extractor: Extractor) -> List[PredicateInSentence]:
 	extracted_predicates = []
 
 	for extracted_arg in extractor.extracted_arguments:
-		for arg in extracted_arg.arguments:
-			extracted_predicates.append(arg.predicate_in_sentence)
+		extracted_predicates.append(extracted_arg.argument.predicate_in_sentence)
 
 	return extracted_predicates
 

@@ -20,11 +20,11 @@ class VerbTranslatorFactory(Factory):
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:
 		arg_parser.add_argument(
-			"--translation-mode", "-m", choices=["nomlex"], default=VERB_TRANSLATORS_CONFIG.TRANSLATOR,
+			"--translation-mode", choices=["nomlex"], default=VERB_TRANSLATORS_CONFIG.TRANSLATOR,
 			help="Defines the method of arguments extraction"
 		)
 		arg_parser.add_argument(
-			"--nomlex-version", type=NomlexVersion, default=VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION,
+			"--translator-nomlex-version", type=NomlexVersion, default=VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION,
 			help="NOMLEX's lexicon version"
 		)
 		return arg_parser

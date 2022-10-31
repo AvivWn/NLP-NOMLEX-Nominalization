@@ -20,9 +20,8 @@ class ExtractorFactory(Factory):
 
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:
-		arg_parser = ExtractorFactory._expand_optional_parser(arg_parser)
 		arg_parser.add_argument(
-			"--extraction-mode", "-m", choices=["nomlex"], default=EXTRACTORS_CONFIG.EXTRACTOR,
+			"--extraction-mode", choices=["nomlex"], default=EXTRACTORS_CONFIG.EXTRACTOR,
 			help="Defines the method of arguments extraction"
 		)
 		arg_parser.add_argument(

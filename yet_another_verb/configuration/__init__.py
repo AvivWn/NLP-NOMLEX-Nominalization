@@ -1,3 +1,4 @@
 from yet_another_verb.configuration.extractors_config import EXTRACTORS_CONFIG
 from yet_another_verb.configuration.parsing_config import PARSING_CONFIG
 from yet_another_verb.configuration.verb_translators_config import VERB_TRANSLATORS_CONFIG
+from yet_another_verb.configuration.encoding_config import ENCODING_CONFIG

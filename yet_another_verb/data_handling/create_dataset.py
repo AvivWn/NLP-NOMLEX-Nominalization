@@ -3,13 +3,13 @@ from os.path import join
 from argparse import ArgumentParser, Namespace
 
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
-from yet_another_verb.data_handling.creators_configs import DatasetConfig, DATASET_CONFIGS_BY_TYPE, \
-	DATASET_CREATORS_BY_TYPE, EXTENSION_BY_CREATOR_TYPE, DIR_BY_CREATORE_TYPE
-from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
+from yet_another_verb.data_handling.creators_configs import DATASET_CONFIGS_BY_TYPE, \
+	DATASET_CREATORS_BY_TYPE
+from yet_another_verb.factories.encoder_factory import EncoderFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
-from yet_another_verb.utils.debug_utils import timeit
 from yet_another_verb.utils.print_utils import print_if_verbose, print_as_title_if_verbose
+from yet_another_verb.utils.debug_utils import timeit
 
 
 def show_args(args: Namespace):
@@ -18,41 +18,38 @@ def show_args(args: Namespace):
 		print_if_verbose(f"{arg}: {value}")
 
 
-def get_output_path(data_dir: str, basename: str, dataset_config: DatasetConfig) -> str:
-	output_dir = join(data_dir, DIR_BY_CREATORE_TYPE.get(dataset_config.creator_type, ""), dataset_config.subdir_name)
-	makedirs(output_dir, exist_ok=True)
+def get_output_path(args: Namespace) -> str:
+	out_dataset_path = args.data_dir
+	if args.out_subdir_as_type:
+		out_dataset_path = join(out_dataset_path, args.dataset_type)
 
-	file_extension = EXTENSION_BY_CREATOR_TYPE[dataset_config.creator_type]
-	return join(output_dir, f"{basename}.{file_extension}")
+	makedirs(out_dataset_path, exist_ok=True)
+	return join(out_dataset_path, args.out_dataset)
 
 
 def create_dataset(args: Namespace):
 	show_args(args)
 
-	for dataset_config in DATASET_CONFIGS_BY_TYPE[args.dataset_type]:
-		creator_type = dataset_config.creator_type
-		creator_generator = DATASET_CREATORS_BY_TYPE.get(creator_type, lambda x: creator_type(**x))
+	dataset_config = DATASET_CONFIGS_BY_TYPE[args.dataset_type]
+	creator_type = dataset_config.creator_type
+	creator_args = {**dataset_config.args, **vars(args)}
 
-		creator_args = vars(args)
-		creator_args.update(dataset_config.args)
-		dataset_creator = creator_generator(creator_args)
+	out_dataset_path = get_output_path(args)
+	print_if_verbose(f"{creator_type.__name__}: {args.in_dataset_path} -> {out_dataset_path}")
 
-		out_path = get_output_path(args.data_dir, args.out_dataset_basename, dataset_config)
-		print_if_verbose(f"{type(dataset_creator).__name__}: {args.in_dataset_path} -> {out_path}")
+	dataset_creator = DATASET_CREATORS_BY_TYPE.get(creator_type, lambda x: creator_type(**x))(creator_args)
 
-		try:
-			if args.overwrite or not dataset_creator.is_dataset_exist(out_path):
-				timeit(dataset_creator.create_dataset)(out_path)
-				print_if_verbose("Generated Successfully")
-			elif args.append:
-				timeit(dataset_creator.append_dataset)(out_path)
-				print_if_verbose("Appended Successfully")
-			else:
-				print_if_verbose("Skipped")
-		except NotImplementedError:
+	try:
+		if args.overwrite or not dataset_creator.is_dataset_exist(out_dataset_path):
+			timeit(dataset_creator.create_dataset)(out_dataset_path)
+			print_if_verbose("Generated Successfully")
+		elif args.append:
+			timeit(dataset_creator.append_dataset)(out_dataset_path)
+			print_if_verbose("Appended Successfully")
+		else:
 			print_if_verbose("Skipped")
-
-		args.in_dataset_path = out_path
+	except NotImplementedError:
+		print_if_verbose("Skipped")
 
 
 def main():
@@ -61,14 +58,15 @@ def main():
 	arg_parser.add_argument("--overwrite", "-w", action="store_true")
 	arg_parser.add_argument("--append", "-a", action="store_true")
 	arg_parser.add_argument("--dataset-size", "-s", type=int, default=None)
-	arg_parser.add_argument("--in-dataset-path", "-i", type=str, default="")
-	arg_parser.add_argument("--out-dataset-basename", "-o", type=str, required=True)
 	arg_parser.add_argument("--data-dir", "-d", type=str, default="")
+	arg_parser.add_argument("--in-dataset-path", "-i", type=str, default="")
+	arg_parser.add_argument("--out-dataset", "-o", type=str, required=True)
+	arg_parser.add_argument("--out-subdir-as-type", action="store_true")
 	arg_parser.add_argument("--verbose", "-v", action="store_true")
 
-	DependencyParserFactory.expand_parser(arg_parser)
 	ExtractorFactory.expand_parser(arg_parser)
 	VerbTranslatorFactory.expand_parser(arg_parser)
+	EncoderFactory.expand_parser(arg_parser)
 
 	args, _ = arg_parser.parse_known_args()
 	VERBOSE_CONFIG.VERBOSE = args.verbose

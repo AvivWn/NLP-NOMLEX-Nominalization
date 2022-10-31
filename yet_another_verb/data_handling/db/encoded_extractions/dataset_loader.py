@@ -1,34 +1,37 @@
-from time import time
-from typing import List
 from collections import Counter, defaultdict
 
 from pony.orm import db_session
 from tqdm import tqdm
 
 from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, Extraction, ArgumentType
-from yet_another_verb.arguments_extractor.extraction.extraction import EncodedExtraction
-from yet_another_verb.data_handling import TorchBytesHandler
+from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
+from yet_another_verb.arguments_extractor.extraction.words import Words
+from yet_another_verb.data_handling import TorchBytesHandler, ExtractedFileHandler, ExtractedBytesHandler
+from yet_another_verb.data_handling.bytes.compressed.compressed_encoding import CompressedEncoding
+from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
-from yet_another_verb.data_handling.db.encoded_extractions.encodings import EncodingLevel
+from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_limited_encodings, \
 	get_extracted_predicates, get_extractor, get_encoder, get_parser, get_limited_parsings
-from yet_another_verb.data_handling.db.encoded_extractions.structure import ExtractedArgument as DBExtractedArgument
+from yet_another_verb.data_handling.db.encoded_extractions.structure import ExtractedArgument as DBExtractedArgument, \
+	Parser
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Encoder
 from yet_another_verb.dependency_parsing import POSTaggedWord
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
+from yet_another_verb.sentence_encoding.encoding import Encoding
 
 
 class EncodedExtractionsLoader:
-	def __init__(self, dataset_path: str, parsing_engine: str, parser_name: str):
+	def __init__(self, dataset_path: str, parsing_engine: str, parser_name: str, keep_compressed: bool = False):
 		self.db_communicator = SQLiteCommunicator(encoded_extractions_db, dataset_path, create_db=False)
 		self.db_communicator.generate_mapping()
 
 		self.parsing_engine = parsing_engine
 		self.parser_name = parser_name
 		self.parser = DependencyParserFactory(parsing_engine=parsing_engine, parser_name=parser_name)()
+		self.extracted_bytes_handler = ExtractedBytesHandler(self.parser)
 
-		with db_session:
-			self.parser_entity = get_parser(self.parsing_engine, self.parser_name)
+		self.keep_compressed = keep_compressed
 
 	@staticmethod
 	def _agg_args_by_predicate(extracted_arg_entites):
@@ -41,23 +44,39 @@ class EncodedExtractionsLoader:
 
 		return arguments_by_predicates
 
-	@staticmethod
-	def _get_encoded_args(extracted_arg_entities: List[DBExtractedArgument], encoder_entity: Encoder):
-		encoded_args = {}
+	def _get_parsed_text(self, predicate_in_sentence, parser_entity: Parser) -> Words:
+		parsings = list(get_limited_parsings(predicate_in_sentence.sentence, parser_entity))
+		assert len(parsings) > 0
+		parsing = parsings[0]
 
-		for extracted_arg_entity in extracted_arg_entities:
-			encodings = list(get_limited_encodings(extracted_arg_entity.argument, encoder_entity))
-			assert len(encodings) > 0
-			encoded_args[ArgumentType(extracted_arg_entity.argument_type.argument_type)] = TorchBytesHandler.loads(encodings[0].binary)
+		if self.keep_compressed:
+			return CompressedParsedText(
+				bytes_data=parsing.binary,
+				parsing_egnine=parser_entity.engine,
+				parser_name=parser_entity.parser)
+		else:
+			return self.parser.from_bytes(parsing.binary)
 
-		return encoded_args
+	def _get_encoded_arg(self, extracted_arg_entity: DBExtractedArgument, encoder_entity: Encoder) -> Encoding:
+		encodings = list(get_limited_encodings(extracted_arg_entity.argument, encoder_entity))
+		assert len(encodings) > 0
+		encoding = encodings[0]
+
+		if self.keep_compressed:
+			return CompressedEncoding(
+				bytes_data=encoding.binary,
+				encoding_framework=encoder_entity.framework,
+				encoder_name=encoder_entity.encoder)
+		else:
+			return TorchBytesHandler.loads(encoding.binary)
 
 	@db_session
 	def get_encoded_extractions(
-			self, extractor: str, encoding_model: str, encoding_level: EncodingLevel
-	) -> List[EncodedExtraction]:
-		extractor_entity = get_extractor(extractor, self.parser_entity)
-		encoder_entity = get_encoder(encoding_model, encoding_level, self.parser_entity)
+			self, extractor: str, encoding_framework: str, encoding_model: str, encoding_level: EncodingLevel,
+	) -> Extractions:
+		parser_entity = get_parser(self.parsing_engine, self.parser_name)
+		extractor_entity = get_extractor(extractor, parser_entity)
+		encoder_entity = get_encoder(encoding_framework, encoding_model, encoding_level, parser_entity)
 
 		if extractor_entity is None or encoder_entity is None:
 			return []
@@ -65,32 +84,31 @@ class EncodedExtractionsLoader:
 		args_by_predicate = self._agg_args_by_predicate(extractor_entity.extracted_arguments)
 
 		encoded_extractions = []
-		for predicate_in_sentence, extracted_arg_entities in tqdm(args_by_predicate.items(), False):
-			a = time()
-			parsings = list(get_limited_parsings(predicate_in_sentence.sentence, self.parser_entity))
-			assert len(parsings) > 0
-			print("1", time() - a)
+		for predicate_in_sentence, extracted_arg_entities in tqdm(list(args_by_predicate.items()), False):
+			extracted_args = []
+			for extracted_arg_entity in extracted_arg_entities:
+				arg_entity = extracted_arg_entity.argument
+				arg_type = extracted_arg_entity.argument_type.argument_type
+				extracted_args.append(ExtractedArgument(
+					arg_idxs=list(range(arg_entity.start_idx, arg_entity.end_idx + 1)),
+					arg_type=ArgumentType(arg_type),
+					encoding=self._get_encoded_arg(extracted_arg_entity, encoder_entity)))
 
-			a = time()
 			extraction = Extraction(
-				words=self.parser.from_bytes(parsings[0].binary),
+				words=self._get_parsed_text(predicate_in_sentence, parser_entity),
 				predicate_idx=predicate_in_sentence.word_idx,
 				predicate_lemma=predicate_in_sentence.predicate.lemma,
-				args=[ExtractedArgument(
-					arg_idxs=list(range(e.argument.start_idx, e.argument.end_idx + 1)),
-					arg_type=ArgumentType(e.argument_type.argument_type)) for e in extracted_arg_entities])
-			print("2", time() - a)
+				args=extracted_args
+			)
 
-			a = time()
-			encoded_args = self._get_encoded_args(extracted_arg_entities, encoder_entity)
-			encoded_extractions.append(EncodedExtraction(extraction=extraction, encoded_args=encoded_args))
-			print("3", time() - a)
+			encoded_extractions.append(extraction)
 
 		return encoded_extractions
 
 	@db_session
 	def get_predicate_counts(self, extractor: str) -> Counter:
-		extractor_entity = get_extractor(extractor, self.parser_entity)
+		parser_entity = get_parser(self.parsing_engine, self.parser_name)
+		extractor_entity = get_extractor(extractor, parser_entity)
 		extracted_predicates = get_extracted_predicates(extractor_entity)
 		predicate_counter = Counter()
 		for predicate_in_sentence in extracted_predicates:
@@ -110,7 +128,13 @@ class EncodedExtractionsLoader:
 
 
 if __name__ == "__main__":
-	db_path = "/home/nlp/avivwn/thesis/data/wiki40b/encoded-extractions/limited-words/part00.db"
-	with EncodedExtractionsLoader(db_path, "spacy", "en_ud_model_lg") as loader:
-		result = loader.get_encoded_extractions("nomlex", "bert-base-uncased", EncodingLevel.HEAD_IDX)
+	db_path = "/home/nlp/avivwn/thesis/data/wiki40b/encoded-extractions/limited-words.db"
+	with EncodedExtractionsLoader(db_path, "spacy", "en_ud_model_lg", keep_compressed=True) as loader:
+		result = loader.get_encoded_extractions("nomlex", "pretrained_torch", "bert-base-uncased", EncodingLevel.HEAD_IDX)
 		print(len(result))
+
+		ExtractedFileHandler(loader.parser).save('/home/nlp/avivwn/thesis/data/wiki40b/extracted/testing.extracted', result)
+
+		# extractions = ExtractedFileHandler(loader.parser).load('/home/nlp/avivwn/thesis/data/wiki40b/extracted/testing.extracted')
+		print(1)
+

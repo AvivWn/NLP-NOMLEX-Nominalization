@@ -1,17 +1,18 @@
-from typing import Set, List, Optional
+from typing import Set, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 from itertools import chain
-
-from collections import namedtuple
 
 from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 
+if TYPE_CHECKING:
+	from yet_another_verb.arguments_extractor.extraction.words import Words
+
 
 @dataclass
 class Extraction:
-	words: list
+	words: 'Words'
 	predicate_idx: int
 	predicate_lemma: str
 	args: List[ExtractedArgument]
@@ -69,6 +70,10 @@ class Extraction:
 		return self._typeless_args
 
 	@property
+	def all_args(self) -> List[ExtractedArgument]:
+		return self.args + self.undetermined_args + self.typeless_args
+
+	@property
 	def fulfilled_constraints_by_args(self) -> List[ConstraintsMap]:
 		total_args = self.args + list(self._typeless_args)
 		return list(chain(*[arg.fulfilled_constraints for arg in total_args]))
@@ -106,6 +111,3 @@ class Extraction:
 
 
 Extractions = List[Extraction]
-
-# TODO: integrate the encodings in the Extraction and ExtractedArgument classes
-EncodedExtraction = namedtuple('EncodedExtraction', ['extraction', 'encoded_args'])

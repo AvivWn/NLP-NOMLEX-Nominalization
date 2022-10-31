@@ -30,11 +30,12 @@ class Extractor(_db.Entity):
 
 
 class Encoder(_db.Entity):
-	model = Required(str)
+	framework = Required(str)
+	encoder = Required(str)
 	encoding_level = Required(str)  # head-idx, start-idx, ...
 	parser = Required(Parser)
 	encodings = Set(T_ENCODING)
-	PrimaryKey(model, encoding_level, parser)
+	PrimaryKey(framework, encoder, encoding_level, parser)
 
 
 class Sentence(_db.Entity):

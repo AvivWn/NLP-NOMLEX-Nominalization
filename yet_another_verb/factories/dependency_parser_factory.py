@@ -17,7 +17,6 @@ class DependencyParserFactory(Factory):
 
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:
-		arg_parser = DependencyParserFactory._expand_optional_parser(arg_parser)
 		arg_parser.add_argument(
 			'--parsing-engine', '-e', default=PARSING_CONFIG.PARSING_ENGINE,
 			help="The engine which will parse the sentences"
