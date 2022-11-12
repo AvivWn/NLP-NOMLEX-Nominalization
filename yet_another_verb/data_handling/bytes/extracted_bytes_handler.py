@@ -46,11 +46,16 @@ class ExtractedBytesHandler(PKLBytesHandler):
 
 	def _get_compressed_words(self, words: Words) -> CompressedParsedText:
 		if isinstance(words, ParsedText):
-			return CompressedParsedText(
+			assert self.dependency_parser is not None
+			words = CompressedParsedText(
 				bytes_data=words.to_bytes(),
 				parsing_egnine=engine_by_parser[type(self.dependency_parser)],
 				parser_name=self.dependency_parser.name)
 		elif isinstance(words, CompressedParsedText):
+			words = CompressedParsedText(
+				bytes_data=words.bytes_data,
+				parsing_egnine=words.parsing_egnine,
+				parser_name=words.parser_name)
 			words.parsed_text = None
 
 		return words
@@ -58,9 +63,9 @@ class ExtractedBytesHandler(PKLBytesHandler):
 	@staticmethod
 	def _get_compressed_encoding(encoding: Encoding) -> CompressedEncoding:
 		if isinstance(encoding, torch.Tensor):
-			encoding = CompressedEncoding(
-				bytes_data=TorchBytesHandler.saves(encoding))
+			encoding = CompressedEncoding(bytes_data=TorchBytesHandler.saves(encoding))
 		elif isinstance(encoding, CompressedEncoding):
+			encoding = CompressedEncoding(bytes_data=encoding.bytes_data)
 			encoding.encoding = None
 
 		return encoding
@@ -98,7 +103,7 @@ class ExtractedBytesHandler(PKLBytesHandler):
 				ext.words = self._get_decompressed_words(ext.words, parser_by_id)
 
 			for arg in ext.all_args:
-				arg.encoding = self._get_compressed_encoding(arg.encoding)
+				arg.encoding = self._get_decompressed_encoding(arg.encoding)
 
 		return extraction_obj
 
