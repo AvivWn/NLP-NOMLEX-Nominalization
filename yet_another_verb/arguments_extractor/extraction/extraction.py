@@ -79,7 +79,7 @@ class Extraction:
 		return list(chain(*[arg.fulfilled_constraints for arg in total_args]))
 
 	@property
-	def predicate_type(self) -> Optional[ArgumentType]:
+	def predicate_arg(self) -> Optional[ExtractedArgument]:
 		if self.predicate_idx not in self.arg_indices:
 			return None
 
@@ -89,7 +89,16 @@ class Extraction:
 		if len(predicate_args) == 0:
 			return None
 
-		return predicate_args[0].arg_type
+		return predicate_args[0]
+
+	@property
+	def predicate_type(self) -> Optional[ArgumentType]:
+		predicate_arg = self.predicate_arg
+
+		if predicate_arg is None:
+			return None
+
+		return predicate_arg.arg_type
 
 	def tag_arg_by_range(self, idx_range: ArgRange, tag: str):
 		arg = self._arg_by_range.get(idx_range, None)
