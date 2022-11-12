@@ -1,7 +1,11 @@
+from functools import lru_cache
+from typing import Tuple
+
 import torch
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, BatchEncoding
 
 from yet_another_verb.sentence_encoding.encoder import Encoder
+from yet_another_verb.utils.print_utils import print_if_verbose
 
 
 class TorchPretrainedEncoder(Encoder):
@@ -19,9 +23,29 @@ class TorchPretrainedEncoder(Encoder):
 	def name(self) -> str:
 		return self.encoder_name
 
-	def encode(self, sentence: str) -> torch.Tensor:
-		tokenized = self.tokenizer(sentence.split(), return_tensors="pt", is_split_into_words=True, add_special_tokens=True)
-		tokenized = tokenized.to(self.device)
+	def _tokenize(self, sentence: str):
+		return self.tokenizer(
+			sentence.split(), return_tensors="pt", is_split_into_words=True,
+			add_special_tokens=True)
+
+	@lru_cache(maxsize=None)
+	def _encode_and_tokenize(self, sentence: str) -> Tuple[BatchEncoding, torch.Tensor]:
+		tokenized = self._tokenize(sentence).to(self.device)
 
 		with torch.no_grad():
-			return self.model(**tokenized)[0][0].cpu()
+			return tokenized, self.model(**tokenized)[0][0].cpu()
+
+	def encode(self, sentence: str) -> torch.Tensor:
+		return self._encode_and_tokenize(sentence)[1]
+
+	def encode_word(self, sentence: str, word_idx: int) -> torch.Tensor:
+		tokenized, sentence_encodings = self._encode_and_tokenize(sentence)
+
+		matching_token_indices = tokenized.word_to_tokens(word_idx)
+		if matching_token_indices is None:
+			print_if_verbose("Couldn't find the matching token of the word", sentence, word_idx)
+			matching_token_idx = word_idx
+		else:
+			matching_token_idx = matching_token_indices[0]
+
+		return sentence_encodings[matching_token_idx]

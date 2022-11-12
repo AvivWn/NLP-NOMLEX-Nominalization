@@ -13,4 +13,4 @@ class HeadIdxArgumentEncoder(ArgumentEncoder):
 	def encode(self, argument: ExtractedArgument):
 		arg_span = get_argument_in_parsed_text(argument, self.parsed_text)
 		head_idx = arg_span.root.i
-		return self.encoder(self.parsed_text.tokenized_text)[head_idx].clone()
+		return self.encoder.encode_word(self.parsed_text.tokenized_text, head_idx).clone()
