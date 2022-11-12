@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from typing import List
 
 from pony.orm import db_session
 from tqdm import tqdm
@@ -6,7 +7,7 @@ from tqdm import tqdm
 from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, Extraction, ArgumentType
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
 from yet_another_verb.arguments_extractor.extraction.words import Words
-from yet_another_verb.data_handling import TorchBytesHandler, ExtractedFileHandler, ExtractedBytesHandler
+from yet_another_verb.data_handling import TorchBytesHandler, ExtractedBytesHandler
 from yet_another_verb.data_handling.bytes.compressed.compressed_encoding import CompressedEncoding
 from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
@@ -16,7 +17,7 @@ from yet_another_verb.data_handling.db.encoded_extractions.queries import get_li
 from yet_another_verb.data_handling.db.encoded_extractions.structure import ExtractedArgument as DBExtractedArgument, \
 	Parser
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Encoder
-from yet_another_verb.dependency_parsing import POSTaggedWord
+from yet_another_verb.dependency_parsing import POSTaggedWord, POSTag
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.sentence_encoding.encoding import Encoding
 
@@ -73,6 +74,7 @@ class EncodedExtractionsLoader:
 	@db_session
 	def get_encoded_extractions(
 			self, extractor: str, encoding_framework: str, encoding_model: str, encoding_level: EncodingLevel,
+			limited_postags: List[POSTag] = None
 	) -> Extractions:
 		parser_entity = get_parser(self.parsing_engine, self.parser_name)
 		extractor_entity = get_extractor(extractor, parser_entity)
@@ -85,6 +87,10 @@ class EncodedExtractionsLoader:
 
 		encoded_extractions = []
 		for predicate_in_sentence, extracted_arg_entities in tqdm(list(args_by_predicate.items()), False):
+			pos_entity = predicate_in_sentence.predicate.part_of_speech
+			if limited_postags is not None and POSTag(pos_entity.part_of_speech) not in limited_postags:
+				continue
+
 			extracted_args = []
 			for extracted_arg_entity in extracted_arg_entities:
 				arg_entity = extracted_arg_entity.argument
@@ -125,16 +131,3 @@ class EncodedExtractionsLoader:
 
 	def __exit__(self, exc_type, exc_value, exc_traceback):
 		self.db_communicator.__exit__(exc_type, exc_value, exc_traceback)
-
-
-if __name__ == "__main__":
-	db_path = "/home/nlp/avivwn/thesis/data/wiki40b/encoded-extractions/limited-words.db"
-	with EncodedExtractionsLoader(db_path, "spacy", "en_ud_model_lg", keep_compressed=True) as loader:
-		result = loader.get_encoded_extractions("nomlex", "pretrained_torch", "bert-base-uncased", EncodingLevel.HEAD_IDX)
-		print(len(result))
-
-		ExtractedFileHandler(loader.parser).save('/home/nlp/avivwn/thesis/data/wiki40b/extracted/testing.extracted', result)
-
-		# extractions = ExtractedFileHandler(loader.parser).load('/home/nlp/avivwn/thesis/data/wiki40b/extracted/testing.extracted')
-		print(1)
-

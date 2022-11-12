@@ -3,13 +3,14 @@ from typing import Dict, Any
 
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import NP_ARG_TYPES, PP_ARG_TYPES
 from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCreator, \
-	ExtractedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator, ShuffledLinesDatasetCreator, \
-	CombinedSQLitesDatasetCreator, EncodedExtractionsExpander
+	ExtractedFromParsedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator, ShuffledLinesDatasetCreator, \
+	CombinedSQLitesDatasetCreator, EncodedExtractionsExpander, ExtractedFromDBDatasetCreator
 from yet_another_verb.dependency_parsing import NOUN_POSTAGS, POSTag
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.encoder_factory import EncoderFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
+from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel
 
 
 @dataclass
@@ -22,7 +23,7 @@ DATASET_CREATORS_BY_TYPE = {
 	ParsedDatasetCreator: lambda kwargs: ParsedDatasetCreator(
 		**kwargs,
 		dependency_parser=DependencyParserFactory(**kwargs)()),
-	ExtractedDatasetCreator: lambda kwargs: ExtractedDatasetCreator(
+	ExtractedFromParsedDatasetCreator: lambda kwargs: ExtractedFromParsedDatasetCreator(
 		**kwargs,
 		args_extractor=ExtractorFactory(**kwargs)()),
 	BIOArgsDatasetCreator: lambda kwargs: BIOArgsDatasetCreator(
@@ -43,7 +44,7 @@ DATASET_CREATORS_BY_TYPE = {
 	)
 }
 
-LIMITED_WORDS = [
+LIMITED_VERBS = [
 	"participate", "respond", "define", "require", "evaluate", "invest", "separate", "construct", "intercede", "affect",
 	"describe", "restrict", "release", "classify", "acquire", "analyze", "analyse", "maintain", "assess", "control",
 	"deploy", "visit", "possess", "develop", "pollute", "resist", "expand", "aspire", "adapt", "accept", "publish",
@@ -68,7 +69,7 @@ DATASET_CONFIGS_BY_TYPE = {
 	"shuffled": DatasetConfig(ShuffledLinesDatasetCreator),
 	"parsed/en_ud_model_lg-2.0.0": DatasetConfig(
 		ParsedDatasetCreator, {"parsing_engine": "spacy", "parser_name": "en_ud_model_lg"}),
-	"extracted/nomlex": DatasetConfig(ExtractedDatasetCreator, {"extraction_mode": "nomlex"}),
+	"extracted/nomlex": DatasetConfig(ExtractedFromParsedDatasetCreator, {"extraction_mode": "nomlex"}),
 
 	"bio-args/noun-args-by-v1-skip-predicate":
 		DatasetConfig(
@@ -83,15 +84,41 @@ DATASET_CONFIGS_BY_TYPE = {
 
 	"encoded-extractions/all": DatasetConfig(EncodedExtractionsCreator),
 
-	"encoded-extractions/limited-words":
+	"encoded-extractions/limited-verbs":
 		DatasetConfig(
 			EncodedExtractionsCreator,
 			{
 				"limited_postags": [POSTag.VERB, POSTag.NOUN],
-				"limited_words": LIMITED_WORDS,
+				"limited_verbs": LIMITED_VERBS,
 			}),
 
 	"encoded-extractions/expand": DatasetConfig(EncodedExtractionsExpander),
 
 	"combined-sqlite": DatasetConfig(CombinedSQLitesDatasetCreator),
+
+	"extracted-from-db/noun":
+		DatasetConfig(
+			ExtractedFromDBDatasetCreator,
+			{
+				"parsing_engine": "spacy",
+				"parser_name": "en_ud_model_lg",
+				"extractor": "nomlex",
+				"encoding_framework": "pretrained_torch",
+				"encoder_name": "bert-base-uncased",
+				"encoding_level": EncodingLevel.HEAD_IDX,
+				"limited_postags": [POSTag.NOUN]
+			}),
+
+	"extracted-from-db/verb":
+		DatasetConfig(
+			ExtractedFromDBDatasetCreator,
+			{
+				"parsing_engine": "spacy",
+				"parser_name": "en_ud_model_lg",
+				"extractor": "nomlex",
+				"encoding_framework": "pretrained_torch",
+				"encoder_name": "bert-base-uncased",
+				"encoding_level": EncodingLevel.HEAD_IDX,
+				"limited_postags": [POSTag.VERB]
+			}),
 }

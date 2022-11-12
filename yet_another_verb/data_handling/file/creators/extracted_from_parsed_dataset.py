@@ -11,7 +11,7 @@ from yet_another_verb.data_handling import ParsedBinFileHandler, ExtractedFileHa
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 
 
-class ExtractedDatasetCreator(DatasetCreator):
+class ExtractedFromParsedDatasetCreator(DatasetCreator):
 	def __init__(
 			self, in_dataset_path: str,
 			args_extractor: ArgsExtractor,

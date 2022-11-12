@@ -37,7 +37,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 			encoder: Encoder,
 			encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX,
 			limited_postags: List[POSTag] = None,
-			limited_words: List[str] = None,
+			limited_verbs: List[str] = None,
 			dataset_size=None, **kwargs
 	):
 		super().__init__(dataset_size)
@@ -50,10 +50,12 @@ class EncodedExtractionsCreator(DatasetCreator):
 		self.encoding_level = encoding_level
 
 		self.limited_postags = limited_postags
-		self.limited_words = limited_words
+		self.limited_verbs = limited_verbs
 
 	def _is_relevant_predicate(self, postagged_word: POSTaggedWord, predicate_counter: Optional[Counter] = None) -> bool:
-		if self.limited_words is not None and postagged_word.word not in self.limited_words:
+		verb = self.verb_translator.translate(postagged_word.word, postagged_word.postag)
+
+		if self.limited_verbs is not None and verb not in self.limited_verbs:
 			return False
 
 		if self.limited_postags is not None and postagged_word.postag not in self.limited_postags:

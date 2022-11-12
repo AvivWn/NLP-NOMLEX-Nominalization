@@ -20,7 +20,7 @@ def show_args(args: Namespace):
 
 def get_output_path(args: Namespace) -> str:
 	out_dataset_path = args.data_dir
-	if args.out_subdir_as_type:
+	if args.out_specify_subdir:
 		out_dataset_path = join(out_dataset_path, args.dataset_type)
 
 	makedirs(out_dataset_path, exist_ok=True)
@@ -32,7 +32,7 @@ def create_dataset(args: Namespace):
 
 	dataset_config = DATASET_CONFIGS_BY_TYPE[args.dataset_type]
 	creator_type = dataset_config.creator_type
-	creator_args = {**dataset_config.args, **vars(args)}
+	creator_args = {**vars(args), **dataset_config.args}
 
 	out_dataset_path = get_output_path(args)
 	print_if_verbose(f"{creator_type.__name__}: {args.in_dataset_path} -> {out_dataset_path}")
@@ -61,7 +61,7 @@ def main():
 	arg_parser.add_argument("--data-dir", "-d", type=str, default="")
 	arg_parser.add_argument("--in-dataset-path", "-i", type=str, default="")
 	arg_parser.add_argument("--out-dataset", "-o", type=str, required=True)
-	arg_parser.add_argument("--out-subdir-as-type", action="store_true")
+	arg_parser.add_argument("--out-specify-subdir", action="store_true")
 	arg_parser.add_argument("--verbose", "-v", action="store_true")
 
 	ExtractorFactory.expand_parser(arg_parser)
