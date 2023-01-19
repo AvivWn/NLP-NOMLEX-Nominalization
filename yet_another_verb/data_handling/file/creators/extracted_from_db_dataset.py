@@ -31,6 +31,6 @@ class ExtractedFromDBDatasetCreator(DatasetCreator):
 	def create_dataset(self, out_dataset_path: str):
 		with EncodedExtractionsLoader(self.in_dataset_path, self.parsing_engine, self.parser_name, keep_compressed=True) as loader:
 			extractions = loader.get_encoded_extractions(
-				self.extractor, self.encoding_framework, self.encoder_name, EncodingLevel.HEAD_IDX, self.limited_postags)
+				self.extractor, self.encoding_framework, self.encoder_name, EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT, self.limited_postags)
 
 		ExtractedFileHandler(loader.parser).save(out_dataset_path, extractions)

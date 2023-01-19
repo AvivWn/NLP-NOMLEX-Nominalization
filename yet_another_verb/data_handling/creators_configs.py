@@ -105,7 +105,7 @@ DATASET_CONFIGS_BY_TYPE = {
 				"extractor": "nomlex",
 				"encoding_framework": "pretrained_torch",
 				"encoder_name": "bert-base-uncased",
-				"encoding_level": EncodingLevel.HEAD_IDX,
+				"encoding_level": EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT,
 				"limited_postags": [POSTag.NOUN]
 			}),
 
@@ -118,7 +118,7 @@ DATASET_CONFIGS_BY_TYPE = {
 				"extractor": "nomlex",
 				"encoding_framework": "pretrained_torch",
 				"encoder_name": "bert-base-uncased",
-				"encoding_level": EncodingLevel.HEAD_IDX,
+				"encoding_level": EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT,
 				"limited_postags": [POSTag.VERB]
 			}),
 }

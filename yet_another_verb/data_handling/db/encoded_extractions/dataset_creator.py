@@ -35,7 +35,7 @@ class EncodedExtractionsCreator(DatasetCreator):
 			args_extractor: ArgsExtractor,
 			verb_translator: VerbTranslator,
 			encoder: Encoder,
-			encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX,
+			encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT,
 			limited_postags: List[POSTag] = None,
 			limited_verbs: List[str] = None,
 			dataset_size=None, **kwargs
