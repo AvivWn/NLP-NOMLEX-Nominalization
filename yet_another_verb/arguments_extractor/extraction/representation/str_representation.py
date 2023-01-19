@@ -14,4 +14,4 @@ class StrRepresentation(ExtractionRepresentation):
 
 	@typechecked
 	def _represent_argument(self, words: List[str], predicate_idx: int, argument: ExtractedArgument) -> str:
-		return " ".join([words[i] for i in argument.arg_idxs])
+		return " ".join([words[i] for i in argument.arg_indices])

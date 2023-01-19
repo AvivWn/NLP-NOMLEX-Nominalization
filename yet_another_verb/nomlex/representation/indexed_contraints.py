@@ -33,85 +33,85 @@ class IndexedConstraintsMaps:
 			property_mapping[word_property].add(map_idx)
 
 	def __post_init__(self):
-		self._ordered_idxs = list(range(len(self.constraints_maps)))
-		self._ordered_idxs.sort(key=lambda c_id: len(self.constraints_maps[c_id].included_args), reverse=True)
+		self._ordered_indices = list(range(len(self.constraints_maps)))
+		self._ordered_indices.sort(key=lambda c_id: len(self.constraints_maps[c_id].included_args), reverse=True)
 
-		self._required_idxs = set()
-		self._all_optional_relative_idxs = set()
-		self._idxs_by_properties = defaultdict(set)
-		self._idxs_by_relative_properties = defaultdict(set)
+		self._required_indices = set()
+		self._all_optional_relative_indices = set()
+		self._indices_by_properties = defaultdict(set)
+		self._indices_by_relative_properties = defaultdict(set)
 
 		for i, constraints_map in enumerate(self.constraints_maps):
 			if constraints_map.required:
-				self._required_idxs.add(i)
+				self._required_indices.add(i)
 
 			required_relative_maps = constraints_map.get_required_relative_maps()
 			if len(required_relative_maps) == 0:
-				self._all_optional_relative_idxs.add(i)
+				self._all_optional_relative_indices.add(i)
 
-			self._expand_with_suitable_properties(self._idxs_by_properties, constraints_map, i)
+			self._expand_with_suitable_properties(self._indices_by_properties, constraints_map, i)
 
 			for relative_map in constraints_map.relatives_constraints:
-				self._expand_with_suitable_properties(self._idxs_by_relative_properties, relative_map, i)
+				self._expand_with_suitable_properties(self._indices_by_relative_properties, relative_map, i)
 
 	@staticmethod
-	def _get_relevants_idxs_in_mapping(property_mapping: Dict[WordProperty, Set[int]], word: ParsedWord) -> Set[int]:
-		relevant_idxs = set()
+	def _get_relevant_indices_in_mapping(property_mapping: Dict[WordProperty, Set[int]], word: ParsedWord) -> Set[int]:
+		relevant_indices = set()
 		for value, postag, relation in product([word.text, None], [word.tag, word.pos, None], [word.dep, None]):
 			word_property = WordProperty(value=value, postag=postag, relation=relation)
-			relevant_idxs.update(property_mapping[word_property])
+			relevant_indices.update(property_mapping[word_property])
 
-		return relevant_idxs
+		return relevant_indices
 
-	def _reorder_by_potential(self, idxs: Set[int]) -> List[int]:
-		ordered_idxs = []
-		for idx in self._ordered_idxs:
-			if idx in idxs:
-				ordered_idxs.append(idx)
+	def _reorder_by_potential(self, indices: Set[int]) -> List[int]:
+		ordered_indices = []
+		for idx in self._ordered_indices:
+			if idx in indices:
+				ordered_indices.append(idx)
 
-		return ordered_idxs
+		return ordered_indices
 
-	def _get_relevant_constraints_maps_idxs(
+	def _get_relevant_constraints_maps_indices(
 			self, word: ParsedWord, relatives: Optional[List[ParsedWord]] = None,
 			order_by_potential: bool = False
 	) -> List[int]:
-		relevant_idxs = self._get_relevants_idxs_in_mapping(self._idxs_by_properties, word)
+		relevant_indices = self._get_relevant_indices_in_mapping(self._indices_by_properties, word)
 
 		if relatives is not None:
-			relatives_relevant_idxs = set()
+			relatives_relevant_indices = set()
 			for relative in relatives:
-				relatives_relevant_idxs.update(
-					self._get_relevants_idxs_in_mapping(self._idxs_by_relative_properties, relative))
+				relatives_relevant_indices.update(
+					self._get_relevant_indices_in_mapping(self._indices_by_relative_properties, relative))
 
-			relatives_relevant_idxs.update(self._all_optional_relative_idxs)
-			relevant_idxs = relevant_idxs.intersection(relatives_relevant_idxs)
+			relatives_relevant_indices.update(self._all_optional_relative_indices)
+			relevant_indices = relevant_indices.intersection(relatives_relevant_indices)
 
 		if order_by_potential:
-			relevant_idxs = self._reorder_by_potential(relevant_idxs)
+			relevant_indices = self._reorder_by_potential(relevant_indices)
 		else:
-			relevant_idxs = list(relevant_idxs)
+			relevant_indices = list(relevant_indices)
 
-		print_if_verbose("SAVED:", len(self.constraints_maps) - len(relevant_idxs))
-		return relevant_idxs
+		print_if_verbose("SAVED:", len(self.constraints_maps) - len(relevant_indices))
+		return relevant_indices
 
 	def get_relevant_constraints_maps(
 			self, word: ParsedWord, order_by_potential: bool = False) -> Iterator['ConstraintsMap']:
-		relevant_idxs = self._get_relevant_constraints_maps_idxs(word, word.children, order_by_potential)
-		return map(lambda i: self.constraints_maps[i], relevant_idxs)
+		relevant_indices = self._get_relevant_constraints_maps_indices(word, word.children, order_by_potential)
+		return map(lambda i: self.constraints_maps[i], relevant_indices)
 
 	def get_relevant_maps_combinations(self, words: List[ParsedWord]) -> Iterator[List[Optional['ConstraintsMap']]]:
-		coresponding_relevant_maps_idxs = []
+		coresponding_relevant_maps_indices = []
 		for i, word in enumerate(words):
-			relevant_maps_idxs = self._get_relevant_constraints_maps_idxs(word)
-			coresponding_relevant_maps_idxs.append(relevant_maps_idxs + [-i])
+			relevant_maps_indices = self._get_relevant_constraints_maps_indices(word)
+			coresponding_relevant_maps_indices.append(relevant_maps_indices + [-i])
 
-		maps_idxs_permutations = product(*coresponding_relevant_maps_idxs)
+		maps_indices_permutations = product(*coresponding_relevant_maps_indices)
 
-		for idxs_permute in maps_idxs_permutations:
-			if len(set(idxs_permute)) < len(idxs_permute):
+		for indices_permute in maps_indices_permutations:
+			if len(set(indices_permute)) < len(indices_permute):
 				continue
 
-			if not self._required_idxs.issubset(idxs_permute):
+			if not self._required_indices.issubset(indices_permute):
 				continue
 
-			yield [self.constraints_maps[i] if i >= 0 else None for i in idxs_permute]
+			yield [self.constraints_maps[i] if i >= 0 else None for i in indices_permute]

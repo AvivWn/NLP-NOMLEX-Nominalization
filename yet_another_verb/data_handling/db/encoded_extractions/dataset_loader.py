@@ -96,7 +96,8 @@ class EncodedExtractionsLoader:
 				arg_entity = extracted_arg_entity.argument
 				arg_type = extracted_arg_entity.argument_type.argument_type
 				extracted_args.append(ExtractedArgument(
-					arg_idxs=list(range(arg_entity.start_idx, arg_entity.end_idx + 1)),
+					start_idx=arg_entity.start_idx,
+					end_idx=arg_entity.end_idx,
 					arg_type=ArgumentType(arg_type),
 					encoding=self._get_encoded_arg(extracted_arg_entity, encoder_entity)))
 

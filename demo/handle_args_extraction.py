@@ -32,8 +32,8 @@ def _tag_args_in_extractions(
 	sentence_range = (sent_shift_idx, sent_shift_idx + len(parsed_sent))
 	tagged_ranges = filter_specified_tags(tagged_ranges, sentence_range)
 
-	predicates_idxs, arg_tagged_ranges = seperate_predicate_and_args_ranges(tagged_ranges)
-	tagged_extractions = tag_extraction(multi_word_extraction, predicates_idxs, arg_tagged_ranges)
+	predicates_indices, arg_tagged_ranges = seperate_predicate_and_args_ranges(tagged_ranges)
+	tagged_extractions = tag_extraction(multi_word_extraction, predicates_indices, arg_tagged_ranges)
 
 	return tagged_extractions
 

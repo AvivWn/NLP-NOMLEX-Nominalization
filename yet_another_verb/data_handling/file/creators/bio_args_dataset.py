@@ -45,9 +45,9 @@ class BIOArgsDatasetCreator(DatasetCreator):
 			tokens[predicate_idx] = predicate_lemma
 
 		if self.avoid_outside_tag:
-			relevant_idxs = [i for i in range(len(bio_tags)) if bio_tags[i] != 'O']
-			tokens = [tokens[i] for i in range(len(tokens)) if i in relevant_idxs]
-			bio_tags = [bio_tags[i] for i in range(len(bio_tags)) if i in relevant_idxs]
+			relevant_indices = [i for i in range(len(bio_tags)) if bio_tags[i] != 'O']
+			tokens = [tokens[i] for i in range(len(tokens)) if i in relevant_indices]
+			bio_tags = [bio_tags[i] for i in range(len(bio_tags)) if i in relevant_indices]
 
 		if len(tokens) == 0 or set(bio_tags) == {'O'}:
 			return

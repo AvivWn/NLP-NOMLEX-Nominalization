@@ -62,12 +62,12 @@ class BIOClassifierWithPositionAugmentation(TokenClassifier):
 		augmented_batch = deepcopy(batch)
 
 		for token_ids, attention_mask, y in zip(*augmented_batch):
-			begin_idxs = torch.cat([(y == self.tagset[b_tag]).nonzero(as_tuple=False) for b_tag in self.begin_tags])
+			begin_indices = torch.cat([(y == self.tagset[b_tag]).nonzero(as_tuple=False) for b_tag in self.begin_tags])
 
-			if len(begin_idxs) == 0:
+			if len(begin_indices) == 0:
 				continue
 
-			begin_idx = begin_idxs[torch.multinomial(torch.ones(len(begin_idxs)), 1).item()]
+			begin_idx = begin_indices[torch.multinomial(torch.ones(len(begin_indices)), 1).item()]
 			begin_tag = self.inversed_tagset[y[begin_idx].item()]
 			inside_tag = INSIDE_PREFIX + begin_tag[len(BEGIN_PREFIX):]
 			inside_tag_encoded = self.tagset[inside_tag]

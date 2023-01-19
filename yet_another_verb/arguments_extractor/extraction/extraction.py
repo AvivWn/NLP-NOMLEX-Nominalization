@@ -21,7 +21,7 @@ class Extraction:
 
 	@staticmethod
 	def _sorted_args_by_idx(args: List[ExtractedArgument]) -> List[ExtractedArgument]:
-		return sorted(args, key=lambda arg: min(arg.arg_idxs))
+		return sorted(args, key=lambda arg: arg.start_idx)
 
 	def _seperate_typeless_args(self, args: List[ExtractedArgument]) -> tuple:
 		typed_args, typeless_args = [], []
@@ -39,7 +39,7 @@ class Extraction:
 		self._arg_by_type, self._arg_by_range = {}, {}
 		for arg in self.args:
 			self._arg_by_type[arg.arg_type] = arg
-			self._arg_by_range[arg.tightest_range] = arg
+			self._arg_by_range[(arg.start_idx, arg.end_idx)] = arg
 
 	def __setattr__(self, key: str, value: List[ExtractedArgument]):
 		if key == 'args':
@@ -59,7 +59,7 @@ class Extraction:
 
 	@property
 	def arg_indices(self) -> Set[int]:
-		return set(chain(*[arg.arg_idxs for arg in self.args]))
+		return set(chain(*[arg.arg_indices for arg in self.args]))
 
 	@property
 	def arg_types(self) -> Set[str]:
@@ -80,10 +80,7 @@ class Extraction:
 
 	@property
 	def predicate_arg(self) -> Optional[ExtractedArgument]:
-		if self.predicate_idx not in self.arg_indices:
-			return None
-
-		predicate_args = [arg for arg in self.args if self.predicate_idx in arg.arg_idxs]
+		predicate_args = [arg for arg in self.args if self.predicate_idx in arg.arg_indices]
 		assert len(predicate_args) <= 1
 
 		if len(predicate_args) == 0:

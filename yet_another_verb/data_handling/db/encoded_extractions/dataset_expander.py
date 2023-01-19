@@ -8,7 +8,7 @@ from yet_another_verb.arguments_extractor.extraction.utils.combination import co
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_encoder, \
-	get_predicate_in_sentence, get_predicate, get_parser, insert_encoded_arguments, get_extracted_idxs_in_sentence
+	get_predicate_in_sentence, get_predicate, get_parser, insert_encoded_arguments, get_extracted_indices_in_sentence
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, \
 	Parser, Parsing, Sentence, Extractor
 from yet_another_verb.dependency_parsing import engine_by_parser
@@ -53,7 +53,7 @@ class EncodedExtractionsExpander(DatasetCreator):
 	def _expand_extractions(
 			self, doc: ParsedText, sentence_entity: Sentence, extractor_entity: Extractor, encoder_entity: Encoder):
 		# skip extracted sentences
-		extracted_predicates = get_extracted_idxs_in_sentence(sentence_entity, extractor_entity)
+		extracted_predicates = get_extracted_indices_in_sentence(sentence_entity, extractor_entity)
 		if len(extracted_predicates) > 0:
 			return
 

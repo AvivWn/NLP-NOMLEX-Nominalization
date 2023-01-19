@@ -1,0 +1,2 @@
+class EmptyArgumentException(Exception):
+	pass

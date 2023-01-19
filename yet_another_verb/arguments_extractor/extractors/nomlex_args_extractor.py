@@ -10,6 +10,7 @@ from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser imp
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
+from yet_another_verb.exceptions import EmptyArgumentException
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
@@ -112,15 +113,14 @@ class NomlexArgsExtractor(ArgsExtractor):
 			if constraints_map is None:
 				continue
 
-			if relative is None:
+			relative_matched_args = None if relative is None else self._get_matched_arguments(
+				predicate, relative, constraints_map)
+
+			if relative_matched_args is None:
 				if constraints_map.required:
 					return None
 
 				continue
-
-			relative_matched_args = self._get_matched_arguments(predicate, relative, constraints_map)
-			if relative_matched_args is None:
-				return None
 
 			relatives_matched_args.append(relative_matched_args)
 
@@ -129,23 +129,23 @@ class NomlexArgsExtractor(ArgsExtractor):
 	@staticmethod
 	def _get_combined_args(args: List[ExtractedArgument], new_arg: ExtractedArgument, constraints_map: ConstraintsMap) -> List[ExtractedArgument]:
 		combined_args_by_type = {new_arg.arg_type: new_arg}
-		other_args_idxs = set()
+		other_args_indices = set()
+		typeless_args = []
+
 		for other_arg in args:
-			if other_arg.arg_type == constraints_map.arg_type:
-				# if new_arg.arg_type is not None:
-				new_arg.arg_idxs += other_arg.arg_idxs
-				new_arg.fulfilled_constraints += other_arg.fulfilled_constraints
+			if other_arg.arg_type is None:
+				typeless_args.append(other_arg)
+			elif other_arg.arg_type not in combined_args_by_type:
+				combined_args_by_type[other_arg.arg_type] = other_arg
 			else:
-				other_args_idxs.update(other_arg.arg_idxs)
+				combined_args_by_type[other_arg.arg_type].add_indices(other_arg.arg_indices)
+				combined_args_by_type[other_arg.arg_type].fulfilled_constraints += other_arg.fulfilled_constraints
 
-				if other_arg.arg_type not in combined_args_by_type:
-					combined_args_by_type[other_arg.arg_type] = other_arg
-				else:
-					combined_args_by_type[other_arg.arg_type].arg_idxs += other_arg.arg_idxs
-					combined_args_by_type[other_arg.arg_type].fulfilled_constraints += other_arg.fulfilled_constraints
+			if other_arg.arg_type != constraints_map.arg_type:
+				other_args_indices.update(other_arg.arg_indices)
 
-		new_arg.arg_idxs = list(set(new_arg.arg_idxs) - other_args_idxs)
-		return list(combined_args_by_type.values())
+		new_arg.remove_indices(other_args_indices)
+		return list(combined_args_by_type.values()) + typeless_args
 
 	def _has_matching_potential(self, relatives: List[ParsedWord], constraints_map: ConstraintsMap) -> bool:
 		required_constraints = constraints_map.get_required_relative_maps()
@@ -173,7 +173,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 			self, predicate: ParsedWord, word: ParsedWord, constraints_map: ConstraintsMap
 	) -> Optional[List[List[ExtractedArgument]]]:
 		is_match_constraints = self._is_word_match_constraints(word, constraints_map)
-		if not is_match_constraints and constraints_map.required:
+		if not is_match_constraints:
 			return None
 
 		required_constraints = constraints_map.get_required_relative_maps()
@@ -196,9 +196,11 @@ class NomlexArgsExtractor(ArgsExtractor):
 			if relatives_matched_args_combinations is not None:
 				matched_args_combinations += relatives_matched_args_combinations
 
-		arg_idxs = word.subtree_indices if predicate != word else []
+		arg_indices = word.subtree_indices if predicate != word else []
+		arg_indices = list(set(arg_indices + [word.i]))
 		new_arg = ExtractedArgument(
-			arg_idxs=list(set(arg_idxs + [word.i])),
+			start_idx=min(arg_indices),
+			end_idx=max(arg_indices),
 			arg_type=constraints_map.arg_type if is_match_constraints else None,
 			fulfilled_constraints=[constraints_map] if is_match_constraints else []
 		)
@@ -215,10 +217,7 @@ class NomlexArgsExtractor(ArgsExtractor):
 		pp2_arg = arg_by_type.get(ArgumentType.PP2)
 
 		if pp1_arg is not None and pp2_arg is not None:
-			pp1_start = min(pp1_arg.arg_idxs)
-			pp2_start = min(pp2_arg.arg_idxs)
-
-			if pp1_start > pp2_start:
+			if pp1_arg.start_idx > pp2_arg.start_idx:
 				pp1_arg.arg_type = ArgumentType.PP2
 				pp1_arg.arg_tag = ArgumentType.PP2
 				pp2_arg.arg_type = ArgumentType.PP1
@@ -240,7 +239,12 @@ class NomlexArgsExtractor(ArgsExtractor):
 			if len(constraints_map.included_args) < max_num_of_args:
 				break
 
-			matched_args_combinations = self._get_matched_arguments(word, word, constraints_map)
+			try:
+				matched_args_combinations = self._get_matched_arguments(word, word, constraints_map)
+			except EmptyArgumentException:
+				# Might happen in some dependency parsing trees due to complex dependency relations, but ignored due to rarity
+				continue
+
 			if matched_args_combinations is None:
 				continue
 

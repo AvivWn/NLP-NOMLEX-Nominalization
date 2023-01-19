@@ -13,8 +13,8 @@ def extract(args: Namespace):
 
 	args_extractor = ExtractorFactory(**vars(args))()
 
-	limited_idxs = None if args.word_idx is None else [args.word_idx]
-	multi_word_extraction = timeit(args_extractor.extract_multiword)(args.text, limited_idxs=limited_idxs)
+	limited_indices = None if args.word_idx is None else [args.word_idx]
+	multi_word_extraction = timeit(args_extractor.extract_multiword)(args.text, limited_indices=limited_indices)
 
 	print("\nAll Extractions:")
 	str_repr = ParsedRepresentation().represent_by_word(multi_word_extraction)

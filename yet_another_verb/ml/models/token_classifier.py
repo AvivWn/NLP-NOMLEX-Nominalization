@@ -89,9 +89,9 @@ class TokenClassifier(LightningModule):
 		token_ids, attention_mask = x
 
 		# Filter out any unknown tags
-		# unknown_idxs = [i for i in range(len(y)) if y[i] not in self.inversed_tagset]
+		# unknown_indices = [i for i in range(len(y)) if y[i] not in self.inversed_tagset]
 		# unknown_tags = torch.cat([(y == self.tagset[tag]).nonzero(as_tuple=False) for tag in self.inversed_tagset])
-		# y[unknown_idxs] = self.tagset['O']
+		# y[unknown_indices] = self.tagset['O']
 
 		# truncate to longest sequence length in batch to save GPU RAM
 		max_length = attention_mask.max(0)[0].nonzero(as_tuple=False)[-1].item() + 1

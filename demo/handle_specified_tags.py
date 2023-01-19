@@ -64,28 +64,28 @@ def translate_char_ranges_to_word_ranges(parsed_text: ParsedText, tagged_char_ra
 
 def seperate_predicate_and_args_ranges(tagged_ranges: TaggedRanges) -> Tuple[List[int], TaggedRanges]:
 	arg_tagged_ranges = {}
-	predicates_idxs = []
+	predicates_indices = []
 
 	for tagged_range, tag in tagged_ranges.items():
 		if tag == PREDICATE_TAG:
 			# Predicate should contain a single word
 			if tagged_range[0] == tagged_range[1]:
-				predicates_idxs.append(tagged_range[0])
+				predicates_indices.append(tagged_range[0])
 		else:
 			arg_tagged_ranges[tagged_range] = tag
 
-	return predicates_idxs, arg_tagged_ranges
+	return predicates_indices, arg_tagged_ranges
 
 
 def tag_extraction(
 		multi_word_extraction: MultiWordExtraction,
-		predicates_idxs: List[int], arg_tagged_ranges: TaggedRanges
+		predicates_indices: List[int], arg_tagged_ranges: TaggedRanges
 ) -> Extractions:
-	if len(predicates_idxs) == 0:
+	if len(predicates_indices) == 0:
 		return []
 
 	# There should be at most one predicate
-	predicate_idx = predicates_idxs[0]
+	predicate_idx = predicates_indices[0]
 
 	# The tagged predicate might not yield any extractions
 	extractions = multi_word_extraction.extractions_per_idx.get(predicate_idx, [])

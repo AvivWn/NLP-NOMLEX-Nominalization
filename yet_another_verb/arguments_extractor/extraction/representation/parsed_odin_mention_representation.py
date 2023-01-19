@@ -1,11 +1,11 @@
 from enum import Enum
-from typing import Set, Optional
-from itertools import chain
+from typing import Optional
 
 from typeguard import typechecked
 
 from yet_another_verb.arguments_extractor.extraction import Extraction, ExtractedArgument
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentTypes
+from yet_another_verb.arguments_extractor.extraction.utils.indices import get_indices_as_range
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedWords
 from yet_another_verb.arguments_extractor.extraction.representation.parsed_representation import \
 	ParsedRepresentation
@@ -24,10 +24,6 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 		self.document_id = document_id
 		self.sentence_id = sentence_id
 		self.in_document_prefix = in_document_prefix
-
-	@staticmethod
-	def _get_tightest_range(idxs: Set[int]) -> tuple:
-		return min(idxs), max(idxs)
 
 	def _as_mention(
 			self, mention_type: MentionType, words: ParsedWords, predicate_idx: int,
@@ -61,16 +57,14 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 
 	@typechecked
 	def _represent_argument(self, words: ParsedWords, predicate_idx: int, argument: ExtractedArgument) -> dict:
-		start_idx, end_idx = argument.tightest_range
-		return self._as_mention(MentionType.TEXT_BOUND, words, predicate_idx, start_idx, end_idx)
+		return self._as_mention(MentionType.TEXT_BOUND, words, predicate_idx, argument.start_idx, argument.end_idx)
 
 	@typechecked
 	def _represent_predicate(self, words: ParsedWords, predicate_idx: int) -> int:
 		return predicate_idx
 
 	def represent_single(self, extraction: Extraction) -> list:
-		args_idxs = set(chain(*[a.arg_idxs for a in extraction.args]))
-		start_idx, end_idx = self._get_tightest_range(args_idxs)
+		start_idx, end_idx = get_indices_as_range(extraction.arg_indices)
 		predicate_idx = extraction.predicate_idx
 		predicate = extraction.words[predicate_idx].text
 		event_mention = self._as_mention(MentionType.EVENT, extraction.words, predicate_idx, start_idx, end_idx, predicate)

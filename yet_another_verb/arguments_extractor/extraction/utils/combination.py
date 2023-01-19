@@ -5,23 +5,24 @@ from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, E
 	MultiWordExtraction
 
 
-def is_predicate_arg(arg, predicate_idx):
-	return predicate_idx in arg.arg_idxs
+def _is_predicate_arg(arg, predicate_idx):
+	return predicate_idx in arg.arg_indices
 
 
 def separate_args_by_determination(args: Set[ExtractedArgument], predicate_idx: int) -> Tuple[set, set]:
 	arg_types_by_idx = defaultdict(set)
 	for arg in args:
-		for idx in arg.arg_idxs:
+		for idx in arg.arg_indices:
 			arg_types_by_idx[idx].add(arg.arg_type)
 
 	determined, undetermined = set(), set()
 	for arg in args:
-		is_this_only_type = all([len(arg_types_by_idx[i]) == 1 for i in arg.arg_idxs])
-		is_other_can_be_type = any([arg.arg_type in arg_types_by_idx[j] for j in arg_types_by_idx.keys() if j not in arg.arg_idxs])
+		is_this_only_type = all([len(arg_types_by_idx[i]) == 1 for i in arg.arg_indices])
+		is_other_can_be_type = any(
+			[arg.arg_type in arg_types_by_idx[j] for j in arg_types_by_idx.keys() if j not in arg.arg_indices])
 
 		# Argument that refers to a predicate is superior to another argument option
-		if is_this_only_type and (is_predicate_arg(arg, predicate_idx) or not is_other_can_be_type):
+		if is_this_only_type and (_is_predicate_arg(arg, predicate_idx) or not is_other_can_be_type):
 			determined.add(arg)
 		else:
 			undetermined.add(arg)

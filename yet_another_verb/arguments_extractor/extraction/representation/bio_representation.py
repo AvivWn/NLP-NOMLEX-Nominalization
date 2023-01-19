@@ -27,12 +27,11 @@ class BIORepresentation(ExtractionRepresentation):
 
 	def _represent_argument(self, words: list, predicate_idx: int, argument: ExtractedArgument) -> Dict[int, str]:
 		tag_by_idx = {}
-		start_idx, end_idx = argument.tightest_range
 
-		for i in range(start_idx, end_idx + 1):
-			tag_prefix = BIOTag.Begin if i == start_idx else BIOTag.In
+		for i in argument.arg_indices:
+			tag_prefix = BIOTag.Begin if i == argument.start_idx else BIOTag.In
 
-			if start_idx != predicate_idx or self.tag_predicate:
+			if argument.start_idx != predicate_idx or self.tag_predicate:
 				tag_by_idx[i] = f"{tag_prefix}-{argument.arg_tag}"
 
 		return tag_by_idx

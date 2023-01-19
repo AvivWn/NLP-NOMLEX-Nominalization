@@ -18,10 +18,10 @@ class TaggedTokensDataModule(PretrainedDataModule):
 	def _align_and_encode_labels(self, examples_labels: List[List[str]], encoded_data: BatchEncoding) -> List[List[int]]:
 		encoded_labels = []
 		for i, tokens_tags in enumerate(examples_labels):
-			original_token_idxs = encoded_data.word_ids(batch_index=i)
+			original_token_indices = encoded_data.word_ids(batch_index=i)
 			previous_token_idx = None
 			label_ids = []
-			for token_idx in original_token_idxs:
+			for token_idx in original_token_indices:
 				if token_idx is not None and token_idx != previous_token_idx:
 					label_ids.append(self.tagset[tokens_tags[token_idx]])
 				else:

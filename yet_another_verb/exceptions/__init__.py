@@ -1,0 +1,1 @@
+from yet_another_verb.exceptions.empty_argument_error import EmptyArgumentException

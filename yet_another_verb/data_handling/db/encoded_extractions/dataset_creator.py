@@ -15,7 +15,7 @@ from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import Par
 from yet_another_verb.sentence_encoding.argument_encoding.arg_encoder import ArgumentEncoder
 from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel, encoder_by_level
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_encoder, get_sentence, \
-	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_idxs_in_sentence, get_parser, \
+	get_predicate_in_sentence, get_predicate, get_extracted_predicates, get_extracted_indices_in_sentence, get_parser, \
 	insert_encoded_arguments
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, Parser, \
 	Parsing, Sentence, Extractor, Encoder as DBEncoder
@@ -66,18 +66,18 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 		return True
 
-	def _get_potential_idxs(self, doc: ParsedText, extractor_entity: Extractor, predicate_counter: Counter) -> Set[int]:
-		limited_idxs = {w.i for w in doc if self._is_relevant_predicate(POSTaggedWord(w.lemma, w.pos), predicate_counter)}
+	def _get_potential_indices(self, doc: ParsedText, extractor_entity: Extractor, predicate_counter: Counter) -> Set[int]:
+		limited_indices = {w.i for w in doc if self._is_relevant_predicate(POSTaggedWord(w.lemma, w.pos), predicate_counter)}
 
-		if len(limited_idxs) == 0:
-			return limited_idxs
+		if len(limited_indices) == 0:
+			return limited_indices
 
 		sentence_entity = get_sentence(doc.text)
 		if sentence_entity is not None:
-			already_extracted_idxs = get_extracted_idxs_in_sentence(sentence_entity, extractor_entity)
-			limited_idxs = limited_idxs.difference(already_extracted_idxs)
+			already_extracted_indices = get_extracted_indices_in_sentence(sentence_entity, extractor_entity)
+			limited_indices = limited_indices.difference(already_extracted_indices)
 
-		return limited_idxs
+		return limited_indices
 
 	def _get_predicate_counter(self, extractor_entity: Extractor) -> Counter:
 		predicate_counter = Counter({w: 0 for w in self.verb_translator.supported_words if self._is_relevant_predicate(w)})
@@ -141,8 +141,8 @@ class EncodedExtractionsCreator(DatasetCreator):
 
 		loop_status = tqdm(parsed_bin.get_parsed_texts(), leave=False)
 		for doc in loop_status:
-			limited_idxs = self._get_potential_idxs(doc, extractor_entity, predicate_counter)
-			multi_word_extraction = timeit(self.args_extractor.extract_multiword)(doc, limited_idxs=limited_idxs)
+			limited_indices = self._get_potential_indices(doc, extractor_entity, predicate_counter)
+			multi_word_extraction = timeit(self.args_extractor.extract_multiword)(doc, limited_indices=limited_indices)
 			if len(multi_word_extraction.extractions_per_idx) == 0:
 				continue
 

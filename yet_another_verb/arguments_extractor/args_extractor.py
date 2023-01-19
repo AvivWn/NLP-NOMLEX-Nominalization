@@ -32,7 +32,7 @@ class ArgsExtractor(abc.ABC):
 
 	def extract_multiword(
 			self, sent: Union[str, list], *,
-			limited_idxs: Optional[List[int]] = None,
+			limited_indices: Optional[List[int]] = None,
 			limited_predicates: Optional[List[str]] = None,
 			limited_postags: Optional[List[POSTag]] = NOUN_POSTAGS + VERB_POSTAGS,
 			references: Optional[Extractions] = None,
@@ -52,8 +52,8 @@ class ArgsExtractor(abc.ABC):
 		if not self._is_potential_sentence(words, limited_predicates, allow_related_forms):
 			return MultiWordExtraction(words, extractions_per_idx)
 
-		idxs = range(len(words)) if limited_idxs is None else limited_idxs
-		for i in idxs:
+		indices = range(len(words)) if limited_indices is None else limited_indices
+		for i in indices:
 			if self._is_potential_predicate(i, words, limited_predicates, limited_postags, allow_related_forms):
 				extractions = self.extract(i, words)
 

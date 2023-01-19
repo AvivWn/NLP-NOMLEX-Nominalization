@@ -6,8 +6,8 @@ from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
 from yet_another_verb.data_handling import TorchBytesHandler
 from yet_another_verb.sentence_encoding.argument_encoding.arg_encoder import ArgumentEncoder
 from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, Encoder, Verb, \
-	PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Argument, ExtractedArgument, ArgumentType, \
-	Parsing
+	PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Argument, ArgumentType, \
+	Parsing, ExtractedArgument as DBExtractedArgument
 
 
 def get_entity_by_params(entity_type: Type[Entity], generate_missing, properties=None, **primary_keys) -> Optional[Entity]:
@@ -67,31 +67,30 @@ def get_predicate_in_sentence(
 def get_argument(
 		extracted_arg: ExtractedArgument,
 		predicate_in_sentence: PredicateInSentence, generate_missing=False) -> Optional[Argument]:
-	start_idx, end_idx = extracted_arg.tightest_range
 	return get_entity_by_params(
 		Argument, generate_missing,
 		predicate_in_sentence=predicate_in_sentence,
-		start_idx=start_idx, end_idx=end_idx)
+		start_idx=extracted_arg.start_idx, end_idx=extracted_arg.end_idx)
 
 
 def get_extracted_argument(
 		arg: Argument, extractor: Extractor, arg_type: Union[str, ArgumentType],
-		generate_missing=False) -> Optional[ExtractedArgument]:
+		generate_missing=False) -> Optional[DBExtractedArgument]:
 	arg_type = arg_type if isinstance(arg_type, ArgumentType) else get_argument_type(arg_type, generate_missing)
 	return get_entity_by_params(
-		ExtractedArgument, generate_missing,
+		DBExtractedArgument, generate_missing,
 		argument=arg, extractor=extractor, argument_type=arg_type)
 
 
-def get_extracted_idxs_in_sentence(sentence: Sentence, extractor: Extractor) -> List[int]:
-	extracted_idxs = []
+def get_extracted_indices_in_sentence(sentence: Sentence, extractor: Extractor) -> List[int]:
+	extracted_indices = []
 
 	for predicate_in_sentence in sentence.predicates:
 		for arg in predicate_in_sentence.arguments:
 			if any(e.extractor == extractor for e in arg.extracted_arguments):
-				extracted_idxs.append(predicate_in_sentence.word_idx)
+				extracted_indices.append(predicate_in_sentence.word_idx)
 
-	return extracted_idxs
+	return extracted_indices
 
 
 def get_extracted_predicates(extractor: Extractor) -> List[PredicateInSentence]:
