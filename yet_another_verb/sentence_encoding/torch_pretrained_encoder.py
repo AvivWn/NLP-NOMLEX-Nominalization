@@ -23,23 +23,27 @@ class TorchPretrainedEncoder(Encoder):
 	def name(self) -> str:
 		return self.encoder_name
 
+	@property
+	def encoding_size(self):
+		return self.model.config.hidden_size
+
 	def _tokenize(self, sentence: str):
 		return self.tokenizer(
 			sentence.split(), return_tensors="pt", is_split_into_words=True,
 			add_special_tokens=True)
 
 	@lru_cache(maxsize=None)
-	def _encode_and_tokenize(self, sentence: str) -> Tuple[BatchEncoding, torch.Tensor]:
+	def _tokenize_and_encode(self, sentence: str) -> Tuple[BatchEncoding, torch.Tensor]:
 		tokenized = self._tokenize(sentence).to(self.device)
 
 		with torch.no_grad():
 			return tokenized, self.model(**tokenized)[0][0].cpu()
 
 	def encode(self, sentence: str) -> torch.Tensor:
-		return self._encode_and_tokenize(sentence)[1]
+		return self._tokenize_and_encode(sentence)[1]
 
-	def encode_word(self, sentence: str, word_idx: int) -> torch.Tensor:
-		tokenized, sentence_encodings = self._encode_and_tokenize(sentence)
+	def encode_word_in_context(self, sentence: str, word_idx: int) -> torch.Tensor:
+		tokenized, sentence_encodings = self._tokenize_and_encode(sentence)
 
 		matching_token_indices = tokenized.word_to_tokens(word_idx)
 		if matching_token_indices is None:
