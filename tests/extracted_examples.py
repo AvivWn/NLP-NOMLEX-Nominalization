@@ -150,9 +150,9 @@ EXTRACTIONS_BY_SENTENCE = {
 	# compatible with NOT constraints
 	"His representation of the paper to the audience.": {
 		"representation": [{"PP": "to the audience", "SUBJECT": "His", "OBJECT": "the paper"}]},
-	# NOT- "them" must be SUBJ, but OBJ isn't compatible with DET-POSS, when there is another PP
-	"The paper's representation by them to the audience.": {
-		"representation": [{"OBJECT": "The paper", "SUBJECT": "them"}]},
+	# NOT- "them" must be SUBJ, but OBJ isn't compatible with DET-POSS and N-N-MOD, when there is another PP
+	"The team representation to the audience.": {
+		"representation": [{"SUBJECT": "team", "PP": "to the audience"}]},
 	# NOT- Double compound isn't compatible for this nom
 	"The paper man representation.": {
 		"representation": [
