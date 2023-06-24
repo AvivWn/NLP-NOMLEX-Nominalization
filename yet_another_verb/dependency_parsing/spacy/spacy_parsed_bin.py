@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, List
 
 from spacy.tokens import DocBin
 
@@ -21,6 +21,10 @@ class SpacyParsedBin(ParsedBin):
 
 	def add(self, parsed_text: SpacyParsedText):
 		self._doc_bin.add(parsed_text.get_inner())
+
+	def add_multiple(self, parsed_texts: List[SpacyParsedText]):
+		for parsed_text in parsed_texts:
+			self.add(parsed_text)
 
 	def get_parsed_texts(self) -> Iterator[SpacyParsedText]:
 		return map(SpacyParsedText, self._doc_bin.get_docs(self.parser.vocab))

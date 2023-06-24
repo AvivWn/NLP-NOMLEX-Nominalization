@@ -15,13 +15,14 @@ class Extraction:
 	words: 'Words'
 	predicate_idx: int
 	predicate_lemma: str
+	predicate_postag: str  # VERB, NOUN, ...
 	args: List[ExtractedArgument]
 	undetermined_args: List[ExtractedArgument] = field(default_factory=list, compare=False)
 	fulfilled_constraints: ConstraintsMap = field(default=None, compare=False)
 
 	@staticmethod
-	def _sorted_args_by_idx(args: List[ExtractedArgument]) -> List[ExtractedArgument]:
-		return sorted(args, key=lambda arg: arg.start_idx)
+	def _sorted_args_by_indices(args: List[ExtractedArgument]) -> List[ExtractedArgument]:
+		return sorted(args, key=lambda arg: (arg.start_idx, arg.end_idx))
 
 	def _seperate_typeless_args(self, args: List[ExtractedArgument]) -> tuple:
 		typed_args, typeless_args = [], []
@@ -31,8 +32,8 @@ class Extraction:
 			else:
 				typeless_args.append(arg)
 
-		typed_args = self._sorted_args_by_idx(typed_args)
-		typeless_args = self._sorted_args_by_idx(typeless_args)
+		typed_args = self._sorted_args_by_indices(typed_args)
+		typeless_args = self._sorted_args_by_indices(typeless_args)
 		return typed_args, typeless_args
 
 	def _update_arg_mapping(self):
@@ -50,7 +51,7 @@ class Extraction:
 			return
 
 		if key == 'undetermined_args':
-			value = self._sorted_args_by_idx(value)
+			value = self._sorted_args_by_indices(value)
 
 		super().__setattr__(key, value)
 

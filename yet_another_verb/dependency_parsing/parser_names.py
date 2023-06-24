@@ -1,20 +1,12 @@
 import pathlib
 
-from yet_another_verb.dependency_parsing.spacy.spacy_parser import SpacyParser
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
-
-SPACY_ENGINE = "spacy"
-
-
-parser_by_engine = {
-	SPACY_ENGINE: SpacyParser
-}
-engine_by_parser = {v: k for k, v in parser_by_engine.items()}
+from yet_another_verb.configuration.parsing_config import ENGINE_BY_PARSER
 
 
 def extended_path_by_parser(file_path: str, parser: DependencyParser) -> str:
 	# engine and parser should assume not to include '-' character
-	return f"{file_path}-{engine_by_parser[type(parser)]}-{parser.name}"
+	return f"{file_path}-{ENGINE_BY_PARSER[type(parser)]}-{parser.name}"
 
 
 def get_parser_by_extension(file_path: str) -> DependencyParser:

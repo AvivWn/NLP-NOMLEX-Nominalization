@@ -17,7 +17,7 @@ class ParsedBinFileHandler(BinaryFileHandler):
 	def load(self, file_path: str) -> ParsedBin:
 		if self.parser is not None:
 			parser = self.parser
-			self.extend_file_name(file_path)
+			file_path = self.extend_file_name(file_path)
 		else:
 			parser = get_parser_by_extension(file_path)
 

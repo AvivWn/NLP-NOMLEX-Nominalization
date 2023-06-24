@@ -1,5 +1,5 @@
 import abc
-from typing import Iterator, Dict
+from typing import Iterator, Dict, List
 
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
@@ -14,6 +14,9 @@ class ParsedBin(abc.ABC):
 
 	@abc.abstractmethod
 	def add(self, parsed_text: ParsedText): pass
+
+	@abc.abstractmethod
+	def add_multiple(self, parsed_texts: List[ParsedText]): pass
 
 	@abc.abstractmethod
 	def get_parsed_texts(self) -> Iterator[ParsedText]: pass

@@ -40,6 +40,7 @@ def combine_extractions(extractions: Extractions, safe_combine=False) -> Extract
 
 	ex = extractions[0]
 	words, predicate_idx, predicate_lemma = ex.words, ex.predicate_idx, ex.predicate_lemma
+	predicate_postag = ex.predicate_postag
 
 	if safe_combine:
 		determined, undetermined = separate_args_by_determination(total_args, predicate_idx)
@@ -48,6 +49,7 @@ def combine_extractions(extractions: Extractions, safe_combine=False) -> Extract
 
 	return Extraction(
 		words=words, predicate_idx=predicate_idx, predicate_lemma=predicate_lemma,
+		predicate_postag=predicate_postag,
 		args=list(determined), undetermined_args=list(undetermined))
 
 

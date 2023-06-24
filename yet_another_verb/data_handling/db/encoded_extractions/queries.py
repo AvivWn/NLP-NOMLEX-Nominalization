@@ -70,7 +70,9 @@ def get_argument(
 	return get_entity_by_params(
 		Argument, generate_missing,
 		predicate_in_sentence=predicate_in_sentence,
-		start_idx=extracted_arg.start_idx, end_idx=extracted_arg.end_idx)
+		start_idx=extracted_arg.start_idx, end_idx=extracted_arg.end_idx,
+		head_idx=extracted_arg.head_idx
+	)
 
 
 def get_extracted_argument(
@@ -80,6 +82,17 @@ def get_extracted_argument(
 	return get_entity_by_params(
 		DBExtractedArgument, generate_missing,
 		argument=arg, extractor=extractor, argument_type=arg_type)
+
+
+def get_extracted_args_in_sentence(sentence: Sentence, extractor: Extractor) -> List[DBExtractedArgument]:
+	extracted_args = []
+
+	for predicate_in_sentence in sentence.predicates:
+		for arg in predicate_in_sentence.arguments:
+			if any(e.extractor == extractor for e in arg.extracted_arguments):
+				extracted_args.append(arg)
+
+	return extracted_args
 
 
 def get_extracted_indices_in_sentence(sentence: Sentence, extractor: Extractor) -> List[int]:
@@ -125,6 +138,19 @@ def get_limited_parsings(sentence: Union[str, Sentence], parser: Parser) -> List
 	return [pars for pars in sentence_entity.parsings if pars.parser == parser]
 
 
+def insert_encoding(argument_entity: Argument, encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
+	if Encoding.get(argument=argument_entity, encoder=encoder_entity) is None:
+		extracted_arg = ExtractedArgument(
+			start_idx=argument_entity.start_idx,
+			end_idx=argument_entity.end_idx,
+			head_idx=argument_entity.head_idx
+		)
+
+		argument_encoding = arg_encoder.encode(extracted_arg)
+		binary_encoding = TorchBytesHandler.saves(argument_encoding)
+		Encoding(argument=argument_entity, encoder=encoder_entity, binary=binary_encoding)
+
+
 def insert_encoded_arguments(
 		arguments: List[ExtractedArgument], extractor_entity: Extractor, predicate_in_sentence: PredicateInSentence,
 		encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
@@ -132,7 +158,4 @@ def insert_encoded_arguments(
 		argument_entity = get_argument(extracted_arg, predicate_in_sentence, generate_missing=True)
 		get_extracted_argument(argument_entity, extractor_entity, extracted_arg.arg_type, generate_missing=True)
 
-		if Encoding.get(argument=argument_entity, encoder=encoder_entity) is None:
-			argument_encoding = arg_encoder.encode(extracted_arg)
-			binary_encoding = TorchBytesHandler.saves(argument_encoding)
-			Encoding(argument=argument_entity, encoder=encoder_entity, binary=binary_encoding)
+		insert_encoding(argument_entity, encoder_entity, arg_encoder)

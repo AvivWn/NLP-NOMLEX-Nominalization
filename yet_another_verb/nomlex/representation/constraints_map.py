@@ -26,7 +26,7 @@ class ConstraintsMap:
 		if self.arg_type is not None:
 			included_args.add(self.arg_type)
 
-		self._included_args = list(included_args)
+		self._included_args = sorted(list(included_args))
 
 	def __setattr__(self, key: str, value: List['ConstraintsMap']):
 		super().__setattr__(key, value)

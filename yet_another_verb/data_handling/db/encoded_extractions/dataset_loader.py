@@ -56,7 +56,9 @@ class EncodedExtractionsLoader:
 				parsing_egnine=parser_entity.engine,
 				parser_name=parser_entity.parser)
 		else:
-			return self.parser.from_bytes(parsing.binary)
+			parsed_bin = self.parser.generate_parsed_bin()
+			parsed_bin.from_bytes(parsing.binary)
+			return list(parsed_bin.get_parsed_texts())[0]
 
 	def _get_encoded_arg(self, extracted_arg_entity: DBExtractedArgument, encoder_entity: Encoder) -> Encoding:
 		encodings = list(get_limited_encodings(extracted_arg_entity.argument, encoder_entity))
@@ -98,6 +100,7 @@ class EncodedExtractionsLoader:
 				extracted_args.append(ExtractedArgument(
 					start_idx=arg_entity.start_idx,
 					end_idx=arg_entity.end_idx,
+					head_idx=arg_entity.head_idx,
 					arg_type=ArgumentType(arg_type),
 					encoding=self._get_encoded_arg(extracted_arg_entity, encoder_entity)))
 
@@ -105,6 +108,7 @@ class EncodedExtractionsLoader:
 				words=self._get_parsed_text(predicate_in_sentence, parser_entity),
 				predicate_idx=predicate_in_sentence.word_idx,
 				predicate_lemma=predicate_in_sentence.predicate.lemma,
+				predicate_postag=pos_entity.part_of_speech,
 				args=extracted_args
 			)
 

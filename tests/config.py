@@ -1,4 +1,3 @@
-from os.path import dirname
+from os.path import dirname, join
 
-PARSED_EXAMPLES_PATH = f"{dirname(__file__)}/examples.parsed"
-BINARY_EXTRACTION_PATH = f"{dirname(__file__)}/binary_extractions.pkl"
+BINARY_EXTRACTION_PATH = join(dirname(__file__), "binary_cache", "{extractor}.pkl")

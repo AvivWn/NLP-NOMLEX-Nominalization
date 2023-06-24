@@ -2,9 +2,8 @@ from argparse import ArgumentParser
 from typing import Optional
 
 from yet_another_verb.factories.factory import Factory
-from yet_another_verb.configuration import ENCODING_CONFIG
 from yet_another_verb.sentence_encoding.encoder import Encoder
-from yet_another_verb.sentence_encoding.frameworks import encoder_by_framework
+from yet_another_verb.configuration.encoding_config import ENCODING_CONFIG, ENCODER_BY_FRAMEWORK
 
 
 class EncoderFactory(Factory):
@@ -13,7 +12,7 @@ class EncoderFactory(Factory):
 		self.params = kwargs
 
 	def __call__(self) -> Encoder:
-		return encoder_by_framework[self.encoding_framework](**self.params)
+		return ENCODER_BY_FRAMEWORK[self.encoding_framework](**self.params)
 
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:
@@ -24,6 +23,10 @@ class EncoderFactory(Factory):
 		arg_parser.add_argument(
 			'--encoder-name', default=ENCODING_CONFIG.ENCODER_NAME,
 			help="The name of the encoder"
+		)
+		arg_parser.add_argument(
+			'--encoding-level', default=None,
+			help="The encoding level of an argument"
 		)
 		arg_parser.add_argument(
 			'--device', default=ENCODING_CONFIG.DEVICE,

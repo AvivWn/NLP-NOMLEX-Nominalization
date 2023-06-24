@@ -7,8 +7,8 @@ from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import Pa
 
 
 class ArgumentEncoder(abc.ABC):
-	def __init__(self, parsed_text: ParsedText):
-		self.parsed_text = parsed_text
+	def __init__(self, words: ParsedText):
+		self.words = words
 
 	@abc.abstractmethod
 	def encode(self, argument: ExtractedArgument) -> torch.Tensor:

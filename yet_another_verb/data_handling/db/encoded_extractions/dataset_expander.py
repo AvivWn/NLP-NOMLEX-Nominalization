@@ -5,20 +5,21 @@ from pony.orm import db_session
 
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
 from yet_another_verb.arguments_extractor.extraction.utils.combination import combine_extractions
+from yet_another_verb.configuration.extractors_config import NAME_BY_EXTRACTOR
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_extractor, get_encoder, \
-	get_predicate_in_sentence, get_predicate, get_parser, insert_encoded_arguments, get_extracted_indices_in_sentence
+	get_predicate_in_sentence, get_predicate, get_parser, insert_encoded_arguments, get_extracted_args_in_sentence, \
+	insert_encoding
 from yet_another_verb.data_handling.db.encoded_extractions.structure import encoded_extractions_db, \
 	Parser, Parsing, Sentence, Extractor
-from yet_another_verb.dependency_parsing import engine_by_parser
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel, encoder_by_level
 from yet_another_verb.sentence_encoding.encoder import Encoder
-from yet_another_verb.sentence_encoding.frameworks import framework_by_encoder
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
-from yet_another_verb.configuration import EXTRACTORS_CONFIG
+from yet_another_verb.configuration.encoding_config import FRAMEWORK_BY_ENCODER
+from yet_another_verb.configuration.parsing_config import ENGINE_BY_PARSER
 from yet_another_verb.utils.debug_utils import timeit
 
 
@@ -28,7 +29,7 @@ class EncodedExtractionsExpander(DatasetCreator):
 			dependency_parser: DependencyParser,
 			args_extractor: ArgsExtractor,
 			verb_translator: VerbTranslator,
-			encoder: Encoder, encoding_level: EncodingLevel,
+			encoder: Encoder, encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT,
 			dataset_size=None, **kwargs
 	):
 		super().__init__(dataset_size)
@@ -52,12 +53,16 @@ class EncodedExtractionsExpander(DatasetCreator):
 
 	def _expand_extractions(
 			self, doc: ParsedText, sentence_entity: Sentence, extractor_entity: Extractor, encoder_entity: Encoder):
-		# skip extracted sentences
-		extracted_predicates = get_extracted_indices_in_sentence(sentence_entity, extractor_entity)
-		if len(extracted_predicates) > 0:
-			return
+		arg_encoder = encoder_by_level.get(self.encoding_level)(words=doc, encoder=self.encoder)
 
-		arg_encoder = encoder_by_level.get(self.encoding_level)(parsed_text=doc, encoder=self.encoder)
+		# skip extracted sentences
+		extracted_args = get_extracted_args_in_sentence(sentence_entity, extractor_entity)
+		if len(extracted_args) > 0:
+			# only encode them
+			for arg in extracted_args:
+				insert_encoding(arg, encoder_entity, arg_encoder)
+
+			return
 
 		multi_word_extraction = self.args_extractor.extract_multiword(doc)
 		for predicate_idx, extractions in multi_word_extraction.extractions_per_idx.items():
@@ -72,10 +77,10 @@ class EncodedExtractionsExpander(DatasetCreator):
 	@db_session
 	def _expand_dataset(self, db_communicator: SQLiteCommunicator):
 		parser_entity = get_parser(
-			engine_by_parser[type(self.dependency_parser)], self.dependency_parser.name, generate_missing=True)
-		extractor_entity = get_extractor(EXTRACTORS_CONFIG.EXTRACTOR, parser_entity, generate_missing=True)
+			ENGINE_BY_PARSER[type(self.dependency_parser)], self.dependency_parser.name, generate_missing=True)
+		extractor_entity = get_extractor(NAME_BY_EXTRACTOR[type(self.args_extractor)], parser_entity, generate_missing=True)
 		encoder_entity = get_encoder(
-			framework_by_encoder[type(self.encoder)], self.encoder.name, self.encoding_level,
+			FRAMEWORK_BY_ENCODER[type(self.encoder)], self.encoder.name, self.encoding_level,
 			parser_entity, generate_missing=True)
 
 		all_sentences = Sentence.select()

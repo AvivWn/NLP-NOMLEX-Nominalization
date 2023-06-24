@@ -17,6 +17,7 @@ ArgRange = Tuple[int, int]
 class ExtractedArgument:
 	start_idx: int
 	end_idx: int
+	head_idx: Optional[int] = field(default=None)
 	arg_type: Optional[ArgumentType] = field(default=None)
 	arg_tag: Optional[Union[str, ArgumentType]] = field(default=None)
 	fulfilled_constraints: List[ConstraintsMap] = field(default_factory=list, compare=False)
@@ -26,7 +27,7 @@ class ExtractedArgument:
 		self.arg_tag = self.arg_type
 
 	def __hash__(self):
-		return hash((self.arg_type, self.start_idx, self.end_idx))
+		return hash((self.arg_type, self.start_idx, self.end_idx, self.head_idx))
 
 	@property
 	def arg_indices(self) -> List[int]:

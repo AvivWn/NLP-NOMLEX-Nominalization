@@ -2,9 +2,8 @@ from argparse import ArgumentParser
 from typing import Optional
 
 from yet_another_verb.factories.factory import Factory
-from yet_another_verb.configuration import PARSING_CONFIG
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
-from yet_another_verb.dependency_parsing.parser_names import parser_by_engine
+from yet_another_verb.configuration.parsing_config import PARSER_BY_ENGINE, PARSING_CONFIG
 
 
 class DependencyParserFactory(Factory):
@@ -13,7 +12,7 @@ class DependencyParserFactory(Factory):
 		self.params = kwargs
 
 	def __call__(self) -> DependencyParser:
-		return parser_by_engine[self.dependency_parsing_engine](**self.params)
+		return PARSER_BY_ENGINE[self.dependency_parsing_engine](**self.params)
 
 	@staticmethod
 	def expand_parser(arg_parser: Optional[ArgumentParser] = None) -> ArgumentParser:

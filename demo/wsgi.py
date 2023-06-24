@@ -19,8 +19,10 @@ from demo.handle_specified_tags import parse_specified_tags, translate_char_rang
 from handle_args_extraction import generate_args_extraction_info
 from time_utils import force_min_response_time
 from config import DEMO_CONFIG
+from yet_another_verb.configuration.parsing_config import PARSING_CONFIG
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.data_handling import ParsedBinFileHandler, TXTFileHandler
+from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 
 
 def _get_list_of_files(dir_name):
@@ -138,8 +140,8 @@ if __name__ == '__main__':
 	email_address = "" #input("Enter your e-mail address: ")
 	password = "" #getpass("Password for sending emails: ")
 
-	ud_parser = DependencyParserFactory()()
-	default_args_extractor = NomlexArgsExtractor()
+	ud_parser = DependencyParserFactory(parser_name=PARSING_CONFIG.PARSER_NAME)()
+	default_args_extractor = NomlexArgsExtractor(NomlexVersion.V2)
 	args_extractors = {
 		"rule-based": default_args_extractor
 	}

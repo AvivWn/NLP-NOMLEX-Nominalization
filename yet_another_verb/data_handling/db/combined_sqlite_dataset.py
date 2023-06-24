@@ -74,14 +74,14 @@ class CombinedSQLitesDatasetCreator(DatasetCreator):
 			cur.close()
 
 	def _batch_store_combine_contents(self, db_paths: List[str], out_db_path: str):
-		while len(db_paths) > 1:
+		while len([path for path in db_paths if path != out_db_path]) > 0:
 			temp_file = NamedTemporaryFile(dir=dirname(out_db_path))
 
 			# Combine all to tmp
 			copyfile(db_paths[0], temp_file.name)
 			self._store_combined_content(db_paths[:MAX_ATTACH_DB], temp_file.name)
 
-			# Replace tmp with out
+			# Replace tmp with output
 			copyfile(temp_file.name, out_db_path)
 			db_paths = [out_db_path] + db_paths[MAX_ATTACH_DB:]
 

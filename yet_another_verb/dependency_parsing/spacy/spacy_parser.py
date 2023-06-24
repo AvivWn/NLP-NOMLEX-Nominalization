@@ -6,7 +6,6 @@ from spacy.util import compile_infix_regex
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Token, Doc
 
-from yet_another_verb.configuration import PARSING_CONFIG
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_bin import ParsedBin
 from yet_another_verb.dependency_parsing.spacy.spacy_parsed_text import SpacyParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.input_text import InputText
@@ -22,7 +21,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 class SpacyParser(DependencyParser):
-	def __init__(self, parser_name: str = PARSING_CONFIG.PARSER_NAME, **kwargs):
+	def __init__(self, parser_name: str, **kwargs):
 		self.parser_name = parser_name
 		self._parser: spacy.Language = timeit(spacy.load)(self.parser_name)
 		self._parser.tokenizer = self._create_custom_tokenizer()

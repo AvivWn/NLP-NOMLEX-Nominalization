@@ -1,4 +1,4 @@
-from pony.orm import PrimaryKey, Required, Set, Database
+from pony.orm import PrimaryKey, Required, Set, Database, Optional
 
 _db = Database()
 encoded_extractions_db = _db
@@ -79,6 +79,7 @@ class Argument(_db.Entity):
 	predicate_in_sentence = Required(PredicateInSentence)
 	start_idx = Required(int)
 	end_idx = Required(int)
+	head_idx = Optional(int)
 	extracted_arguments = Set(T_EXTRACTED_ARGUMENT)
 	encodings = Set(T_ENCODING)
 	PrimaryKey(predicate_in_sentence, start_idx, end_idx)

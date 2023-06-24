@@ -1,4 +1,28 @@
-EXTRACTIONS_BY_SENTENCE = {
+VERB_PATTERNS_EXTRACTIONS_BY_SENTENCE = {
+	# passive form
+	"The man was appointed": {
+		"appointed": [{"OBJECT": "The man"}]
+	},
+	"The man was appointed as president": {
+		"appointed": [{"OBJECT": "The man", "PP": "as president"}]
+	},
+	"The man was appointed by Apple": {
+		"appointed": [{"OBJECT": "The man", "SUBJECT": "Apple"}]
+	},
+	"The man was appointed by Apple as president": {
+		"appointed": [{"OBJECT": "The man", "SUBJECT": "Apple", "PP": "as president"}]
+	},
+
+	# active form
+	"Apple appointed the man": {
+		"appointed": [{"SUBJECT": "Apple", "OBJECT": "the man"}]
+	},
+	"Apple appointed the man as president": {
+		"appointed": [{"SUBJECT": "Apple", "OBJECT": "the man", "PP": "as president"}]
+	},
+}
+
+NOMLEX_EXTRACTIONS_BY_SENTENCE = {
 	########################################################################
 	# Predicates in passive-voice
 
@@ -57,14 +81,10 @@ EXTRACTIONS_BY_SENTENCE = {
 		"backed": [{"PARTICLE": "up", "PP": "on the disk", "SUBJECT": "They"}]},
 	"Their backup on the disk": {
 		"backup": [{"PP": "on the disk", "SUBJECT": "Their", "OBJECT": "backup"}]},
-	"Their back-up on the disk.": {
-		"back-up": [{"PP": "on the disk", "SUBJECT": "Their", "OBJECT": "back-up"}]},
 	"They backed up the files to the cloud.": {
 		"backed": [{"PARTICLE": "up", "PP": "to the cloud", "SUBJECT": "They", "OBJECT": "the files"}]},
 	"Their backup of the files, to the cloud.": {
 		"backup": [{"OBJECT": "the files", "PP": "to the cloud", "SUBJECT": "Their"}]},
-	"Their back-up of the data, to the disk.": {
-		"back-up": [{"OBJECT": "the data", "PP": "to the disk", "SUBJECT": "Their"}]},
 	"The man set up his user as root.": {
 		"set": [{"SUBJECT": "The man", "OBJECT": "his user", "PP": "as root", "PARTICLE": "up"}],
 		"user": [{"SUBJECT": "user"}]},

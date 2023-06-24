@@ -1,2 +1,3 @@
 from yet_another_verb.arguments_extractor.extractors.nomlex_args_extractor import NomlexArgsExtractor
+from yet_another_verb.arguments_extractor.extractors.patterns_args_extractors import VerbPatternsArgsExtractor
 from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor

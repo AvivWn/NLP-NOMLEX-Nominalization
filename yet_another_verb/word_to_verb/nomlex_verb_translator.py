@@ -2,24 +2,30 @@ import os
 from os.path import join
 from typing import Optional, Set, Union
 
-from yet_another_verb.configuration import VERB_TRANSLATORS_CONFIG
+from yet_another_verb.configuration.verb_translators_config import VERB_TRANSLATORS_CONFIG
 from yet_another_verb.data_handling import PKLFileHandler
 from yet_another_verb.data_handling.file.file_extensions import PICKLE_EXTENSION
 from yet_another_verb.dependency_parsing import POSTag, POSTaggedWord
 from yet_another_verb.nomlex.adaptation.entry.entry_division import devide_to_entries
 from yet_another_verb.nomlex.adaptation.entry.entry_simplification import simplify_entry
 from yet_another_verb.nomlex.constants import EntryProperty
+from yet_another_verb.nomlex.constants.entry_type import ENTRY_TYPES
 from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
 
 
 class NomlexVerbTranslator(VerbTranslator):
-	def __init__(self, translator_nomlex_version: str = VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION, **kwargs):
+	def __init__(
+			self,
+			translator_nomlex_version: str = VERB_TRANSLATORS_CONFIG.NOMLEX_VERSION,
+			entry_types=ENTRY_TYPES,
+			**kwargs):
 		self.json_entries = NomlexMaestro(translator_nomlex_version).get_json_lexicon()
+		self.entry_types = entry_types
 
 		dictionary_path = join(
 			VERB_TRANSLATORS_CONFIG.TRANSLATORS_CACHE_DIR, "nomlex-verb-translator",
-			f"{translator_nomlex_version}.{PICKLE_EXTENSION}")
+			f"{translator_nomlex_version}.{'-'.join(self.entry_types)}.{PICKLE_EXTENSION}")
 
 		if VERB_TRANSLATORS_CONFIG.USE_CACHE and os.path.exists(dictionary_path):
 			self.verb_dictionary = PKLFileHandler.load(dictionary_path)
@@ -27,9 +33,8 @@ class NomlexVerbTranslator(VerbTranslator):
 			self.verb_dictionary = self._generate_dictionary()
 			PKLFileHandler.save(dictionary_path, self.verb_dictionary)
 
-	@staticmethod
-	def _add_to_dictionary(verb_dictionary: dict, entry: dict):
-		if entry[EntryProperty.TYPE] != 'NOM':
+	def _add_to_dictionary(self, verb_dictionary: dict, entry: dict):
+		if entry[EntryProperty.TYPE] not in self.entry_types:
 			return
 
 		orth = entry.get(EntryProperty.ORTH)

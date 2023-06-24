@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from typing import Optional
 
-from yet_another_verb.configuration import VERB_TRANSLATORS_CONFIG
+from yet_another_verb.configuration.verb_translators_config import VERB_TRANSLATORS_CONFIG
 from yet_another_verb.factories.factory import Factory
 from yet_another_verb.nomlex.nomlex_version import NomlexVersion
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
