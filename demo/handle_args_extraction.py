@@ -3,13 +3,12 @@ from typing import List, Dict, Any, Optional, Tuple
 from demo.handle_specified_tags import tag_extraction, filter_specified_tags, TaggedRanges, \
 	seperate_predicate_and_args_ranges
 from demo.dynamic_extractions_info import DynamicExtractionsInfo
-from yet_another_verb.arguments_extractor.extraction.comparators.extraction_matcher import ExtractionMatcher
 from yet_another_verb.arguments_extractor.extraction import Extractions, MultiWordExtraction
 from yet_another_verb.arguments_extractor.extraction.representation import ParsedOdinMentionRepresentation
+from yet_another_verb.arguments_extractor.extraction.utils.extraction_utils import rename_types_to_verbal_active
 from yet_another_verb.dependency_parsing import POSTag
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.representations import parsed_to_odin
-from yet_another_verb import ArgsExtractor
 
 
 def _filter_events_by_pos(events: List[int], parsed_sent: ParsedText, part_of_speech: POSTag, shift_index: int):
@@ -40,9 +39,13 @@ def _tag_args_in_extractions(
 
 def _represent_sentence_extraction(
 		parsed_sent: ParsedText, multi_word_extraction: MultiWordExtraction,
-		document_id: str, sentence_id: int, sent_shift_idx: int
+		document_id: str, sentence_id: int, sent_shift_idx: int, rename_to_verbal_active=False
 ):
-	mentions_per_idx = ParsedOdinMentionRepresentation(document_id, sentence_id, sent_shift_idx). \
+	if rename_to_verbal_active:
+		for ext in multi_word_extraction.extractions:
+			rename_types_to_verbal_active(ext)
+
+	mentions_per_idx = ParsedOdinMentionRepresentation(document_id, sentence_id, sent_shift_idx, use_head_idx_only=True). \
 		represent_by_word(multi_word_extraction, combined=True)
 	mentions_per_idx = _shift_key_idx(mentions_per_idx, sent_shift_idx)
 
@@ -54,33 +57,30 @@ def _represent_sentence_extraction(
 
 
 def generate_args_extraction_info(
-		parsed_text: ParsedText, args_extractor: ArgsExtractor,
-		document_id: str, tagged_ranges: Optional[TaggedRanges] = None,
-		references: Optional[Extractions] = None, reference_matcher: Optional[ExtractionMatcher] = None,
-		dynamic_extractions_info: Optional[DynamicExtractionsInfo] = None
+		parsed_sent: ParsedText, multi_word_extraction: MultiWordExtraction, document_id: str,
+		tagged_ranges: Optional[TaggedRanges] = None,
+		extractions_info: Optional[DynamicExtractionsInfo] = None,
+		rename_to_verbal_active=False
 ) -> Tuple[Extractions, DynamicExtractionsInfo]:
 	tagged_ranges = tagged_ranges if tagged_ranges is not None else {}
-	dynamic_extractions_info = DynamicExtractionsInfo() if dynamic_extractions_info is None else dynamic_extractions_info
+	extractions_info = DynamicExtractionsInfo() if extractions_info is None else extractions_info
 
-	tagged_extractions = []
+	predicate_indices = multi_word_extraction.extractions_per_idx.keys()
 
-	for parsed_sent in parsed_text.sents:
-		parsed_sent = parsed_sent.as_standalone_parsed_text()
-		multi_word_extraction = args_extractor.extract_multiword(
-			parsed_sent, references=references, reference_matcher=reference_matcher)
+	tagged_extractions = _tag_args_in_extractions(
+		parsed_sent, tagged_ranges, extractions_info.sent_shift_idx, multi_word_extraction)
+	mentions_by_event, sorted_noun_events, sorted_verb_events = _represent_sentence_extraction(
+		parsed_sent, multi_word_extraction, document_id,
+		extractions_info.sentence_id, extractions_info.sent_shift_idx, rename_to_verbal_active)
 
-		tagged_extractions += _tag_args_in_extractions(parsed_sent, tagged_ranges, dynamic_extractions_info.sent_shift_idx, multi_word_extraction)
-		mentions_by_event, sorted_noun_events, sorted_verb_events = _represent_sentence_extraction(
-			parsed_sent, multi_word_extraction, document_id,
-			dynamic_extractions_info.sentence_id, dynamic_extractions_info.sent_shift_idx)
+	if True or len(mentions_by_event) > 0:
+		extractions_info.parsed_data.update(parsed_to_odin(
+			parsed_sent, document_id, extractions_info.parsed_data, predicate_indices))
+		extractions_info.mentions_by_event.update(mentions_by_event)
+		extractions_info.sorted_noun_events.append(sorted_noun_events)
+		extractions_info.sorted_verb_events.append(sorted_verb_events)
 
-		if references is None or len(mentions_by_event) > 0:
-			dynamic_extractions_info.parsed_data.update(parsed_to_odin(parsed_sent, document_id, dynamic_extractions_info.parsed_data))
-			dynamic_extractions_info.mentions_by_event.update(mentions_by_event)
-			dynamic_extractions_info.sorted_noun_events.append(sorted_noun_events)
-			dynamic_extractions_info.sorted_verb_events.append(sorted_verb_events)
+		extractions_info.sentence_id += 1
+		extractions_info.sent_shift_idx += len(parsed_sent)
 
-			dynamic_extractions_info.sentence_id += 1
-			dynamic_extractions_info.sent_shift_idx += len(parsed_sent)
-
-	return tagged_extractions, dynamic_extractions_info
+	return tagged_extractions, extractions_info

@@ -10,16 +10,18 @@ define([
 	introJs
 ) {
 	function main() {
-		const DEMO_URL = "https://nlp.biu.ac.il/~avivwn/yet_another_verb/"; // "http://127.0.0.1:5000/yet_another_verb/";
+		const DEMO_URL = "https://nlp.biu.ac.il/~avivwn/NounVerbUDTransfer/demo/"; // "http://127.0.0.1:5000/NounVerbUDTransfer/demo/";
 		const EXTRACT_ENDPOINT = DEMO_URL + "extract/";
-		const MATCH_ENDPOINT = DEMO_URL + "match/";
+		const MATCH_REFERENCES_ENDPOINT = DEMO_URL + "match_references/"
+		const MATCH_OTHER_ENDPOINT = DEMO_URL + "match_other/";
 		const RANDOM_ENDPOINT = DEMO_URL + "get_random_example/";
 		const FEEDBACK_ENDPOINT = DEMO_URL + "feedback/";
 
 		const CACHE_KEY = "cache-key";
 		const SENTENCE_KEY = "sentence";
 		const EXTRACTIONS_KEY = "extractions";
-		const MATCHES_KEY = "matches";
+		const MATCHING_OTHER_KEY = "matching_other";
+		const MATCHING_REFERENCES_KEY = "matching_references";
 
 		const PARSED_DATA_KEY = "parsed_data";
 		const MENTIONS_BY_EVENT_KEY = "mentions_by_event";
@@ -32,9 +34,9 @@ define([
 		const LIGHT_THEME = "Light";
 
 		const OPTIONS_KEY = "options";
-		const DEFAULT_OPTIONS = {"extraction-based": "rule-based", "verbs-cb": true, "nouns-cb": true, "ud-cb": true, "postag-cb": true};
+		const DEFAULT_OPTIONS = {"extraction-mode": "nomlex", "verbs-cb": true, "nouns-cb": true, "ud-cb": true, "postag-cb": true, "consider-tags": false};
 
-		const DEFAULT_EXAMPLE = "[AGENT Apple] [# appointed] [APPOINTEE Tim Cook] [TITLE as CEO]. The appointment of Tim Cook, by Apple as a CEO was expected.";
+		const DEFAULT_EXAMPLE = "The contractual Microsoft acquisition of the chatbot." // "[AGENT Apple] [# appointed] [APPOINTEE Tim Cook] [TITLE as CEO]. The appointment of Tim Cook, by Apple as a CEO was expected.";
 		const TAGGED_PREDICATE_PATTERN = "[#";
 
 		// JQuery Selectors
@@ -42,9 +44,10 @@ define([
 		const RANDOM_BTN = $("#random-button");
 		const THEME_BTN = $("#theme-button");
 		const FEEDBACK_BTN = $("#feedback-button");
-		const GITHUB_BTN = $("#github-button");
+		const PAPER_BTN = $("#paper-button");
 		const EXTRACTIONS_CONSTRAINER = $("#extractions-container");
-		const MATCHES_CONTAINER = $("#matches-container");
+		const MATCHING_REFERENCES_CONTAINER = $("#matching-references-container");
+		const MATCHING_OTHERS_CONTAINER = $("#matching-other-container");
 		const SENTENCE_INPUT = $("#sentence-input");
 		const MAIN_CONTENT = $("#main-content");
 
@@ -75,7 +78,7 @@ define([
 
 				// Overrides of default options
 				options: {
-					showTopMainLabel: true,
+					showTopMainLabel: false,
 					showTopLinksOnMove: true,
 					showTopArgLabels: true,
 					showBottomMainLabel: true,
@@ -141,6 +144,8 @@ define([
 
 								choose_relevant_mentions(extractions_info, options);
 								display_all_trees(extractions_info, container, options, separate_lines_sentences);
+
+								parse_sentence();
 							}
 						});
 					}
@@ -256,26 +261,31 @@ define([
 			extractions_info[APPEARING_EVENTS_KEY] = appearing_events;
 		}
 
-		function show_matching_extractions(matches_info) {
-			localStorage.setItem(MATCHES_KEY, matches_info);
+		function show_matching_extractions(matches_info, matches_key, container) {
+			localStorage.setItem(matches_key, matches_info);
+			const options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
 
 			if (matches_info === null)
-				matches_info = "[THING No relevant arguments and predicates] were [# specified] by [AGENT the user].";
+			{
+				// if (options["consider-tags"])
+				// 	matches_info = "[THING No relevant arguments and predicates] were [# specified] by [AGENT the user].";
+				// else
+				matches_info = "Couldn't find any relevant references."
+			}
 			else if(Object.keys(matches_info[APPEARING_EVENTS_KEY]).length === 0)
-				matches_info = "Couldn't find any matches.";
+				matches_info = "Couldn't find any relevant references." // "Couldn't find any matches.";
 
 			if (typeof matches_info === "string") {
 				if (localStorage.getItem(THEME_COLOR_KEY) === DARK_THEME)
-					MATCHES_CONTAINER[0].innerHTML = "<h5 style='padding-left:15px;color:lightgray;'>" + matches_info + "</h5>";
+					container[0].innerHTML = "<h5 style='padding-left:15px;color:lightgray;'>" + matches_info + "</h5>";
 				else
-					MATCHES_CONTAINER[0].innerHTML = "<h5 style='padding-left:15px;color:black;'>" + matches_info + "</h5>";
+					container[0].innerHTML = "<h5 style='padding-left:15px;color:black;'>" + matches_info + "</h5>";
 			}
 			else {
-				const options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
 				let matches_options = Object.assign({}, DEFAULT_OPTIONS);
 				matches_options["ud-cb"] = options["ud-cb"];
 				matches_options["postag-cb"] = options["postag-cb"];
-				display_all_trees(matches_info, MATCHES_CONTAINER, matches_options, true);
+				display_all_trees(matches_info, container, matches_options, true);
 			}
 		}
 
@@ -290,19 +300,26 @@ define([
 
 			localStorage.setItem(SENTENCE_KEY, String(SENTENCE_INPUT[0].value));
 
-			if (has_tagged_info)
-				show_loading_icon(MATCHES_CONTAINER);
-			else
-				show_matching_extractions(null);
+			// if (options["consider-tags"]) {
+			// 	if (has_tagged_info)
+			// 		show_loading_icon(MATCHING_OTHERS_CONTAINER);
+			// 	else
+			// 		show_matching_extractions(null, MATCHING_OTHER_KEY, MATCHING_OTHERS_CONTAINER);
+			// }
+
+			show_loading_icon(MATCHING_REFERENCES_CONTAINER);
 
 			if (is_new_extractions) {
 				show_loading_icon(EXTRACTIONS_CONSTRAINER);
 
+				// Extract
 				const extract_response = await axios.post(
 					EXTRACT_ENDPOINT,
 					{
 						"text": SENTENCE_INPUT[0].value,
-						"extraction-based": options["extraction-based"]
+						"extraction-mode": options["extraction-mode"],
+						"limited-postags": options["consider-tags"]? ["VERB", "NOUN"]:["NOUN"],
+						"consider-tags": options['consider-tags']
 					}
 				);
 
@@ -315,20 +332,44 @@ define([
 
 			display_all_trees(extractions_info, EXTRACTIONS_CONSTRAINER, options, false);
 
-			if (has_tagged_info) {
+			if (Object.keys(extractions_info[APPEARING_EVENTS_KEY]).length === 0)
+				show_matching_extractions(null, MATCHING_REFERENCES_KEY, MATCHING_REFERENCES_CONTAINER)
+			else {
+				// Find matching references
 				const matches_response = await axios.post(
-					MATCH_ENDPOINT,
+					MATCH_REFERENCES_ENDPOINT,
 					{
 						"text": SENTENCE_INPUT[0].value,
-						"extraction-based": options["extraction-based"],
+						"extraction-mode": options["extraction-mode"],
+						"predicate-index": extractions_info[APPEARING_EVENTS_KEY][0],
+						"consider-tags": options['consider-tags']
 					}
 				);
-
 				const matches_info = matches_response.data;
-				matches_info[CACHE_KEY] = MATCHES_KEY;
-				choose_relevant_mentions(matches_info, DEFAULT_OPTIONS);
-				show_matching_extractions(matches_info);
+
+				if (Object.keys(matches_info).length === 0)
+					show_matching_extractions(null, MATCHING_REFERENCES_KEY, MATCHING_REFERENCES_CONTAINER)
+				else {
+					matches_info[CACHE_KEY] = MATCHING_REFERENCES_KEY;
+					choose_relevant_mentions(matches_info, DEFAULT_OPTIONS);
+					show_matching_extractions(matches_info, MATCHING_REFERENCES_KEY, MATCHING_REFERENCES_CONTAINER)
+				}
 			}
+
+			// if (options["consider-tags"] && has_tagged_info) {
+			// 	const matches_response = await axios.post(
+			// 		MATCH_OTHER_ENDPOINT,
+			// 		{
+			// 			"text": SENTENCE_INPUT[0].value,
+			// 			"extraction-mode": options["extraction-mode"]
+			// 		}
+			// 	);
+			//
+			// 	const matches_info = matches_response.data;
+			// 	matches_info[CACHE_KEY] = MATCHING_OTHER_KEY;
+			// 	choose_relevant_mentions(matches_info, DEFAULT_OPTIONS);
+			// 	show_matching_extractions(matches_info, MATCHING_OTHER_KEY, MATCHING_OTHERS_CONTAINER);
+			// }
 		}
 
 
@@ -339,8 +380,8 @@ define([
 
 			// Toggle from dark mode to light mode for each element in the document
 			const relevant_for_theme = [$("body"), $("header"), $("footer"),
-				THEME_BTN, FEEDBACK_BTN, GITHUB_BTN, SUBMIT_BTN, RANDOM_BTN,
-				EXTRACTIONS_CONSTRAINER, MATCHES_CONTAINER,
+				THEME_BTN, FEEDBACK_BTN, PAPER_BTN, SUBMIT_BTN, RANDOM_BTN,
+				EXTRACTIONS_CONSTRAINER, MATCHING_OTHERS_CONTAINER, MATCHING_REFERENCES_CONTAINER,
 				SENTENCE_INPUT, MAIN_CONTENT];
 
 			relevant_for_theme.forEach((e) => {
@@ -383,9 +424,15 @@ define([
 			let extractions_info = JSON.parse(localStorage.getItem(EXTRACTIONS_KEY));
 			display_all_trees(extractions_info, EXTRACTIONS_CONSTRAINER, options, false);
 
+			// Display references
+			let matching_references_info = JSON.parse(localStorage.getItem(MATCHING_REFERENCES_KEY));
+			show_matching_extractions(matching_references_info, MATCHING_REFERENCES_KEY, MATCHING_REFERENCES_CONTAINER);
+
 			// Display matches
-			let matching_extractions_info = JSON.parse(localStorage.getItem(MATCHES_KEY));
-			show_matching_extractions(matching_extractions_info);
+			// if (options["consider-tags"]) {
+			// 	let matching_extractions_info = JSON.parse(localStorage.getItem(MATCHING_OTHER_KEY));
+			// 	show_matching_extractions(matching_extractions_info, MATCHING_OTHER_KEY, MATCHING_OTHERS_CONTAINER);
+			// }
 		});
 
 
@@ -408,17 +455,18 @@ define([
 		});
 
 		// When any checkbox (option) is checked or unchecked, the current sentence is parsed with the current options
-		const triggers_for_parsing = [$('#rule-based'), $('#model-based'), $('#hybrid-based'), $('#verbs-cb'), $('#nouns-cb'), $('#ud-cb'), $('#postag-cb')];
+		const triggers_for_parsing = [$('#nomlex'), $('#dependency-nearest-avg-argument'), $('#dependency-k-nearest-argument'),
+			$('#nouns-cb'), $('#verbs-cb'), $('#ud-cb'), $('#postag-cb')];
 		triggers_for_parsing.forEach((trigger) => {
 			trigger.click(async (e) => {
 				let options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
 				let must_parse_again = false;
 
-				if (e.target.id.endsWith('based')) {
-					if (options['extraction-based'] !== e.target.id)
+				if (['nomlex', 'dependency-nearest-avg-argument', 'dependency-k-nearest-argument'].includes(e.target.id)) {
+					if (options['extraction-mode'] !== e.target.id)
 						must_parse_again = true;
 
-					options['extraction-based'] = e.target.id;
+					options['extraction-mode'] = e.target.id;
 				} else
 					options[e.target.id] = e.target.checked;
 
@@ -431,8 +479,13 @@ define([
 					choose_relevant_mentions(extractions_info, options);
 					display_all_trees(extractions_info, EXTRACTIONS_CONSTRAINER, options, false);
 
-					const matches_info = JSON.parse(localStorage.getItem(MATCHES_KEY));
-					show_matching_extractions(matches_info);
+					const matches_info = JSON.parse(localStorage.getItem(MATCHING_REFERENCES_KEY));
+					show_matching_extractions(matches_info, MATCHING_REFERENCES_KEY, MATCHING_REFERENCES_CONTAINER);
+
+					// if (options["consider-tags"]) {
+					// 	const matches_info = JSON.parse(localStorage.getItem(MATCHING_OTHER_KEY));
+					// 	show_matching_extractions(matches_info, MATCHING_OTHER_KEY, MATCHING_OTHERS_CONTAINER);
+					// }
 				}
 			});
 		});
@@ -495,11 +548,11 @@ define([
 
 			// Update the chosen options based on the last saved options
 			options = JSON.parse(localStorage.getItem(OPTIONS_KEY));
-			$('#verbs-cb').prop('checked', options["verbs-cb"]);
-			$('#nouns-cb').prop('checked', options["nouns-cb"]);
+			// $('#verbs-cb').prop('checked', options["verbs-cb"]);
+			// $('#nouns-cb').prop('checked', options["nouns-cb"]);
 			$('#ud-cb').prop('checked', options["ud-cb"]);
 			$('#postag-cb').prop('checked', options["postag-cb"]);
-			$('#' + options['extraction-based']).prop('checked', true);
+			$('#' + options['extraction-mode']).prop('checked', true);
 
 			$('#body').removeClass('hide-all');
 

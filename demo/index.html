@@ -2,13 +2,14 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Yet Another Verb</title>
+        <title>Noun-Verb UD Transfer</title>
+        <link rel="icon" type="image/png" href="img/biu_nlp.png">
         <link href="css/tag.css" rel="stylesheet">
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
         <link href="css/introjs.min.css" rel="stylesheet">
         <link href="css/my_style.css" rel="stylesheet">
-        <script src='https://kit.fontawesome.com/a076d05399.js'></script>
+        <script src="https://kit.fontawesome.com/b50adf54bc.js" crossorigin="anonymous"></script>
         <script src="scripts/modernizr.js"></script>
         <script data-main="scripts/boot" src="scripts/require.js"></script>
     </head>
@@ -16,14 +17,16 @@
         <header id="header" class="modal-header my-header" style="height:auto;">
             <div class="narrow center-items" style="height:60px"><input class="icon" type="image" src="img/biu_nlp.png" height="50" width="50" alt="" onclick="location.href='https://biu-nlp.github.io/'" id="biu-nlp-img"></div>
             <div class="narrow center-items" style="height:60px"><input class="icon" type="image" src="img/biu.png" height="50" width="50" alt="" onclick="location.href='https://www.cs.biu.ac.il/en'" id="biu-img"></div>
-            <p class="narrow main-title">
-                <b>Yet Another Verb</b>
-            </p>
+                <p class="narrow main-title">
+                    <span class="narrow main-title"><b>Noun-Verb UD Transfer</b></span>
+                    <br>
+                    <span class="narrow secondary-title">Unsupervised Mapping of Arguments of Deverbal Nouns to Their Corresponding Verbal Labels</span>
+                </p>
             <ul class="narrow nav nav-pills pull-right center" style="background-color: transparent; height: 60px; margin: 0; padding-right: 0;">
+                <li class="center-items"><a class="header-btn" href="https://arxiv.org/abs/2306.13922" id="paper-button">Arxiv</a></li>
                 <li class="center-items"><a class="header-btn" href id="theme-button">Dark</a></li>
 <!--                <li><a class="header-btn" href id="intro-button">Intro</a></li>-->
-                <li class="center-items"><a class="header-btn" href="https://github.com/AvivWn/NLP-NOMLEX-Nominalization" id="github-button">Github</a></li>
-                <li class="center-items"><a class="header-btn" href id="feedback-button">Feedback</a></li>
+<!--                <li class="center-items"><a class="header-btn" href id="feedback-button">Feedback</a></li>-->
             </ul>
         </header>
         <div class="main-content" id="main-content">
@@ -33,7 +36,7 @@
                         <div style="width:100%" data-step="" data-intro="">
                             <br>
                             <h5>Type your input here:</h5>
-                                <input class="input-line narrow" id="sentence-input" autocomplete="off" type="text" placeholder="e.g., The appointment [nominalization] of Tim Cook, by Apple as a CEO was expected. Apple appointed [verb] Tim Cook as CEO." name="input">
+                                <input class="input-line narrow" id="sentence-input" autocomplete="off" type="text" placeholder="e.g., The contractual Microsoft acquisition of the chatbot." name="input">
                                 <button class="submit-btn narrow" id="submit-button" type="submit">Submit</button>
                                 <button class="submit-btn random-btn narrow" id="random-button" type="submit"><i class='fas fa-dice'></i></button>
                         </div>
@@ -42,24 +45,26 @@
             </div>
             <div class="container my-container">
                 <div class="options-container narrow" data-step="" data-intro="">
-                    <div class="btn-container based-radio-btn narrow"><label>Rule-based<sup>1</sup><input type="radio" name="radio" id="rule-based" value="1" checked="checked"><span class="checkmark"></span></label></div>
-<!--                    <div class="btn-container based-radio-btn narrow"><label>Model-based<input type="radio" name="radio" id="model-based" value="2"/><span class="checkmark"></span></label></div>-->
-<!--                    <div class="btn-container based-radio-btn narrow"><label>Hybrid<input type="radio" name="radio" id="hybrid-based" value="3"><span class="checkmark"></span></label></div>-->
+                    <div class="btn-container based-radio-btn narrow"><label>NomLex-based<sup>1</sup> (baseline)<input type="radio" name="radio" id="nomlex" value="1"><span class="checkmark"></span></label></div>
+                    <div class="btn-container based-radio-btn narrow"><label>nearest-avg-argument<input type="radio" name="radio" id="dependency-nearest-avg-argument" value="2"/><span class="checkmark"></span></label></div>
+                    <div class="btn-container based-radio-btn narrow"><label>k-nearest-argument<input type="radio" name="radio" id="dependency-k-nearest-argument" value="3" checked="checked"><span class="checkmark"></span></label></div>
                 </div>
                 <div class="options-container narrow" data-step="" data-intro="">
-                    <div class="btn-container noun-btn narrow"><label>Nominalizations<input type="checkbox" name="check" id="nouns-cb" value="4" checked><span class="checkmark"></span></label></div>
-                    <div class="btn-container verb-btn narrow"><label>Verbs<input type="checkbox" name="check" id="verbs-cb" value="5" checked><span class="checkmark"></span></label></div>
+<!--                    <div class="btn-container noun-btn narrow"><label>Nominalizations<input type="checkbox" name="check" id="nouns-cb" value="4" checked hidden><span class="checkmark"></span></label></div>-->
+<!--                    <div class="btn-container verb-btn narrow"><label>Verbs<input type="checkbox" name="check" id="verbs-cb" value="5" checked><span class="checkmark"></span></label></div>-->
                     <div class="btn-container ud-btn narrow"><label>UD Relations<input type="checkbox" name="check" id="ud-cb" value="6" checked><span class="checkmark"></span></label></div>
                     <div class="btn-container pos-btn narrow"><label>POS tags<input type="checkbox" name="check" id="postag-cb" value="7" checked><span class="checkmark"></span></label></div>
                 </div>
             </div>
             <br>
             <div class="container my-container" data-step="" data-intro="">
-                <h4 id="scroll-to-here">Arguments Extractions:</h4>
+                <h4 id="scroll-to-here" style="color: #64b34c">Nominal Extractions:</h4>
                 <div id="extractions-container" class="extractions-contrainer"></div>
                 <br>
-                <h4>Example Matching Extractions:</h4>
-                <div id="matches-container" class="extractions-contrainer"></div>
+                <h4 style="color: #299eec">Matching Verbal Extractions:</h4>
+                <div id="matching-references-container" class="extractions-contrainer"></div>
+<!--                <h4 hidden>Example Matching Extractions:</h4>-->
+<!--                <div id="matching-other-container" class="extractions-contrainer" hidden></div>-->
             </div>
             <br><br>
         </div>
