@@ -5,7 +5,7 @@ from os.path import dirname
 from yet_another_verb.configuration.verbose_config import VERBOSE_CONFIG
 from yet_another_verb.data_handling.creators_configs import DATASET_CREATOR_TYPE_BY_NAME, \
 	DATASET_CREATOR_BY_TYPE, LIMITED_VERBS_BY_TYPE
-from yet_another_verb.factories.encoder_factory import EncoderFactory
+from yet_another_verb.factories.argument_encoder_factory import ArgumentEncoderFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
 from yet_another_verb.utils.print_utils import print_if_verbose, print_as_title_if_verbose
@@ -59,7 +59,7 @@ def main():
 
 	ExtractorFactory.expand_parser(arg_parser)
 	VerbTranslatorFactory.expand_parser(arg_parser)
-	EncoderFactory.expand_parser(arg_parser)
+	ArgumentEncoderFactory.expand_parser(arg_parser)
 
 	args, _ = arg_parser.parse_known_args()
 	VERBOSE_CONFIG.VERBOSE = args.verbose

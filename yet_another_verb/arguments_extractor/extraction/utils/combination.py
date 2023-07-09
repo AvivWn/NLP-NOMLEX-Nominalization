@@ -1,15 +1,15 @@
 from collections import defaultdict
-from typing import Tuple, Set
+from typing import Tuple
 
-from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, Extraction, Extractions, \
-	MultiWordExtraction
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, \
+	MultiWordExtraction, ExtractedArguments
 
 
 def _is_predicate_arg(arg, predicate_idx):
 	return predicate_idx in arg.arg_indices
 
 
-def separate_args_by_determination(args: Set[ExtractedArgument], predicate_idx: int) -> Tuple[set, set]:
+def separate_args_by_determination(args: ExtractedArguments, predicate_idx: int) -> Tuple[set, set]:
 	arg_types_by_idx = defaultdict(set)
 	for arg in args:
 		for idx in arg.arg_indices:
@@ -43,7 +43,7 @@ def combine_extractions(extractions: Extractions, safe_combine=False) -> Extract
 	predicate_postag = ex.predicate_postag
 
 	if safe_combine:
-		determined, undetermined = separate_args_by_determination(total_args, predicate_idx)
+		determined, undetermined = separate_args_by_determination(list(total_args), predicate_idx)
 	else:
 		determined, undetermined = total_args, set()
 

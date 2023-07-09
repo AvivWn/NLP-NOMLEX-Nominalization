@@ -11,7 +11,7 @@ from yet_another_verb.data_handling import TorchBytesHandler, ExtractedBytesHand
 from yet_another_verb.data_handling.bytes.compressed.compressed_encoding import CompressedEncoding
 from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
 from yet_another_verb.data_handling.db.communicators.sqlite_communicator import SQLiteCommunicator
-from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel
+from yet_another_verb.configuration.encoding_config import EncodingLevel
 from yet_another_verb.data_handling.db.encoded_extractions.queries import get_limited_encodings, \
 	get_extracted_predicates, get_extractor, get_encoder, get_parser, get_limited_parsings
 from yet_another_verb.data_handling.db.encoded_extractions.structure import ExtractedArgument as DBExtractedArgument, \

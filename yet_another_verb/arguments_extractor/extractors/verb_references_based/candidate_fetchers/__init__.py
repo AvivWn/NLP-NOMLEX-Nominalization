@@ -1,0 +1,4 @@
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.candidate_fetchers.\
+	candidates_fetcher import CandidatesFetcher
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.candidate_fetchers.\
+	dependency_candidates_fetcher import DependencyCandidatesFetcher

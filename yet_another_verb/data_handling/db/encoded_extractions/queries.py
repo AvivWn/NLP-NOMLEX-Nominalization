@@ -2,8 +2,9 @@ from typing import Optional, Type, Union, List
 
 from pony.orm.core import Entity
 
-from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction import ExtractedArgument, ExtractedArguments
 from yet_another_verb.data_handling import TorchBytesHandler
+from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.sentence_encoding.argument_encoding.arg_encoder import ArgumentEncoder
 from yet_another_verb.data_handling.db.encoded_extractions.structure import Extractor, Encoder, Verb, \
 	PartOfSpeech, Predicate, Sentence, PredicateInSentence, Parser, Encoding, Argument, ArgumentType, \
@@ -29,7 +30,8 @@ def get_extractor(extractor: str, parser: Parser, generate_missing=False) -> Opt
 
 
 def get_encoder(framework: str, encoder: str, encoding_level: str, parser: Parser, generate_missing=False) -> Optional[Encoder]:
-	return get_entity_by_params(Encoder, generate_missing, framework=framework, encoder=encoder, encoding_level=encoding_level, parser=parser)
+	return get_entity_by_params(
+		Encoder, generate_missing, framework=framework, encoder=encoder, encoding_level=encoding_level, parser=parser)
 
 
 def get_sentence(text: str, generate_missing=False) -> Optional[Sentence]:
@@ -138,7 +140,8 @@ def get_limited_parsings(sentence: Union[str, Sentence], parser: Parser) -> List
 	return [pars for pars in sentence_entity.parsings if pars.parser == parser]
 
 
-def insert_encoding(argument_entity: Argument, encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
+def insert_encoding(
+		words: ParsedText, argument_entity: Argument, encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
 	if Encoding.get(argument=argument_entity, encoder=encoder_entity) is None:
 		extracted_arg = ExtractedArgument(
 			start_idx=argument_entity.start_idx,
@@ -146,16 +149,16 @@ def insert_encoding(argument_entity: Argument, encoder_entity: Encoder, arg_enco
 			head_idx=argument_entity.head_idx
 		)
 
-		argument_encoding = arg_encoder.encode(extracted_arg)
+		argument_encoding = arg_encoder.encode(words.words, extracted_arg)
 		binary_encoding = TorchBytesHandler.saves(argument_encoding)
 		Encoding(argument=argument_entity, encoder=encoder_entity, binary=binary_encoding)
 
 
 def insert_encoded_arguments(
-		arguments: List[ExtractedArgument], extractor_entity: Extractor, predicate_in_sentence: PredicateInSentence,
-		encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
+		words: ParsedText, arguments: ExtractedArguments, extractor_entity: Extractor,
+		predicate_in_sentence: PredicateInSentence, encoder_entity: Encoder, arg_encoder: ArgumentEncoder):
 	for extracted_arg in arguments:
 		argument_entity = get_argument(extracted_arg, predicate_in_sentence, generate_missing=True)
 		get_extracted_argument(argument_entity, extractor_entity, extracted_arg.arg_type, generate_missing=True)
 
-		insert_encoding(argument_entity, encoder_entity, arg_encoder)
+		insert_encoding(words, argument_entity, encoder_entity, arg_encoder)

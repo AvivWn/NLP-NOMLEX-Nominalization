@@ -15,10 +15,10 @@ from yet_another_verb.data_handling.db.encoded_extractions.structure import enco
 	Parser, Parsing, Sentence, Extractor
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
-from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel, encoder_by_level
+from yet_another_verb.sentence_encoding.argument_encoding.arg_encoder import ArgumentEncoder
 from yet_another_verb.sentence_encoding.encoder import Encoder
 from yet_another_verb.word_to_verb.verb_translator import VerbTranslator
-from yet_another_verb.configuration.encoding_config import FRAMEWORK_BY_ENCODER
+from yet_another_verb.configuration.encoding_config import FRAMEWORK_BY_ENCODER, ARG_LEVEL_BY_ARG_ENCODER
 from yet_another_verb.configuration.parsing_config import ENGINE_BY_PARSER
 from yet_another_verb.utils.debug_utils import timeit
 
@@ -29,7 +29,7 @@ class EncodedExtractionsExpander(DatasetCreator):
 			dependency_parser: DependencyParser,
 			args_extractor: ArgsExtractor,
 			verb_translator: VerbTranslator,
-			encoder: Encoder, encoding_level: EncodingLevel = EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT,
+			arg_encoder: ArgumentEncoder,
 			dataset_size=None, **kwargs
 	):
 		super().__init__(dataset_size)
@@ -37,8 +37,7 @@ class EncodedExtractionsExpander(DatasetCreator):
 		self.dependency_parser = dependency_parser
 		self.args_extractor = args_extractor
 		self.verb_translator = verb_translator
-		self.encoder = encoder
-		self.encoding_level = encoding_level
+		self.arg_encoder = arg_encoder
 
 	def _get_parsed_text(self, sentence_entity: Sentence, parser_entity) -> ParsedText:
 		doc = Parsing.get(sentence=sentence_entity, parser=parser_entity)
@@ -53,14 +52,12 @@ class EncodedExtractionsExpander(DatasetCreator):
 
 	def _expand_extractions(
 			self, doc: ParsedText, sentence_entity: Sentence, extractor_entity: Extractor, encoder_entity: Encoder):
-		arg_encoder = encoder_by_level.get(self.encoding_level)(words=doc, encoder=self.encoder)
-
 		# skip extracted sentences
 		extracted_args = get_extracted_args_in_sentence(sentence_entity, extractor_entity)
 		if len(extracted_args) > 0:
 			# only encode them
 			for arg in extracted_args:
-				insert_encoding(arg, encoder_entity, arg_encoder)
+				insert_encoding(doc, arg, encoder_entity, self.arg_encoder)
 
 			return
 
@@ -69,10 +66,12 @@ class EncodedExtractionsExpander(DatasetCreator):
 			predicate = doc[predicate_idx]
 			verb = self.verb_translator.translate(predicate.lemma, predicate.pos)
 			predicate_entity = get_predicate(verb, predicate.pos, predicate.lemma, generate_missing=True)
-			predicate_in_sentence = get_predicate_in_sentence(sentence_entity, predicate_entity, predicate.i, generate_missing=True)
+			predicate_in_sentence = get_predicate_in_sentence(
+				sentence_entity, predicate_entity, predicate.i, generate_missing=True)
 
 			combined_extraction = combine_extractions(extractions, safe_combine=False)
-			insert_encoded_arguments(combined_extraction.args, extractor_entity, predicate_in_sentence, encoder_entity, arg_encoder)
+			insert_encoded_arguments(
+				doc, combined_extraction.args, extractor_entity, predicate_in_sentence, encoder_entity, self.arg_encoder)
 
 	@db_session
 	def _expand_dataset(self, db_communicator: SQLiteCommunicator):
@@ -80,8 +79,10 @@ class EncodedExtractionsExpander(DatasetCreator):
 			ENGINE_BY_PARSER[type(self.dependency_parser)], self.dependency_parser.name, generate_missing=True)
 		extractor_entity = get_extractor(NAME_BY_EXTRACTOR[type(self.args_extractor)], parser_entity, generate_missing=True)
 		encoder_entity = get_encoder(
-			FRAMEWORK_BY_ENCODER[type(self.encoder)], self.encoder.name, self.encoding_level,
-			parser_entity, generate_missing=True)
+			framework=FRAMEWORK_BY_ENCODER[type(self.arg_encoder.encoder)],
+			encoder=self.arg_encoder.encoder.name,
+			encoding_level=ARG_LEVEL_BY_ARG_ENCODER[self.arg_encoder],
+			parser=parser_entity, generate_missing=True)
 
 		all_sentences = Sentence.select()
 		for sentence_entity in tqdm(all_sentences, leave=False):

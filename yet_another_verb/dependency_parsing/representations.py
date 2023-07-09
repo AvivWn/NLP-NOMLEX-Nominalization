@@ -9,7 +9,9 @@ DOCUMENT_TEXT_KEY = "text"
 DOCUMENT_SENTENCES_KEY = "sentences"
 
 
-def parsed_to_odin(parsed_sent: ParsedText, document_id: str, odin_repr: Optional[dict] = None) -> dict:
+def parsed_to_odin(
+		parsed_sent: ParsedText, document_id: str, odin_repr: Optional[dict] = None,
+		predicate_indices=None) -> dict:
 	total_words = []
 
 	sent_root = parsed_sent[:].root
@@ -20,11 +22,12 @@ def parsed_to_odin(parsed_sent: ParsedText, document_id: str, odin_repr: Optiona
 		tags.append(parsed_word.tag)
 
 		if parsed_word.i != sent_root.i:
-			graph_edges.append({
-				"source": parsed_word.head.i,
-				"destination": parsed_word.i,
-				"relation": parsed_word.dep
-			})
+			if predicate_indices is None or parsed_word.head.i in predicate_indices:
+				graph_edges.append({
+					"source": parsed_word.head.i,
+					"destination": parsed_word.i,
+					"relation": parsed_word.dep
+				})
 
 	total_words += words
 	odin_sentence_info = {

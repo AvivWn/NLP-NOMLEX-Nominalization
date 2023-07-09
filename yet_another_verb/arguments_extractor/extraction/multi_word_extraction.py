@@ -2,7 +2,7 @@ from typing import Dict, List, TYPE_CHECKING
 from dataclasses import dataclass
 from itertools import chain
 
-from yet_another_verb.arguments_extractor.extraction import ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArguments
 from yet_another_verb.arguments_extractor.extraction.extraction import Extractions
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class MultiWordExtraction:
 		return list(chain(*[e for e in self.extractions_per_idx.values()]))
 
 	@property
-	def all_args(self) -> List[ExtractedArgument]:
+	def all_args(self) -> ExtractedArguments:
 		return list(chain(*[e.all_args for e in self.extractions]))
 
 	def update(self, more_extractions_per_idx: Dict[int, Extractions]):

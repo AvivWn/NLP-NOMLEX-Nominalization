@@ -2,7 +2,8 @@ from typing import Set, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 from itertools import chain
 
-from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange
+from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange, \
+	ExtractedArguments
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMap
 
@@ -16,15 +17,15 @@ class Extraction:
 	predicate_idx: int
 	predicate_lemma: str
 	predicate_postag: str  # VERB, NOUN, ...
-	args: List[ExtractedArgument]
-	undetermined_args: List[ExtractedArgument] = field(default_factory=list, compare=False)
+	args: ExtractedArguments
+	undetermined_args: ExtractedArguments = field(default_factory=list, compare=False)
 	fulfilled_constraints: ConstraintsMap = field(default=None, compare=False)
 
 	@staticmethod
-	def _sorted_args_by_indices(args: List[ExtractedArgument]) -> List[ExtractedArgument]:
+	def _sorted_args_by_indices(args: ExtractedArguments) -> ExtractedArguments:
 		return sorted(args, key=lambda arg: (arg.start_idx, arg.end_idx))
 
-	def _seperate_typeless_args(self, args: List[ExtractedArgument]) -> tuple:
+	def _seperate_typeless_args(self, args: ExtractedArguments) -> tuple:
 		typed_args, typeless_args = [], []
 		for arg in args:
 			if arg.arg_type is not None:
@@ -42,7 +43,7 @@ class Extraction:
 			self._arg_by_type[arg.arg_type] = arg
 			self._arg_by_range[(arg.start_idx, arg.end_idx)] = arg
 
-	def __setattr__(self, key: str, value: List[ExtractedArgument]):
+	def __setattr__(self, key: str, value):
 		if key == 'args':
 			value, typeless_args = self._seperate_typeless_args(value)
 			self._typeless_args = typeless_args
@@ -67,11 +68,11 @@ class Extraction:
 		return set([arg.arg_type for arg in self.args])
 
 	@property
-	def typeless_args(self) -> List[ExtractedArgument]:
+	def typeless_args(self) -> ExtractedArguments:
 		return self._typeless_args
 
 	@property
-	def all_args(self) -> List[ExtractedArgument]:
+	def all_args(self) -> ExtractedArguments:
 		return self.args + self.undetermined_args + self.typeless_args
 
 	@property

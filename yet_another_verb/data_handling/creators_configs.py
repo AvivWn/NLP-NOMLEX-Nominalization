@@ -1,17 +1,21 @@
+from os.path import dirname, join
 from itertools import chain
 
+from yet_another_verb import constants
 from yet_another_verb.data_handling import WikiDatasetCreator, ParsedDatasetCreator, \
 	ExtractedFromParsedDatasetCreator, BIOArgsDatasetCreator, EncodedExtractionsCreator, ShuffledLinesDatasetCreator, \
 	CombinedSQLitesDatasetCreator, EncodedExtractionsExpander, ExtractedFromDBDatasetCreator, TXTFileHandler
+from yet_another_verb.factories.argument_encoder_factory import ArgumentEncoderFactory
 from yet_another_verb.factories.dependency_parser_factory import DependencyParserFactory
 from yet_another_verb.factories.extractor_factory import ExtractorFactory
-from yet_another_verb.factories.encoder_factory import EncoderFactory
 from yet_another_verb.factories.verb_translator_factory import VerbTranslatorFactory
 
 
 LIMITED_VERBS_BY_TYPE = {
-	"paraphrasing-verbs": TXTFileHandler(handle_multi_line=True).load("constants/paraphrasing_verbs.txt"),
-	"nomlex-verbs": TXTFileHandler(handle_multi_line=True).load("constants/nomlex_verbs_750.txt"),
+	"paraphrasing-verbs": TXTFileHandler(handle_multi_line=True).load(
+		join(dirname(constants.__file__), "paraphrasing_verbs.txt")),
+	"nomlex-verbs": TXTFileHandler(handle_multi_line=True).load(
+		join(dirname(constants.__file__), "nomlex_verbs_750.txt")),
 }
 LIMITED_VERBS_BY_TYPE["all-limited-verbs"] = list(chain(*LIMITED_VERBS_BY_TYPE.values()))
 
@@ -30,7 +34,7 @@ DATASET_CREATOR_BY_TYPE = {
 		**kwargs,
 		args_extractor=ExtractorFactory(**kwargs)(),
 		verb_translator=VerbTranslatorFactory(**kwargs)(),
-		encoder=EncoderFactory(**kwargs)(),
+		arg_encoder=ArgumentEncoderFactory(**kwargs)(),
 		limited_verbs=LIMITED_VERBS_BY_TYPE[kwargs["limited_verbs_type"]]
 	),
 	EncodedExtractionsExpander: lambda kwargs: EncodedExtractionsExpander(
@@ -38,7 +42,7 @@ DATASET_CREATOR_BY_TYPE = {
 		dependency_parser=DependencyParserFactory(**kwargs)(),
 		args_extractor=ExtractorFactory(**kwargs)(),
 		verb_translator=VerbTranslatorFactory(**kwargs)(),
-		encoder=EncoderFactory(**kwargs)()
+		arg_encoder=ArgumentEncoderFactory(**kwargs)()
 	)
 }
 

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from yet_another_verb.arguments_extractor.extraction import Extractions
-from yet_another_verb.arguments_extractor.extractors.dep_constraints_args_extractor import \
+from yet_another_verb.arguments_extractor.extractors.constraints_based.dep_constraints_args_extractor import \
 	DepConstraintsArgsExtractor
 from yet_another_verb.configuration.parsing_config import PARSING_CONFIG
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
@@ -22,7 +22,6 @@ class NomlexArgsExtractor(DepConstraintsArgsExtractor):
 		super().__init__(dependency_parser, **kwargs)
 		from yet_another_verb.nomlex.nomlex_maestro import NomlexMaestro
 		self.adapted_lexicon = timeit(NomlexMaestro(nomlex_version).get_adapted_lexicon)()
-		self.dependency_parser = dependency_parser
 
 	def _is_potential_predicate(
 			self, word_idx: int, words: list,

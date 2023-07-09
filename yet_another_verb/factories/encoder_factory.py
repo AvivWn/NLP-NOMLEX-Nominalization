@@ -25,10 +25,6 @@ class EncoderFactory(Factory):
 			help="The name of the encoder"
 		)
 		arg_parser.add_argument(
-			'--encoding-level', default=None,
-			help="The encoding level of an argument"
-		)
-		arg_parser.add_argument(
 			'--device', default=ENCODING_CONFIG.DEVICE,
 			help="The device which the encoder will run on"
 		)

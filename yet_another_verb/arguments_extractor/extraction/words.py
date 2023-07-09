@@ -1,12 +1,14 @@
 from dataclasses import dataclass, field
-from typing import Union, List, Optional
+from typing import Union, List, Optional, TYPE_CHECKING
 
-from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_span import ParsedSpan
 
-Words = Union[List[str], ParsedText, CompressedParsedText, 'TokenizedText']
+if TYPE_CHECKING:
+	from yet_another_verb.data_handling.bytes.compressed.compressed_parsed_text import CompressedParsedText
+
+Words = Union[List[str], ParsedText, 'CompressedParsedText', 'TokenizedText']
 
 
 @dataclass

@@ -57,6 +57,9 @@ class ArgsExtractor(abc.ABC):
 			if self._is_potential_predicate(i, words, limited_predicates, limited_postags, allow_related_forms):
 				extractions = self.extract(i, words)
 
+				if extractions is None:
+					continue
+
 				if reference_matcher is not None:
 					extractions = reference_matcher.filter_by(extractions, references)
 

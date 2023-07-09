@@ -29,6 +29,12 @@ class ExtractedArgument:
 	def __hash__(self):
 		return hash((self.arg_type, self.start_idx, self.end_idx, self.head_idx))
 
+	def __setattr__(self, key: str, value):
+		super().__setattr__(key, value)
+
+		if key == 'arg_type':
+			self.arg_tag = value
+
 	@property
 	def arg_indices(self) -> List[int]:
 		return list(range(self.start_idx, self.end_idx + 1))
@@ -44,3 +50,6 @@ class ExtractedArgument:
 			raise EmptyArgumentException("Trying to remove all indices from an argument, presumably because arguments overlap.")
 
 		self.start_idx, self.end_idx = get_indices_as_range(new_arg_indices)
+
+
+ExtractedArguments = List[ExtractedArgument]

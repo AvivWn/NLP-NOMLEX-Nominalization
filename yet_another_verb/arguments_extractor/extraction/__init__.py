@@ -1,4 +1,5 @@
-from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, ArgRange
+from yet_another_verb.arguments_extractor.extraction.argument.extracted_argument import ExtractedArgument, \
+	ExtractedArguments, ArgRange
 from yet_another_verb.arguments_extractor.extraction.argument.argument_type import ArgumentType
 from yet_another_verb.arguments_extractor.extraction.extraction import Extraction, Extractions
 from yet_another_verb.arguments_extractor.extraction.multi_word_extraction import MultiWordExtraction, \

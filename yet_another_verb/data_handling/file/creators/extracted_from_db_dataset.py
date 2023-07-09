@@ -6,7 +6,7 @@ from yet_another_verb.data_handling import ExtractedFileHandler
 from yet_another_verb.data_handling.dataset_creator import DatasetCreator
 from yet_another_verb.data_handling.file.handlers.extracted_file_handler import EXTRACTED_FILE
 from yet_another_verb.dependency_parsing import POSTag
-from yet_another_verb.sentence_encoding.argument_encoding.encoding_level import EncodingLevel
+from yet_another_verb.configuration.encoding_config import EncodingLevel
 
 
 class ExtractedFromDBDatasetCreator(DatasetCreator):
@@ -42,6 +42,6 @@ class ExtractedFromDBDatasetCreator(DatasetCreator):
 				self.in_dataset_path, self.parsing_engine, self.parser_name, keep_compressed=self.compress_internally) as loader:
 			extractions = loader.get_encoded_extractions(
 				self.extraction_mode, self.encoding_framework, self.encoder_name,
-				EncodingLevel.HEAD_IDX_IN_SENTENCE_CONTEXT, self.limited_postags)
+				self.encoding_level, self.limited_postags)
 
 		ExtractedFileHandler(loader.parser, compress_internally=self.compress_internally).save(out_dataset_path, extractions)

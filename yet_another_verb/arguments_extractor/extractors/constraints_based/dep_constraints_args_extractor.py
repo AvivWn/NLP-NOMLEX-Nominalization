@@ -3,11 +3,11 @@ from itertools import chain, permutations, product
 from typing import List, Optional, Iterable, Union
 from copy import deepcopy
 
-from yet_another_verb.arguments_extractor.args_extractor import ArgsExtractor
-from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, ArgumentType, ExtractedArgument
+from yet_another_verb.arguments_extractor.extraction import Extraction, Extractions, ArgumentType, ExtractedArgument, \
+	ExtractedArguments
 from yet_another_verb.arguments_extractor.extraction.utils.filters import prefer_by_n_args, uniqify, \
 	prefer_by_constraints
-from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
+from yet_another_verb.arguments_extractor.extractors.dep_related_args_extractor import DepRelatedArgsExtractor
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_word import ParsedWord
 from yet_another_verb.dependency_parsing.dependency_parser.parsed_text import ParsedText
 from yet_another_verb.exceptions import EmptyArgumentException
@@ -15,39 +15,7 @@ from yet_another_verb.nomlex.representation.constraints_map import ConstraintsMa
 from yet_another_verb.utils.hashing_utils import consistent_hash
 
 
-class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
-	def __init__(self, dependency_parser: DependencyParser, **kwargs):
-		self.dependency_parser = dependency_parser
-
-	def _tokenize(self, text: str) -> list:
-		return self.dependency_parser(text)
-
-	def _is_potential_predicate(
-			self, word_idx: int, words: list,
-			limited_predicates: Optional[list], limited_postags: Optional[list],
-			allow_related_forms: bool
-	) -> bool:
-		word = words[word_idx]
-
-		if limited_postags is not None:
-			if word.tag not in limited_postags and word.pos not in limited_postags:
-				return False
-
-		if limited_predicates is None:
-			return True
-
-		return word.lemma in limited_predicates
-
-	def _is_potential_sentence(
-			self, words: list,
-			limited_predicates: Optional[list], allow_related_forms: bool
-	) -> bool:
-		if limited_predicates is None:
-			return True
-
-		lemmas = set([w.lemma for w in words])
-		return not lemmas.isdisjoint(limited_predicates)
-
+class DepConstraintsArgsExtractor(DepRelatedArgsExtractor, abc.ABC):
 	@staticmethod
 	def _is_not_empty_and_disjoint(l1: Union[list, set], l2: Union[list, set]):
 		return len(l1) > 0 and len(l2) > 0 and set(l1).isdisjoint(l2)
@@ -84,7 +52,7 @@ class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
 	def _get_relatives_matched_args(
 			self, words: ParsedText, predicate: ParsedWord, relatives: Iterable[Optional[ParsedWord]],
 			constraints_maps: List[Optional[ConstraintsMap]]
-	) -> Optional[List[List[ExtractedArgument]]]:
+	) -> Optional[List[ExtractedArguments]]:
 		relatives_matched_args = []
 		for i, relative in enumerate(relatives):
 			if i >= len(constraints_maps):
@@ -108,7 +76,7 @@ class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
 		return [list(chain(*combined_args)) for combined_args in product(*relatives_matched_args)]
 
 	@staticmethod
-	def _get_combined_args(args: List[ExtractedArgument], new_arg: ExtractedArgument, constraints_map: ConstraintsMap) -> List[ExtractedArgument]:
+	def _get_combined_args(args: ExtractedArguments, new_arg: ExtractedArgument, constraints_map: ConstraintsMap) -> ExtractedArguments:
 		combined_args_by_type = {new_arg.arg_type: new_arg}
 		other_args_indices = set()
 		typeless_args = []
@@ -152,7 +120,7 @@ class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
 
 	def _get_matched_arguments(
 			self, words: ParsedText, predicate: ParsedWord, word: ParsedWord, constraints_map: ConstraintsMap
-	) -> Optional[List[List[ExtractedArgument]]]:
+	) -> Optional[List[ExtractedArguments]]:
 		is_match_constraints = self._is_word_match_constraints(word, constraints_map)
 		if not is_match_constraints:
 			return None
@@ -194,7 +162,7 @@ class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
 		return matched_args_combinations
 
 	@staticmethod
-	def _reorder_numbered_args(extracted_args: List[ExtractedArgument]):
+	def _reorder_numbered_args(extracted_args: ExtractedArguments):
 		arg_by_type = {arg.arg_type: arg for arg in extracted_args}
 		pp1_arg = arg_by_type.get(ArgumentType.PP1)
 		pp2_arg = arg_by_type.get(ArgumentType.PP2)
@@ -202,9 +170,7 @@ class DepConstraintsArgsExtractor(ArgsExtractor, abc.ABC):
 		if pp1_arg is not None and pp2_arg is not None:
 			if pp1_arg.start_idx > pp2_arg.start_idx:
 				pp1_arg.arg_type = ArgumentType.PP2
-				pp1_arg.arg_tag = ArgumentType.PP2
 				pp2_arg.arg_type = ArgumentType.PP1
-				pp2_arg.arg_tag = ArgumentType.PP1
 
 	def _extract_by_constraints_maps(self, word_idx: int, words: ParsedText, constraints_maps: ORConstraintsMaps) -> Optional[Extractions]:
 		word = words[word_idx]

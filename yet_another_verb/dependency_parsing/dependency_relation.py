@@ -26,6 +26,7 @@ class DepRelation(str, Enum):
 
 
 DEP_RELATIONS = {r for r in DepRelation}
+PREP_RELATIONS = [DepRelation.CASE, DepRelation.MARK]
 
 # backward compatability object name
 WordRelation = DepRelation

@@ -30,9 +30,13 @@ class ExtractionRepresentation(abc.ABC):
 
 		return extraction_repr
 
-	def represent_multiple(self, extractions: Extractions, combined=False) -> Union[ExtractionRepr, List[ExtractionRepr]]:
+	def represent_multiple(self, extractions: Extractions, combined=False) \
+		-> Optional[Union[ExtractionRepr, List[ExtractionRepr]]]:
 		if combined:
 			extraction = combine_extractions(extractions, safe_combine=True)
+			if len(extraction.args) == 0:
+				return None
+
 			return self.represent_single(extraction)
 
 		list_repr = [self.represent_single(e) for e in extractions]
@@ -43,6 +47,8 @@ class ExtractionRepresentation(abc.ABC):
 		for predicate_idx, extractions in multi_word_ext.extractions_per_idx.items():
 			if len(extractions) != 0:
 				extractions_repr = self.represent_multiple(extractions, combined=combined)
-				dict_repr[self._represent_predicate(multi_word_ext.words, predicate_idx)] = extractions_repr
+
+				if extractions_repr is not None:
+					dict_repr[self._represent_predicate(multi_word_ext.words, predicate_idx)] = extractions_repr
 
 		return dict_repr

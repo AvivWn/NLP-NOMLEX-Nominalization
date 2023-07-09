@@ -1,7 +1,7 @@
 from typing import Optional
 
 from yet_another_verb.arguments_extractor.extraction import Extractions, ArgumentType
-from yet_another_verb.arguments_extractor.extractors.dep_constraints_args_extractor import \
+from yet_another_verb.arguments_extractor.extractors.constraints_based.dep_constraints_args_extractor import \
 	DepConstraintsArgsExtractor
 from yet_another_verb.dependency_parsing import DepRelation
 from yet_another_verb.dependency_parsing.dependency_parser.dependency_parser import DependencyParser
@@ -15,7 +15,6 @@ class PatternsArgsExtractor(DepConstraintsArgsExtractor):
 			constraints_maps: ORConstraintsMaps,
 			**kwargs):
 		super().__init__(dependency_parser, **kwargs)
-		self.dependency_parser = dependency_parser
 		self.constraints_maps = constraints_maps
 
 	def extract(self, word_idx: int, words: ParsedText) -> Optional[Extractions]:

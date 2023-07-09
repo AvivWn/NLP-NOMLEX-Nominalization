@@ -19,11 +19,12 @@ class MentionType(str, Enum):
 class ParsedOdinMentionRepresentation(ParsedRepresentation):
 	def __init__(
 			self, document_id: str, sentence_id: int, in_document_prefix: int,
-			arg_types: Optional[ArgumentTypes] = None):
+			arg_types: Optional[ArgumentTypes] = None, use_head_idx_only: bool = False):
 		super().__init__(arg_types)
 		self.document_id = document_id
 		self.sentence_id = sentence_id
 		self.in_document_prefix = in_document_prefix
+		self.use_head_idx_only = use_head_idx_only
 
 	def _as_mention(
 			self, mention_type: MentionType, words: ParsedWords, predicate_idx: int,
@@ -57,7 +58,13 @@ class ParsedOdinMentionRepresentation(ParsedRepresentation):
 
 	@typechecked
 	def _represent_argument(self, words: ParsedWords, predicate_idx: int, argument: ExtractedArgument) -> dict:
-		return self._as_mention(MentionType.TEXT_BOUND, words, predicate_idx, argument.start_idx, argument.end_idx)
+		if self.use_head_idx_only:
+			start_idx = end_idx = argument.head_idx
+		else:
+			start_idx = argument.start_idx
+			end_idx = argument.end_idx
+
+		return self._as_mention(MentionType.TEXT_BOUND, words, predicate_idx, start_idx, end_idx)
 
 	@typechecked
 	def _represent_predicate(self, words: ParsedWords, predicate_idx: int) -> int:

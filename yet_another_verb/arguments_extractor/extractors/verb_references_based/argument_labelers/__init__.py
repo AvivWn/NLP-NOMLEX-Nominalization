@@ -1,0 +1,8 @@
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.argument_labelers.\
+	args_labeler import ArgumentsLabeler
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.argument_labelers.\
+	args_labeler_by_argument_knn import ArgumentsLabelerByArgumentKNN
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.argument_labelers.\
+	args_labeler_by_avg import ArgumentsLabelerByAVG
+from yet_another_verb.arguments_extractor.extractors.verb_references_based.argument_labelers.\
+	args_labeler_by_extraction_knn import ArgumentsLabelerByExtractionKNN
